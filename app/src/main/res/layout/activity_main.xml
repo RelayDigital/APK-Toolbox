@@ -261,14 +261,15 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonPickApk"
-            style="?attr/materialButtonTonalStyle"
+            style="@style/Widget.Material3Expressive.Button.TonalButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
             android:layout_marginVertical="12dp"
             android:text="@string/button_pick_apk"
             app:icon="@drawable/ic_folder"
-            app:iconGravity="textStart" />
+            app:iconGravity="textStart"
+            app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
 
     </FrameLayout>
 </LinearLayout>

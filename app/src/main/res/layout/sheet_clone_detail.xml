@@ -16,18 +16,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/detail_title"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall" />
-
         <include
             android:id="@+id/appCard"
             layout="@layout/view_app_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp" />
+            android:layout_marginTop="4dp" />
 
         <com.google.android.material.card.MaterialCardView
             style="?attr/materialCardViewFilledStyle"
@@ -135,22 +129,25 @@
             android:indeterminate="true"
             android:visibility="gone" />
 
-        <LinearLayout
+        <com.google.android.material.button.MaterialButtonGroup
+            android:id="@+id/actions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:orientation="horizontal">
+            android:layout_marginTop="20dp">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/buttonDelete"
                 style="@style/Widget.Material3Expressive.Button.TonalButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
                 android:layout_weight="1"
                 android:text="@string/button_delete"
                 android:textColor="?attr/colorOnErrorContainer"
-                app:backgroundTint="?attr/colorErrorContainer" />
+                app:backgroundTint="?attr/colorErrorContainer"
+                app:iconTint="?attr/colorOnErrorContainer"
+                app:icon="@drawable/ic_delete"
+                app:iconGravity="textStart"
+                app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/buttonUpdate"
@@ -158,8 +155,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/button_update" />
+                android:text="@string/button_update"
+                app:icon="@drawable/ic_update"
+                app:iconGravity="textStart"
+                app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
 
-        </LinearLayout>
+        </com.google.android.material.button.MaterialButtonGroup>
+
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

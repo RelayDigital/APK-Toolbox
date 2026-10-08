@@ -20,8 +20,6 @@
     <string name="clone_update_available">Update available: %1$s → %2$s</string>
     <string name="clone_original_missing">%1$s is not installed</string>
     <string name="button_update">Update</string>
-
-    <string name="sheet_title">Clone app</string>
     <string name="field_package">Package name</string>
     <string name="field_app_name">App name</string>
     <string name="default_clone_package" translatable="false">%1$s.clone</string>
@@ -30,7 +28,7 @@
     <string name="signature_hint">The clone is signed with APK Cloner\'s own key: the original signature cannot be reused once the app is modified.</string>
     <string name="button_clone">Clone</string>
     <string name="button_install">Install</string>
-    <string name="button_save">Save APK</string>
+    <string name="button_save">Save</string>
     <string name="status_running">Processing %1$s (%2$d of %3$d)…</string>
     <string name="status_done">The clone is ready</string>
     <string name="status_saved">Saved</string>
@@ -64,8 +62,6 @@
     <string name="source_url" translatable="false">https://github.com/bl3xand/APK-Cloner</string>
 
     <string name="channel_updates">Clone updates</string>
-
-    <string name="detail_title">Clone</string>
     <string name="settings_play_protect_note">Google Play Protect treats re-signed apps as unknown and may ask to scan or block them. An update it does not let through is not installed; you get a notification that updates are available instead. Turning app scanning off removes these prompts, but lowers the protection of the device.</string>
     <string name="settings_play_protect_button">Play Protect settings</string>
     <string name="notification_updating">Updating %1$s…</string>

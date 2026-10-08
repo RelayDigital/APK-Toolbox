@@ -18,15 +18,13 @@
     <string name="clone_update_available">Доступно обновление: %1$s → %2$s</string>
     <string name="clone_original_missing">%1$s не установлено</string>
     <string name="button_update">Обновить</string>
-
-    <string name="sheet_title">Клонирование</string>
     <string name="field_package">Имя пакета</string>
     <string name="field_app_name">Имя приложения</string>
     <string name="error_invalid_package">Нужно минимум две части через точку: буквы, цифры и подчёркивания</string>
     <string name="signature_hint">Клон подписывается собственным ключом APK Cloner: оригинальную подпись нельзя использовать после изменения приложения.</string>
     <string name="button_clone">Клонировать</string>
     <string name="button_install">Установить</string>
-    <string name="button_save">Сохранить APK</string>
+    <string name="button_save">Сохранить</string>
     <string name="status_running">Обработка %1$s (%2$d из %3$d)…</string>
     <string name="status_done">Клон готов</string>
     <string name="status_saved">Сохранено</string>
@@ -57,8 +55,6 @@
     </string-array>
 
     <string name="channel_updates">Обновления клонов</string>
-
-    <string name="detail_title">Клон</string>
     <string name="settings_play_protect_note">Google Play Защита считает переподписанные приложения неизвестными и может предлагать проверку или блокировать их. Обновление, которое она не пропустила, не устанавливается — вместо этого придёт уведомление о доступных обновлениях. Отключение проверки приложений убирает эти запросы, но снижает защиту устройства.</string>
     <string name="settings_play_protect_button">Настройки Play Защиты</string>
     <string name="notification_updating">Обновление %1$s…</string>

@@ -18,15 +18,13 @@
     <string name="clone_update_available">有可用更新：%1$s → %2$s</string>
     <string name="clone_original_missing">未安装 %1$s</string>
     <string name="button_update">更新</string>
-
-    <string name="sheet_title">克隆应用</string>
     <string name="field_package">包名</string>
     <string name="field_app_name">应用名称</string>
     <string name="error_invalid_package">至少需要两个以点分隔的部分，由字母、数字和下划线组成</string>
     <string name="signature_hint">克隆应用使用 APK Cloner 自己的密钥签名：应用被修改后无法再使用原始签名。</string>
     <string name="button_clone">克隆</string>
     <string name="button_install">安装</string>
-    <string name="button_save">保存 APK</string>
+    <string name="button_save">保存</string>
     <string name="status_running">正在处理 %1$s（%2$d/%3$d）…</string>
     <string name="status_done">克隆已完成</string>
     <string name="status_saved">已保存</string>
@@ -57,8 +55,6 @@
     </string-array>
 
     <string name="channel_updates">克隆应用更新</string>
-
-    <string name="detail_title">克隆应用</string>
     <string name="settings_play_protect_note">Google Play 保护机制会将重新签名的应用视为未知应用，可能要求扫描或直接拦截。被拦截的更新不会安装，你会收到有可用更新的通知。关闭应用扫描可以消除这些提示，但会降低设备的安全性。</string>
     <string name="settings_play_protect_button">Play 保护机制设置</string>
     <string name="notification_updating">正在更新 %1$s…</string>

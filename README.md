@@ -20,7 +20,7 @@ keeping its data — in one tap, or automatically in the background.
 2. Pick an installed app, or tap **Choose APK file**.
 3. Adjust the package name (`<original>.clone` by default) and the app name,
    tap **Clone**.
-4. **Install** the clone, or **Save APK** wherever you like.
+4. **Install** the clone, or **Save** the APK wherever you like.
 
 Installed clones are listed on the **Clones** tab. Tap one to see which app
 and version it was made from, and to **Update** or **Delete** it. To keep

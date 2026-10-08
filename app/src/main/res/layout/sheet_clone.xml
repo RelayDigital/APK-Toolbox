@@ -16,18 +16,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/sheet_title"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall" />
-
         <include
             android:id="@+id/appCard"
             layout="@layout/view_app_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp" />
+            android:layout_marginTop="4dp" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/layoutPackage"
@@ -94,14 +88,16 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:text="@string/button_clone" />
+            android:text="@string/button_clone"
+            app:icon="@drawable/ic_copy"
+            app:iconGravity="textStart"
+            app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
 
-        <LinearLayout
+        <com.google.android.material.button.MaterialButtonGroup
             android:id="@+id/resultActions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:orientation="horizontal"
             android:visibility="gone">
 
             <com.google.android.material.button.MaterialButton
@@ -109,9 +105,11 @@
                 style="@style/Widget.Material3Expressive.Button.TonalButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:text="@string/button_save" />
+                android:text="@string/button_save"
+                app:icon="@drawable/ic_folder"
+                app:iconGravity="textStart"
+                app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/buttonInstall"
@@ -119,9 +117,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/button_install" />
+                android:text="@string/button_install"
+                app:icon="@drawable/ic_install"
+                app:iconGravity="textStart"
+                app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
 
-        </LinearLayout>
+        </com.google.android.material.button.MaterialButtonGroup>
 
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>
