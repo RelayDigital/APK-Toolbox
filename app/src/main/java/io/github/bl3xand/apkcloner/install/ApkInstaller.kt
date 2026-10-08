@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkclonner.install
+package io.github.bl3xand.apkcloner.install
 
 import android.app.PendingIntent
 import android.content.Context
@@ -9,7 +9,11 @@ import java.io.File
 object ApkInstaller {
 
     /** Hands the APKs (base plus splits) to the system installer as a single session. */
-    fun install(context: Context, apks: List<File>) {
+    /**
+     * [background] marks sessions started without the app on screen: if the system insists on a
+     * confirmation, it is offered as a notification instead of being launched directly.
+     */
+    fun install(context: Context, apks: List<File>, background: Boolean = false, label: String = "") {
         val installer = context.packageManager.packageInstaller
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
         // Lets the system skip the confirmation when updating a clone this app installed itself.
@@ -26,7 +30,9 @@ object ApkInstaller {
             val callback = PendingIntent.getBroadcast(
                 context,
                 sessionId,
-                Intent(context, InstallReceiver::class.java),
+                Intent(context, InstallReceiver::class.java)
+                    .putExtra(InstallReceiver.EXTRA_BACKGROUND, background)
+                    .putExtra(InstallReceiver.EXTRA_LABEL, label),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
             )
             session.commit(callback.intentSender)

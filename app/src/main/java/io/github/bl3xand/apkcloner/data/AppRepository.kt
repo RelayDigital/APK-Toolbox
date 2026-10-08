@@ -1,11 +1,11 @@
-package io.github.bl3xand.apkclonner.data
+package io.github.bl3xand.apkcloner.data
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.net.Uri
-import io.github.bl3xand.apkclonner.clone.ApkCloner
+import io.github.bl3xand.apkcloner.clone.ApkCloner
 import java.io.File
 
 class AppRepository(private val context: Context, private val cloner: ApkCloner) {

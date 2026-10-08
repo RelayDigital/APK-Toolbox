@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkclonner.ui
+package io.github.bl3xand.apkcloner.ui
 
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
@@ -9,8 +9,8 @@ import android.widget.ImageView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import io.github.bl3xand.apkclonner.data.ApkSource
-import io.github.bl3xand.apkclonner.databinding.ItemAppBinding
+import io.github.bl3xand.apkcloner.data.ApkSource
+import io.github.bl3xand.apkcloner.databinding.ItemAppBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

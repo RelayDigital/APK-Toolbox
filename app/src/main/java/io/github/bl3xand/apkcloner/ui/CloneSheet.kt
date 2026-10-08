@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkclonner.ui
+package io.github.bl3xand.apkcloner.ui
 
 import android.content.DialogInterface
 import android.os.Bundle
@@ -15,8 +15,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import io.github.bl3xand.apkclonner.R
-import io.github.bl3xand.apkclonner.databinding.SheetCloneBinding
+import io.github.bl3xand.apkcloner.R
+import io.github.bl3xand.apkcloner.databinding.SheetCloneBinding
 import kotlinx.coroutines.launch
 
 class CloneSheet : BottomSheetDialogFragment() {

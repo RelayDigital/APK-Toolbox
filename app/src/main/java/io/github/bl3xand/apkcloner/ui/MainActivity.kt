@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkclonner.ui
+package io.github.bl3xand.apkcloner.ui
 
 import android.content.Intent
 import android.net.Uri
@@ -19,8 +19,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
-import io.github.bl3xand.apkclonner.R
-import io.github.bl3xand.apkclonner.databinding.ActivityMainBinding
+import io.github.bl3xand.apkcloner.R
+import io.github.bl3xand.apkcloner.databinding.ActivityMainBinding
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -49,7 +49,11 @@ class MainActivity : AppCompatActivity() {
 
         val icons = IconLoader(lifecycleScope, packageManager)
         val appAdapter = AppAdapter(icons, viewModel::select)
-        val cloneAdapter = CloneAdapter(icons, viewModel::updateClone)
+        val cloneAdapter = CloneAdapter(icons) { clone ->
+            if (supportFragmentManager.findFragmentByTag(CloneDetailSheet.TAG) == null) {
+                CloneDetailSheet.newInstance(clone).show(supportFragmentManager, CloneDetailSheet.TAG)
+            }
+        }
         binding.listApps.adapter = appAdapter
         binding.listClones.adapter = cloneAdapter
 
@@ -75,6 +79,11 @@ class MainActivity : AppCompatActivity() {
             openSettings(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
         }
         binding.buttonPickApk.setOnClickListener { pickApk.launch(APK_MIME_TYPES) }
+        binding.buttonSettings.setOnClickListener {
+            if (supportFragmentManager.findFragmentByTag(SettingsSheet.TAG) == null) {
+                SettingsSheet().show(supportFragmentManager, SettingsSheet.TAG)
+            }
+        }
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {

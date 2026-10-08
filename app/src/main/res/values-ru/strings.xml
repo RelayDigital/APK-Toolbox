@@ -1,8 +1,8 @@
 <resources>
     <string name="access_title">Нужен доступ к файлам</string>
-    <string name="access_description">Разрешите доступ ко всем файлам, чтобы ApkClonner мог работать с APK-файлами в общем хранилище.</string>
+    <string name="access_description">Разрешите доступ ко всем файлам, чтобы APK Cloner мог работать с APK-файлами в общем хранилище.</string>
     <string name="install_access_title">Нужно разрешение на установку</string>
-    <string name="install_access_description">Разрешите ApkClonner устанавливать приложения, чтобы ставить и обновлять клоны прямо отсюда.</string>
+    <string name="install_access_description">Разрешите APK Cloner устанавливать приложения, чтобы ставить и обновлять клоны прямо отсюда.</string>
     <string name="button_grant_access">Разрешить</string>
 
     <string name="tab_apps">Приложения</string>
@@ -15,7 +15,7 @@
     <string name="error_invalid_apk">Этот файл не является корректным APK</string>
 
     <string name="clone_up_to_date">Версия %1$s · актуальная</string>
-    <string name="clone_update_available">%1$s → %2$s</string>
+    <string name="clone_update_available">Доступно обновление: %1$s → %2$s</string>
     <string name="clone_original_missing">%1$s не установлено</string>
     <string name="button_update">Обновить</string>
 
@@ -23,7 +23,7 @@
     <string name="field_package">Имя пакета</string>
     <string name="field_app_name">Имя приложения</string>
     <string name="error_invalid_package">Нужно минимум две части через точку: буквы, цифры и подчёркивания</string>
-    <string name="signature_hint">Клон подписывается собственным ключом ApkClonner: оригинальную подпись нельзя использовать после изменения приложения.</string>
+    <string name="signature_hint">Клон подписывается собственным ключом APK Cloner: оригинальную подпись нельзя использовать после изменения приложения.</string>
     <string name="button_clone">Клонировать</string>
     <string name="button_install">Установить</string>
     <string name="button_save">Сохранить APK</string>
@@ -35,4 +35,30 @@
 
     <string name="install_success">Клон установлен</string>
     <string name="install_failed">Ошибка установки: %1$s</string>
+
+    <string name="detail_update_available">Установлена более новая версия оригинала</string>
+    <string name="detail_cloned_from">Клонировано из</string>
+    <string name="detail_original_version">Версия оригинала</string>
+    <string name="detail_clone_version">Версия клона</string>
+    <string name="detail_not_installed">Не установлено</string>
+    <string name="button_delete">Удалить</string>
+
+    <string name="settings_title">Настройки</string>
+    <string name="settings_auto_update">Обновлять клоны автоматически</string>
+    <string name="settings_auto_update_description">Проверять в фоне, в том числе после перезагрузки, и обновлять клоны, когда у оригинала выходит новая версия.</string>
+    <string name="settings_check_interval">Проверять обновления: %1$s</string>
+    <string-array name="check_intervals">
+        <item>раз в день</item>
+        <item>раз в 3 дня</item>
+        <item>раз в неделю</item>
+        <item>раз в 2 недели</item>
+        <item>раз в месяц</item>
+        <item>раз в 3 месяца</item>
+        <item>раз в полгода</item>
+        <item>раз в год</item>
+    </string-array>
+
+    <string name="channel_updates">Обновления клонов</string>
+    <string name="notification_update_title">Готово обновление для %1$s</string>
+    <string name="notification_update_text">Нажмите, чтобы подтвердить установку</string>
 </resources>

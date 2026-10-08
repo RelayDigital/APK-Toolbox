@@ -1,10 +1,10 @@
 <resources>
-    <string name="app_name" translatable="false">ApkClonner</string>
+    <string name="app_name" translatable="false">APK Cloner</string>
 
     <string name="access_title">File access required</string>
-    <string name="access_description">Allow access to all files so ApkClonner can work with APK files in shared storage.</string>
+    <string name="access_description">Allow access to all files so APK Cloner can work with APK files in shared storage.</string>
     <string name="install_access_title">Install permission required</string>
-    <string name="install_access_description">Allow ApkClonner to install apps so clones can be installed and updated right from here.</string>
+    <string name="install_access_description">Allow APK Cloner to install apps so clones can be installed and updated right from here.</string>
     <string name="button_grant_access">Grant access</string>
 
     <string name="tab_apps">Apps</string>
@@ -17,7 +17,7 @@
     <string name="error_invalid_apk">This file is not a valid APK</string>
 
     <string name="clone_up_to_date">Version %1$s · up to date</string>
-    <string name="clone_update_available">%1$s → %2$s</string>
+    <string name="clone_update_available">Update available: %1$s → %2$s</string>
     <string name="clone_original_missing">%1$s is not installed</string>
     <string name="button_update">Update</string>
 
@@ -27,7 +27,7 @@
     <string name="default_clone_package" translatable="false">%1$s.clone</string>
     <string name="default_clone_name" translatable="false">%1$s Clone</string>
     <string name="error_invalid_package">Use at least two dot-separated parts made of letters, digits and underscores</string>
-    <string name="signature_hint">The clone is signed with ApkClonner\'s own key: the original signature cannot be reused once the app is modified.</string>
+    <string name="signature_hint">The clone is signed with APK Cloner\'s own key: the original signature cannot be reused once the app is modified.</string>
     <string name="button_clone">Clone</string>
     <string name="button_install">Install</string>
     <string name="button_save">Save APK</string>
@@ -39,4 +39,33 @@
 
     <string name="install_success">Clone installed</string>
     <string name="install_failed">Installation failed: %1$s</string>
+
+    <string name="detail_update_available">A newer version of the original is installed</string>
+    <string name="detail_cloned_from">Cloned from</string>
+    <string name="detail_original_version">Original version</string>
+    <string name="detail_clone_version">Clone version</string>
+    <string name="detail_not_installed">Not installed</string>
+    <string name="button_delete">Delete</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_auto_update">Update clones automatically</string>
+    <string name="settings_auto_update_description">Check in the background, including after a reboot, and update clones when the original app gets a new version.</string>
+    <string name="settings_check_interval">Check for updates: %1$s</string>
+    <string-array name="check_intervals">
+        <item>once a day</item>
+        <item>every 3 days</item>
+        <item>once a week</item>
+        <item>every 2 weeks</item>
+        <item>once a month</item>
+        <item>every 3 months</item>
+        <item>every 6 months</item>
+        <item>once a year</item>
+    </string-array>
+    <string name="settings_version" translatable="false">APK Cloner %1$s</string>
+    <string name="source_link" translatable="false">github.com/bl3xand/APK-Cloner</string>
+    <string name="source_url" translatable="false">https://github.com/bl3xand/APK-Cloner</string>
+
+    <string name="channel_updates">Clone updates</string>
+    <string name="notification_update_title">Update for %1$s is ready</string>
+    <string name="notification_update_text">Tap to confirm the installation</string>
 </resources>

@@ -3,14 +3,14 @@ plugins {
 }
 
 android {
-    namespace = "io.github.bl3xand.apkclonner"
+    namespace = "io.github.bl3xand.apkcloner"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "io.github.bl3xand.apkclonner"
+        applicationId = "io.github.bl3xand.apkcloner"
         minSdk = 35
         targetSdk = 36
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0"
     }
 
@@ -27,6 +27,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 }
 
@@ -40,5 +41,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.material)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.apksig)
 }

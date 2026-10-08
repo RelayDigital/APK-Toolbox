@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkclonner.clone
+package io.github.bl3xand.apkcloner.clone
 
 import java.io.BufferedOutputStream
 import java.io.File
@@ -27,7 +27,7 @@ object ApkRebuilder {
                 var manifestFound = false
                 for (entry in zip.entries()) {
                     if (entry.isDirectory || !seen.add(entry.name)) continue
-                    if (SIGNATURE_FILE.matches(entry.name) || entry.name == ApkCloner.METADATA_ENTRY) continue
+                    if (SIGNATURE_FILE.matches(entry.name) || entry.name.startsWith("META-INF/apkclon")) continue
 
                     val copy = ZipEntry(entry.name).apply { if (entry.time != -1L) time = entry.time }
                     if (entry.name == MANIFEST) {

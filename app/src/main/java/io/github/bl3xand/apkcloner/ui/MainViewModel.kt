@@ -1,18 +1,17 @@
-package io.github.bl3xand.apkclonner.ui
+package io.github.bl3xand.apkcloner.ui
 
 import android.app.Application
 import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.bl3xand.apkclonner.R
-import io.github.bl3xand.apkclonner.clone.ApkCloner
-import io.github.bl3xand.apkclonner.clone.CloneRequest
-import io.github.bl3xand.apkclonner.data.ApkSource
-import io.github.bl3xand.apkclonner.data.AppRepository
-import io.github.bl3xand.apkclonner.data.CloneInfo
-import io.github.bl3xand.apkclonner.install.ApkInstaller
-import io.github.bl3xand.apkclonner.install.InstallReceiver
+import io.github.bl3xand.apkcloner.R
+import io.github.bl3xand.apkcloner.clone.ApkCloner
+import io.github.bl3xand.apkcloner.data.ApkSource
+import io.github.bl3xand.apkcloner.data.AppRepository
+import io.github.bl3xand.apkcloner.data.CloneInfo
+import io.github.bl3xand.apkcloner.install.ApkInstaller
+import io.github.bl3xand.apkcloner.install.InstallReceiver
 import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -136,7 +135,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _cloneState.value = withContext(Dispatchers.IO) {
                 try {
-                    CloneState.Done(cloner.clone(request(source, newPackage, newLabel), sheetOutput) { file, index, total ->
+                    CloneState.Done(cloner.clone(source.cloneRequest(newPackage, newLabel), sheetOutput) { file, index, total ->
                         _cloneState.value = CloneState.Running(file, index, total)
                     })
                 } catch (e: Exception) {
@@ -194,17 +193,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /**
-     * Re-clones the original under the clone's package name and installs it over the old clone.
-     * Both are signed with the same key, so the system treats it as a normal update.
-     */
     fun updateClone(clone: CloneInfo) {
-        val original = clone.original ?: return
+        val request = clone.updateRequest() ?: return
         if (_uiState.value.updatingClone != null) return
         _uiState.update { it.copy(updatingClone = clone.app.packageName) }
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val apks = cloner.clone(request(original, clone.app.packageName, clone.app.label), updateOutput) { _, _, _ -> }
+                val apks = cloner.clone(request, updateOutput) { _, _, _ -> }
                 install(apks)
             } catch (e: Exception) {
                 _events.tryEmit(MainEvent.Message(R.string.status_failed, e.message ?: e.javaClass.simpleName))
@@ -228,12 +223,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             publishApps()
         }
     }
-
-    private fun request(source: ApkSource, newPackage: String, newLabel: String) = CloneRequest(
-        apks = source.apkPaths.map(::File),
-        newPackage = newPackage,
-        newLabel = newLabel.takeIf { it != source.label },
-    )
 
     private fun install(apks: List<File>) {
         try {

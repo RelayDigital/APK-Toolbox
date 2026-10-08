@@ -1,8 +1,8 @@
 <resources>
     <string name="access_title">需要文件访问权限</string>
-    <string name="access_description">请允许访问所有文件，以便 ApkClonner 处理共享存储中的 APK 文件。</string>
+    <string name="access_description">请允许访问所有文件，以便 APK Cloner 处理共享存储中的 APK 文件。</string>
     <string name="install_access_title">需要安装权限</string>
-    <string name="install_access_description">请允许 ApkClonner 安装应用，以便直接在此安装和更新克隆应用。</string>
+    <string name="install_access_description">请允许 APK Cloner 安装应用，以便直接在此安装和更新克隆应用。</string>
     <string name="button_grant_access">授予权限</string>
 
     <string name="tab_apps">应用</string>
@@ -15,7 +15,7 @@
     <string name="error_invalid_apk">该文件不是有效的 APK</string>
 
     <string name="clone_up_to_date">版本 %1$s · 已是最新</string>
-    <string name="clone_update_available">%1$s → %2$s</string>
+    <string name="clone_update_available">有可用更新：%1$s → %2$s</string>
     <string name="clone_original_missing">未安装 %1$s</string>
     <string name="button_update">更新</string>
 
@@ -23,7 +23,7 @@
     <string name="field_package">包名</string>
     <string name="field_app_name">应用名称</string>
     <string name="error_invalid_package">至少需要两个以点分隔的部分，由字母、数字和下划线组成</string>
-    <string name="signature_hint">克隆应用使用 ApkClonner 自己的密钥签名：应用被修改后无法再使用原始签名。</string>
+    <string name="signature_hint">克隆应用使用 APK Cloner 自己的密钥签名：应用被修改后无法再使用原始签名。</string>
     <string name="button_clone">克隆</string>
     <string name="button_install">安装</string>
     <string name="button_save">保存 APK</string>
@@ -35,4 +35,30 @@
 
     <string name="install_success">克隆已安装</string>
     <string name="install_failed">安装失败：%1$s</string>
+
+    <string name="detail_update_available">已安装更新版本的原应用</string>
+    <string name="detail_cloned_from">克隆自</string>
+    <string name="detail_original_version">原应用版本</string>
+    <string name="detail_clone_version">克隆版本</string>
+    <string name="detail_not_installed">未安装</string>
+    <string name="button_delete">删除</string>
+
+    <string name="settings_title">设置</string>
+    <string name="settings_auto_update">自动更新克隆应用</string>
+    <string name="settings_auto_update_description">在后台检查（重启后依然有效），并在原应用有新版本时更新克隆应用。</string>
+    <string name="settings_check_interval">检查更新：%1$s</string>
+    <string-array name="check_intervals">
+        <item>每天一次</item>
+        <item>每 3 天一次</item>
+        <item>每周一次</item>
+        <item>每 2 周一次</item>
+        <item>每月一次</item>
+        <item>每 3 个月一次</item>
+        <item>每 6 个月一次</item>
+        <item>每年一次</item>
+    </string-array>
+
+    <string name="channel_updates">克隆应用更新</string>
+    <string name="notification_update_title">%1$s 的更新已就绪</string>
+    <string name="notification_update_text">点按以确认安装</string>
 </resources>

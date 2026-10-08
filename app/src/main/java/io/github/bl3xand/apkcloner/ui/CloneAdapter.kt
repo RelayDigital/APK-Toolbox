@@ -1,19 +1,22 @@
-package io.github.bl3xand.apkclonner.ui
+package io.github.bl3xand.apkcloner.ui
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import io.github.bl3xand.apkclonner.R
-import io.github.bl3xand.apkclonner.data.CloneInfo
-import io.github.bl3xand.apkclonner.databinding.ItemCloneBinding
+import com.google.android.material.color.MaterialColors
+import io.github.bl3xand.apkcloner.R
+import io.github.bl3xand.apkcloner.data.CloneInfo
+import io.github.bl3xand.apkcloner.databinding.ItemCloneBinding
 import kotlinx.coroutines.Job
 
 class CloneAdapter(
     private val icons: IconLoader,
-    private val onUpdate: (CloneInfo) -> Unit,
+    private val onClick: (CloneInfo) -> Unit,
 ) : ListAdapter<CloneInfo, CloneAdapter.Holder>(Diff) {
 
     /** Package of the clone being updated right now, if any. */
@@ -35,7 +38,6 @@ class CloneAdapter(
         val clone = getItem(position)
         val binding = holder.binding
         val context = binding.root.context
-        val busy = updating == clone.app.packageName
 
         binding.textLabel.text = clone.app.label
         binding.textPackage.text = clone.app.packageName
@@ -48,11 +50,28 @@ class CloneAdapter(
             )
             else -> context.getString(R.string.clone_up_to_date, clone.app.versionName.orEmpty())
         }
-        binding.buttonUpdate.isVisible = clone.updateAvailable && !busy
-        // Only one update runs at a time.
-        binding.buttonUpdate.isEnabled = updating == null
-        binding.buttonUpdate.setOnClickListener { onUpdate(clone) }
-        binding.progress.isVisible = busy
+        binding.progress.isVisible = updating == clone.app.packageName
+        binding.root.setOnClickListener { onClick(clone) }
+
+        // Outdated clones stand out as a filled card in the accent colour.
+        val highlight = clone.updateAvailable
+        val color = { attr: Int -> MaterialColors.getColor(binding.root, attr) }
+        binding.root.setCardBackgroundColor(
+            if (highlight) color(androidx.appcompat.R.attr.colorPrimary) else Color.TRANSPARENT
+        )
+        val primaryText = color(
+            if (highlight) com.google.android.material.R.attr.colorOnPrimary
+            else com.google.android.material.R.attr.colorOnSurface
+        )
+        val secondaryText = color(
+            if (highlight) com.google.android.material.R.attr.colorOnPrimary
+            else com.google.android.material.R.attr.colorOnSurfaceVariant
+        )
+        binding.textLabel.setTextColor(primaryText)
+        binding.textPackage.setTextColor(secondaryText)
+        binding.textStatus.setTextColor(secondaryText)
+        binding.progress.setIndicatorColor(primaryText)
+        binding.root.rippleColor = ColorStateList.valueOf(primaryText).withAlpha(40)
 
         holder.iconJob?.cancel()
         holder.iconJob = icons.load(clone.app, binding.imageIcon)

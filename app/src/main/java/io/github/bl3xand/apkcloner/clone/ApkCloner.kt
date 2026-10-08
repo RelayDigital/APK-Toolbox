@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkclonner.clone
+package io.github.bl3xand.apkcloner.clone
 
 import android.content.Context
 import com.android.apksig.ApkSigner
@@ -54,7 +54,7 @@ class ApkCloner(private val context: Context) {
                 ApkSigner.Builder(listOf(signer))
                     .setInputApk(unsigned)
                     .setOutputApk(output)
-                    .setCreatedBy("ApkClonner")
+                    .setCreatedBy("ApkCloner")
                     .build()
                     .sign()
                 output
@@ -66,12 +66,15 @@ class ApkCloner(private val context: Context) {
 
     companion object {
         /** Stored in every clone's base APK so the app it was made from can be found again. */
-        const val METADATA_ENTRY = "META-INF/apkclonner.properties"
+        const val METADATA_ENTRY = "META-INF/apkcloner.properties"
+
+        /** Written by builds from before the project was renamed; still read so those clones stay listed. */
+        private const val LEGACY_METADATA_ENTRY = "META-INF/apkclonner.properties"
         private const val METADATA_ORIGINAL = "original"
 
         fun readOriginalPackage(baseApk: String): String? = runCatching {
             ZipFile(baseApk).use { zip ->
-                val entry = zip.getEntry(METADATA_ENTRY) ?: return null
+                val entry = zip.getEntry(METADATA_ENTRY) ?: zip.getEntry(LEGACY_METADATA_ENTRY) ?: return null
                 zip.getInputStream(entry).bufferedReader().readLines()
                     .firstOrNull { it.startsWith("$METADATA_ORIGINAL=") }
                     ?.substringAfter('=')?.trim()?.takeIf { it.isNotEmpty() }

@@ -16,5 +16,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ApkClonner"
+rootProject.name = "ApkCloner"
 include(":app")
