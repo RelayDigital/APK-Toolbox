@@ -20,11 +20,36 @@ class SplitSource(
     val entries: List<SplitEntry>,
     val baseName: String,
     val bundle: File?,
+    /** Expansion files an XAPK carries next to its APKs; names of entries in [bundle]. */
+    val obbEntries: List<SplitEntry> = emptyList(),
 ) {
     /**
      * The base and the [selected] splits as real files, base first. Entries still inside the
      * bundle are extracted into [directory]; the caller owns it.
      */
+    /**
+     * Unpacks the expansion files to where the app will look for them,
+     * `Android/obb/<package>/` in shared storage. Installers may write there.
+     */
+    fun copyObbFiles(storageRoot: File) {
+        val archive = bundle ?: return
+        val app = packageName ?: error("Unknown package, cannot place OBB files")
+        val obbRoot = File(storageRoot, "Android/obb")
+        ZipFile(archive).use { zip ->
+            for (entry in obbEntries) {
+                // Keep the path the bundle gives below Android/obb, if it gives one.
+                val relative = entry.name.substringAfter("Android/obb/", missingDelimiterValue = "")
+                    .ifEmpty { "$app/${entry.name.substringAfterLast('/')}" }
+                val target = File(obbRoot, relative)
+                check(target.canonicalPath.startsWith(obbRoot.canonicalPath + File.separator)) { "Bad OBB path ${entry.name}" }
+                target.parentFile?.mkdirs()
+                zip.getInputStream(zip.getEntry(entry.name)).use { input ->
+                    target.outputStream().use { input.copyTo(it, 1 shl 16) }
+                }
+            }
+        }
+    }
+
     fun materialize(selected: Set<String>, directory: File): List<Pair<SplitEntry, File>> {
         val chosen = entries.filter { it.name == baseName || it.name in selected }
             .sortedByDescending { it.name == baseName }
@@ -74,7 +99,7 @@ class SplitLoader(private val context: Context) {
             }
         }
 
-        val bundleEntries = files.singleOrNull()?.let(::apkEntriesOf).orEmpty()
+        val bundleEntries = files.singleOrNull()?.let { entriesOf(it, ".apk") }.orEmpty()
         if (bundleEntries.isNotEmpty()) {
             val bundle = files.single()
             val baseName = pickBase(bundleEntries.map { it.name to it.size })
@@ -82,7 +107,10 @@ class SplitLoader(private val context: Context) {
             ZipFile(bundle).use { zip ->
                 zip.getInputStream(zip.getEntry(baseName)).use { input -> preview.outputStream().use { input.copyTo(it) } }
             }
-            return describe(preview, bundleEntries, baseName, bundle, fallbackLabel = bundle.name.substringAfter('-'))
+            return describe(
+                preview, bundleEntries, baseName, bundle,
+                fallbackLabel = bundle.name.substringAfter('-'), obbEntries = entriesOf(bundle, ".obb"),
+            )
         }
 
         // Loose files: a lone APK is just an ordinary app, there is nothing to merge.
@@ -93,10 +121,10 @@ class SplitLoader(private val context: Context) {
         return describe(entries.first { it.name == baseName }.file!!, entries, baseName, bundle = null, fallbackLabel = baseName)
     }
 
-    private fun apkEntriesOf(file: File): List<SplitEntry> = runCatching {
+    private fun entriesOf(file: File, extension: String): List<SplitEntry> = runCatching {
         ZipFile(file).use { zip ->
             zip.entries().asSequence()
-                .filter { !it.isDirectory && it.name.endsWith(".apk", ignoreCase = true) }
+                .filter { !it.isDirectory && it.name.endsWith(extension, ignoreCase = true) }
                 .map { SplitEntry(it.name, it.size, file = null) }
                 .toList()
         }
@@ -115,7 +143,14 @@ class SplitLoader(private val context: Context) {
         return (candidates.ifEmpty { entries }).maxBy { it.second }.first
     }
 
-    private fun describe(base: File, entries: List<SplitEntry>, baseName: String, bundle: File?, fallbackLabel: String): SplitSource {
+    private fun describe(
+        base: File,
+        entries: List<SplitEntry>,
+        baseName: String,
+        bundle: File?,
+        fallbackLabel: String,
+        obbEntries: List<SplitEntry> = emptyList(),
+    ): SplitSource {
         val packageManager = context.packageManager
         val info = packageManager.getPackageArchiveInfo(base.path, 0)
         val app = info?.applicationInfo?.apply {
@@ -131,6 +166,7 @@ class SplitLoader(private val context: Context) {
             entries = entries,
             baseName = baseName,
             bundle = bundle,
+            obbEntries = obbEntries,
         )
     }
 

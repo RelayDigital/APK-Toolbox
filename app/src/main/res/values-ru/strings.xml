@@ -1,8 +1,8 @@
 <resources>
     <string name="access_title">Нужен доступ к файлам</string>
-    <string name="access_description">Разрешите доступ ко всем файлам, чтобы APK Cloner мог работать с APK-файлами в общем хранилище.</string>
+    <string name="access_description">Разрешите доступ ко всем файлам, чтобы APK Toolbox мог работать с APK-файлами в общем хранилище.</string>
     <string name="install_access_title">Нужно разрешение на установку</string>
-    <string name="install_access_description">Разрешите APK Cloner устанавливать приложения, чтобы ставить и обновлять клоны прямо отсюда.</string>
+    <string name="install_access_description">Разрешите APK Toolbox устанавливать приложения, чтобы ставить и обновлять клоны прямо отсюда.</string>
     <string name="button_grant_access">Разрешить</string>
 
     <string name="tab_apps">Приложения</string>
@@ -21,7 +21,7 @@
     <string name="field_package">Имя пакета</string>
     <string name="field_app_name">Имя приложения</string>
     <string name="error_invalid_package">Нужно минимум две части через точку: буквы, цифры и подчёркивания</string>
-    <string name="signature_hint">Клон подписывается собственным ключом APK Cloner: оригинальную подпись нельзя использовать после изменения приложения.</string>
+    <string name="signature_hint">Клон подписывается ключом APK Toolbox, а не оригинальным: подпись перестаёт сходиться после изменения приложения.</string>
     <string name="button_clone">Клонировать</string>
     <string name="button_install">Установить</string>
     <string name="button_save">Сохранить</string>
@@ -68,13 +68,13 @@
 
     <string name="shizuku_not_running_title">Shizuku не запущен</string>
     <string name="shizuku_not_running">Запустите Shizuku и вернитесь. До тех пор используется стандартный способ.</string>
-    <string name="shizuku_description">APK Cloner использует Shizuku, чтобы устанавливать и обновлять клоны без подтверждений. Выдайте доступ, чтобы включить этот способ; до тех пор используется стандартный.</string>
+    <string name="shizuku_description">APK Toolbox использует Shizuku, чтобы устанавливать и обновлять клоны без подтверждений. Выдайте доступ, чтобы включить этот способ; до тех пор используется стандартный.</string>
     <string name="shizuku_granted_description">Клоны устанавливаются и обновляются без подтверждений.</string>
     <string name="play_protect_on_title">Play Защита включена</string>
     <string name="play_protect_unknown_title">Play Защита может мешать</string>
     <string name="play_protect_on_description">Переподписанные приложения ей неизвестны, и она может их блокировать. Пока она включена, этим способом клоны автоматически не обновляются: придёт уведомление, и обновить нужно будет вручную. Отключение проверки приложений пропускает обновления, но снижает защиту устройства.</string>
     <string name="play_protect_off_title">Play Защита отключена</string>
-    <string name="play_protect_off_description">Установке клонов ничего не мешает. Клоны, установленные самим APK Cloner и рассчитанные на свежую версию Android, обновляются без подтверждения.</string>
+    <string name="play_protect_off_description">Установке клонов ничего не мешает. Клоны, установленные самим APK Toolbox и рассчитанные на свежую версию Android, обновляются без подтверждения.</string>
 
     <string name="settings_check_updates">Проверять обновления клонов</string>
     <string name="settings_check_updates_description">В фоне, в том числе после перезагрузки. Когда клон отстаёт от оригинала, придёт уведомление.</string>
@@ -112,4 +112,32 @@
     <string name="files_received_title">Что сделать с этими файлами?</string>
     <string name="files_action_install">Установить</string>
     <string name="files_action_merge">Объединить в один APK</string>
+
+    <string name="button_update_all">Обновить все (%1$d)</string>
+    <string name="button_check_now">Проверить сейчас</string>
+    <string name="check_now_started">Проверяю; результат придёт уведомлением</string>
+    <string name="notification_up_to_date">Все клоны актуальны</string>
+    <string name="install_copy_obb">Скопировать OBB-файлы (%1$d · %2$s)</string>
+    <string name="merge_step_obb">Копирование OBB-файлов…</string>
+
+    <string name="settings_signing_key">Ключ подписи</string>
+    <string name="key_bundled_title">Встроенный ключ</string>
+    <string name="key_bundled_description">Клоны и объединённые APK подписываются ключом, который идёт вместе с приложением. Он один для всех и общедоступен. Создайте или импортируйте свой ключ, чтобы подписывать тем, что есть только у вас.</string>
+    <string name="key_custom_title">Свой ключ</string>
+    <string name="key_custom_description">%1$s\nSHA-256 %2$s…\nЭкспортируйте его и сохраните файл: без него клоны, подписанные этим ключом, нельзя будет обновить после переустановки приложения.</string>
+    <string name="key_create">Создать</string>
+    <string name="key_import">Импорт</string>
+    <string name="key_export">Экспорт</string>
+    <string name="key_reset">Встроенный</string>
+    <string name="key_password">Пароль хранилища</string>
+    <string name="key_alias">Псевдоним ключа (необязательно)</string>
+    <string name="key_created">Создан новый ключ</string>
+    <string name="key_imported">Ключ импортирован</string>
+    <string name="key_exported">Ключ экспортирован</string>
+    <string name="key_reset_done">Используется встроенный ключ</string>
+    <string name="key_failed">Ошибка операции с ключом: %1$s</string>
+    <string name="key_replace_title">Заменить свой ключ?</string>
+    <string name="key_replace_message">Клоны, подписанные текущим ключом, пропадут из списка и перестанут обновляться, пока вы снова не импортируете этот ключ. Сначала экспортируйте его, если он может понадобиться.</string>
+    <string name="key_replace_confirm">Заменить</string>
+    <string name="clone_badge">Пометить значок точкой</string>
 </resources>

@@ -17,6 +17,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.databinding.SheetCloneBinding
+import io.github.bl3xand.apkcloner.settings.AppSettings
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
@@ -44,10 +45,14 @@ class CloneSheet : BottomSheetDialogFragment() {
         val installed = !source.apkPaths.first().startsWith(requireContext().cacheDir.path)
         binding.appCard.bind(source, source.packageName.takeIf { installed })
         if (savedInstanceState == null) {
-            binding.editPackage.setText(getString(R.string.default_clone_package, source.packageName))
-            binding.editName.setText(getString(R.string.default_clone_name, source.label))
+            val (packageName, name) = viewModel.suggestClone(source)
+            binding.editPackage.setText(packageName)
+            binding.editName.setText(name)
         }
 
+        val settings = AppSettings(requireContext())
+        binding.switchBadge.isChecked = settings.cloneBadge
+        binding.switchBadge.setOnCheckedChangeListener { _, checked -> settings.cloneBadge = checked }
         binding.editPackage.doAfterTextChanged { binding.layoutPackage.error = null }
         binding.buttonClone.setOnClickListener { startClone() }
         binding.buttonInstall.setOnClickListener { viewModel.installResult() }
@@ -97,6 +102,7 @@ class CloneSheet : BottomSheetDialogFragment() {
         isCancelable = !running && !installing
         binding.layoutPackage.isEnabled = !running && !done
         binding.layoutName.isEnabled = !running && !done
+        binding.switchBadge.isEnabled = !running && !done
         binding.buttonClone.isEnabled = !running
         binding.buttonClone.isVisible = !done
         binding.resultActions.isVisible = done
@@ -131,7 +137,7 @@ class CloneSheet : BottomSheetDialogFragment() {
         }
         val newName = binding.editName.text?.toString().orEmpty().trim()
             .ifEmpty { viewModel.selected?.label.orEmpty() }
-        viewModel.startClone(newPackage, newName)
+        viewModel.startClone(newPackage, newName, binding.switchBadge.isChecked)
     }
 
     private fun save() {

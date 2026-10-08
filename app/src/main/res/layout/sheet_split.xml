@@ -87,6 +87,15 @@
             android:text="@string/merge_force"
             android:textAppearance="?attr/textAppearanceBodyLarge" />
 
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchObb"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:visibility="gone"
+            tools:text="@string/install_copy_obb" />
+
         <com.google.android.material.progressindicator.LinearProgressIndicator
             android:id="@+id/progress"
             android:layout_width="match_parent"

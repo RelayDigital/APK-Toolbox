@@ -16,5 +16,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ApkCloner"
+rootProject.name = "ApkToolbox"
 include(":app")

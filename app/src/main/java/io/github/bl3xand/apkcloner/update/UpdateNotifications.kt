@@ -32,6 +32,15 @@ object UpdateNotifications {
     /** Drops a leftover "available"/"failed" notice once it may no longer be true. */
     fun cancelOutdated(context: Context) = manager(context).cancel(ID_AVAILABLE)
 
+    /** The answer to "check now" when every clone already matches its original. */
+    fun showUpToDate(context: Context) {
+        val notification = builder(context)
+            .setContentTitle(context.getString(R.string.notification_up_to_date))
+            .setAutoCancel(true)
+            .build()
+        manager(context).notify(ID_AVAILABLE, notification)
+    }
+
     /** Notify-only mode: outdated clones were found and nothing was installed, by design. */
     fun showAvailable(context: Context, labels: String) =
         showOutdated(context, R.string.notification_available_title, labels)

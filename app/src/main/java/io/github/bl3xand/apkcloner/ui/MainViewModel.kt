@@ -2,6 +2,7 @@ package io.github.bl3xand.apkcloner.ui
 
 import android.app.Application
 import android.net.Uri
+import android.os.Environment
 import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -50,6 +51,8 @@ data class MainUiState(
     val splitApps: List<ApkSource> = emptyList(),
     /** Package of the clone currently being rebuilt for an update. */
     val updatingClone: String? = null,
+    /** How many installed clones are behind their original, whatever the search shows. */
+    val outdatedClones: Int = 0,
 ) {
     val permissionsGranted: Boolean get() = hasFileAccess && canInstall
 }
@@ -162,6 +165,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         publishApps()
     }
 
+    /**
+     * Package and app name to offer for a new clone of [source]: `.clone` and "Clone", or the
+     * first numbered variant that is not installed yet, so an app can be cloned more than once.
+     */
+    fun suggestClone(source: ApkSource): Pair<String, String> {
+        val taken = allApps.mapTo(HashSet()) { it.packageName }
+        var number = 1
+        while (true) {
+            val suffix = if (number == 1) "" else number.toString()
+            val candidate = "${source.packageName}.clone$suffix"
+            if (candidate !in taken) {
+                return candidate to listOf(source.label, "Clone", suffix).filter { it.isNotEmpty() }.joinToString(" ")
+            }
+            number++
+        }
+    }
+
     fun select(source: ApkSource) {
         if (_cloneState.value is CloneState.Running) return
         selected = source
@@ -186,14 +206,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun startClone(newPackage: String, newLabel: String) {
+    fun startClone(newPackage: String, newLabel: String, badgeIcon: Boolean) {
         val source = selected ?: return
         if (_cloneState.value is CloneState.Running) return
         _cloneState.value = CloneState.Running(source.label, 0, source.apkPaths.size)
         viewModelScope.launch {
             _cloneState.value = withContext(Dispatchers.IO) {
                 try {
-                    CloneState.Done(cloner.clone(source.cloneRequest(newPackage, newLabel), sheetOutput) { file, index, total ->
+                    CloneState.Done(cloner.clone(source.cloneRequest(newPackage, newLabel, badgeIcon), sheetOutput) { file, index, total ->
                         _cloneState.value = CloneState.Running(file, index, total)
                     })
                 } catch (e: Exception) {
@@ -297,7 +317,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** Installs the chosen splits as one session, re-signing them first if asked to. */
-    fun startSplitInstall(selected: Set<String>, sign: Boolean) {
+    fun startSplitInstall(selected: Set<String>, sign: Boolean, copyObb: Boolean) {
         val source = splitSource ?: return
         if (_splitState.value is SplitState.Running || _installing.value) return
         _splitState.value = SplitState.Running(SplitStep.EXTRACTING)
@@ -310,6 +330,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     files = files.mapIndexed { index, file ->
                         File(signedDir, "$index.apk").also { cloner.sign(file, it) }
                     }
+                }
+                if (copyObb && source.obbEntries.isNotEmpty()) {
+                    _splitState.value = SplitState.Running(SplitStep.COPYING_OBB)
+                    source.copyObbFiles(Environment.getExternalStorageDirectory())
                 }
                 _splitState.value = SplitState.Idle
                 _installing.value = true
@@ -398,21 +422,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun updateClone(clone: CloneInfo) {
-        val request = clone.updateRequest() ?: return
-        if (_uiState.value.updatingClone != null) return
-        _uiState.update { it.copy(updatingClone = clone.app.packageName) }
+    fun updateClone(clone: CloneInfo) = updateClones(listOf(clone))
+
+    /** Brings every outdated clone up to date, one after another. */
+    fun updateAll() = updateClones(allClones.filter { it.updateAvailable })
+
+    private fun updateClones(clones: List<CloneInfo>) {
+        if (clones.isEmpty() || _uiState.value.updatingClone != null) return
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val apks = cloner.clone(request, updateOutput) { _, _, _ -> }
-                install(apks)
-            } catch (e: Exception) {
-                _events.tryEmit(MainEvent.Message(R.string.status_failed, e.message ?: e.javaClass.simpleName))
-            } finally {
-                // The installer session holds its own copy by now.
-                updateOutput.deleteRecursively()
-                _uiState.update { it.copy(updatingClone = null) }
+            for (clone in clones) {
+                val request = clone.updateRequest() ?: continue
+                _uiState.update { it.copy(updatingClone = clone.app.packageName) }
+                try {
+                    install(cloner.clone(request, updateOutput) { _, _, _ -> })
+                } catch (e: Exception) {
+                    _events.tryEmit(MainEvent.Message(R.string.status_failed, e.message ?: e.javaClass.simpleName))
+                } finally {
+                    // The installer session holds its own copy by now.
+                    updateOutput.deleteRecursively()
+                }
             }
+            _uiState.update { it.copy(updatingClone = null) }
         }
     }
 
@@ -454,6 +484,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 apps = allApps.filter { (showSystem || !it.isSystem) && matches(it) },
                 splitApps = allApps.filter { it.apkPaths.size > 1 && (showSystem || !it.isSystem) && matches(it) },
                 clones = allClones.filter { matches(it.app) },
+                outdatedClones = allClones.count { it.updateAvailable },
             )
         }
     }

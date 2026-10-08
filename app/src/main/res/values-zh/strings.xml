@@ -1,8 +1,8 @@
 <resources>
     <string name="access_title">需要文件访问权限</string>
-    <string name="access_description">请允许访问所有文件，以便 APK Cloner 处理共享存储中的 APK 文件。</string>
+    <string name="access_description">请允许访问所有文件，以便 APK Toolbox 处理共享存储中的 APK 文件。</string>
     <string name="install_access_title">需要安装权限</string>
-    <string name="install_access_description">请允许 APK Cloner 安装应用，以便直接在此安装和更新克隆应用。</string>
+    <string name="install_access_description">请允许 APK Toolbox 安装应用，以便直接在此安装和更新克隆应用。</string>
     <string name="button_grant_access">授予权限</string>
 
     <string name="tab_apps">应用</string>
@@ -21,7 +21,7 @@
     <string name="field_package">包名</string>
     <string name="field_app_name">应用名称</string>
     <string name="error_invalid_package">至少需要两个以点分隔的部分，由字母、数字和下划线组成</string>
-    <string name="signature_hint">克隆应用使用 APK Cloner 自己的密钥签名：应用被修改后无法再使用原始签名。</string>
+    <string name="signature_hint">克隆应用使用 APK Toolbox 的密钥签名，而非原始密钥：应用被修改后原签名即失效。</string>
     <string name="button_clone">克隆</string>
     <string name="button_install">安装</string>
     <string name="button_save">保存</string>
@@ -68,13 +68,13 @@
 
     <string name="shizuku_not_running_title">Shizuku 未运行</string>
     <string name="shizuku_not_running">请启动 Shizuku 后再返回。在此之前将使用标准方式。</string>
-    <string name="shizuku_description">APK Cloner 使用 Shizuku 在无需确认的情况下安装和更新克隆应用。请授予权限以启用此方式；在此之前将使用标准方式。</string>
+    <string name="shizuku_description">APK Toolbox 使用 Shizuku 在无需确认的情况下安装和更新克隆应用。请授予权限以启用此方式；在此之前将使用标准方式。</string>
     <string name="shizuku_granted_description">克隆应用的安装和更新无需任何确认。</string>
     <string name="play_protect_on_title">Play 保护机制已开启</string>
     <string name="play_protect_unknown_title">Play 保护机制可能会造成干扰</string>
     <string name="play_protect_on_description">它不认识重新签名的应用，可能会将其拦截。开启期间，此方式不会自动更新克隆应用：你会收到通知，需要手动更新。关闭应用扫描可以放行更新，但会降低设备的安全性。</string>
     <string name="play_protect_off_title">Play 保护机制已关闭</string>
-    <string name="play_protect_off_description">安装克隆应用不会受到干扰。由 APK Cloner 安装、且面向较新 Android 版本的克隆应用可免确认更新。</string>
+    <string name="play_protect_off_description">安装克隆应用不会受到干扰。由 APK Toolbox 安装、且面向较新 Android 版本的克隆应用可免确认更新。</string>
 
     <string name="settings_check_updates">检查克隆应用更新</string>
     <string name="settings_check_updates_description">在后台进行，重启后依然有效。克隆应用落后于原应用时会收到通知。</string>
@@ -112,4 +112,32 @@
     <string name="files_received_title">要如何处理这些文件？</string>
     <string name="files_action_install">安装</string>
     <string name="files_action_merge">合并为单个 APK</string>
+
+    <string name="button_update_all">全部更新（%1$d）</string>
+    <string name="button_check_now">立即检查</string>
+    <string name="check_now_started">正在检查，结果将以通知形式显示</string>
+    <string name="notification_up_to_date">所有克隆应用均为最新</string>
+    <string name="install_copy_obb">复制 OBB 文件（%1$d · %2$s）</string>
+    <string name="merge_step_obb">正在复制 OBB 文件…</string>
+
+    <string name="settings_signing_key">签名密钥</string>
+    <string name="key_bundled_title">内置密钥</string>
+    <string name="key_bundled_description">克隆应用和合并后的 APK 使用应用自带的密钥签名。该密钥人人相同且是公开的。创建或导入自己的密钥，即可使用只有你拥有的密钥签名。</string>
+    <string name="key_custom_title">自己的密钥</string>
+    <string name="key_custom_description">%1$s\nSHA-256 %2$s…\n请导出并保存该文件：否则重新安装应用后，用此密钥签名的克隆应用将无法更新。</string>
+    <string name="key_create">创建</string>
+    <string name="key_import">导入</string>
+    <string name="key_export">导出</string>
+    <string name="key_reset">使用内置密钥</string>
+    <string name="key_password">密钥库密码</string>
+    <string name="key_alias">密钥别名（可选）</string>
+    <string name="key_created">已创建新密钥</string>
+    <string name="key_imported">密钥已导入</string>
+    <string name="key_exported">密钥已导出</string>
+    <string name="key_reset_done">已恢复为内置密钥</string>
+    <string name="key_failed">密钥操作失败：%1$s</string>
+    <string name="key_replace_title">替换你的密钥？</string>
+    <string name="key_replace_message">用当前密钥签名的克隆应用将不再显示，也无法更新，除非重新导入该密钥。如果以后可能需要，请先导出。</string>
+    <string name="key_replace_confirm">替换</string>
+    <string name="clone_badge">用圆点标记图标</string>
 </resources>

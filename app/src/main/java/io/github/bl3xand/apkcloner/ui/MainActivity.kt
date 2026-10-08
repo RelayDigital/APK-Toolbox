@@ -97,6 +97,7 @@ class MainActivity : AppCompatActivity() {
         binding.buttonPickApk.setOnClickListener {
             // Bundles have no MIME type of their own, so the pickers for them accept anything.
             when (viewModel.tab) {
+                TAB_CLONES -> viewModel.updateAll()
                 TAB_INSTALL -> pickToInstall.launch(arrayOf("*/*"))
                 TAB_SPLIT -> pickToMerge.launch(arrayOf("*/*"))
                 else -> pickApk.launch(APK_MIME_TYPES)
@@ -171,14 +172,16 @@ class MainActivity : AppCompatActivity() {
         binding.listClones.isVisible = tab == TAB_CLONES
         binding.listInstall.isVisible = tab == TAB_INSTALL
         binding.listSplit.isVisible = tab == TAB_SPLIT
-        binding.bottomBar.isVisible = ready && tab != TAB_CLONES
-        binding.buttonPickApk.setText(
-            when (tab) {
-                TAB_INSTALL -> R.string.button_pick_install
-                TAB_SPLIT -> R.string.button_pick_split
-                else -> R.string.button_pick_apk
-            }
-        )
+        // On the Clones tab the bar only appears when there is something to update.
+        binding.bottomBar.isVisible = ready && (tab != TAB_CLONES || state.outdatedClones > 0)
+        binding.buttonPickApk.isEnabled = tab != TAB_CLONES || state.updatingClone == null
+        binding.buttonPickApk.setIconResource(if (tab == TAB_CLONES) R.drawable.ic_update else R.drawable.ic_folder)
+        binding.buttonPickApk.text = when (tab) {
+            TAB_CLONES -> getString(R.string.button_update_all, state.outdatedClones)
+            TAB_INSTALL -> getString(R.string.button_pick_install)
+            TAB_SPLIT -> getString(R.string.button_pick_split)
+            else -> getString(R.string.button_pick_apk)
+        }
         binding.progress.isVisible = state.loading
 
         val empty = when (tab) {

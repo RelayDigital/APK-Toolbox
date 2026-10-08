@@ -4,9 +4,12 @@ import android.content.Context
 import androidx.work.BackoffPolicy
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import io.github.bl3xand.apkcloner.clone.ApkCloner
 import io.github.bl3xand.apkcloner.data.AppRepository
 import io.github.bl3xand.apkcloner.install.InstallOutcome
@@ -29,7 +32,8 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
         val settings = AppSettings(context)
         val autoInstall = settings.autoInstall
         if (autoInstall && settings.installMethod == AppSettings.InstallMethod.SHIZUKU &&
-            ShizukuBridge.stateAfterStartup() != ShizukuBridge.State.READY && runAttemptCount < SHIZUKU_RETRIES
+            ShizukuBridge.stateAfterStartup() != ShizukuBridge.State.READY && runAttemptCount < SHIZUKU_RETRIES &&
+            !inputData.getBoolean(KEY_MANUAL, false)
         ) {
             // Typically right after a reboot, when this check is already due but Shizuku has not
             // been started yet. Come back later instead of settling for the standard installer.
@@ -42,6 +46,7 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
         UpdateNotifications.cancelOutdated(context)
         val available = ArrayList<String>()
         val failed = ArrayList<String>()
+        var updated = 0
         try {
             for (clone in AppRepository(context, cloner).installed().clones) {
                 if (!clone.updateAvailable) continue
@@ -64,13 +69,17 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 } catch (e: Exception) {
                     InstallOutcome.Failed(e.message.orEmpty())
                 }
-                if (outcome is InstallOutcome.Failed) failed += clone.app.label
+                if (outcome is InstallOutcome.Failed) failed += clone.app.label else updated++
             }
         } finally {
             UpdateNotifications.cancelProgress(context)
             output.deleteRecursively()
         }
         // A successful automatic update says nothing beyond the progress it showed.
+        if (inputData.getBoolean(KEY_MANUAL, false) && available.isEmpty() && failed.isEmpty() && updated == 0) {
+            // Asked for by hand: say so even when there was nothing to do.
+            UpdateNotifications.showUpToDate(context)
+        }
         if (available.isNotEmpty()) UpdateNotifications.showAvailable(context, available.joinToString())
         if (failed.isNotEmpty()) UpdateNotifications.showFailed(context, failed.joinToString())
         Result.success()
@@ -78,10 +87,20 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
 
     companion object {
         private const val WORK_NAME = "auto-update"
+        private const val WORK_NAME_MANUAL = "auto-update-now"
+        private const val KEY_MANUAL = "manual"
 
         // Linear backoff: retries about 10, 30 and 60 minutes after the first attempt.
         private const val SHIZUKU_RETRIES = 3
         private const val SHIZUKU_RETRY_STEP_MINUTES = 10L
+
+        /** One check right now, whatever the schedule says. The result comes as a notification. */
+        fun runNow(context: Context) {
+            val request = OneTimeWorkRequestBuilder<AutoUpdateWorker>()
+                .setInputData(workDataOf(KEY_MANUAL to true))
+                .build()
+            WorkManager.getInstance(context).enqueueUniqueWork(WORK_NAME_MANUAL, ExistingWorkPolicy.REPLACE, request)
+        }
 
         /**
          * Applies the current settings. WorkManager persists the schedule itself, so it keeps

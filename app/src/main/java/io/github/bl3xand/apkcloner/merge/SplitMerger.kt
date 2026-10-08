@@ -9,7 +9,7 @@ import com.reandroid.arsc.value.ValueType
 import io.github.bl3xand.apkcloner.clone.ApkCloner
 import java.io.File
 
-enum class SplitStep { EXTRACTING, MERGING, SAVING, SIGNING, EXPORTING }
+enum class SplitStep { EXTRACTING, MERGING, SAVING, SIGNING, EXPORTING, COPYING_OBB }
 
 class MergeResult(val apk: File, val signed: Boolean, val pairip: Boolean)
 

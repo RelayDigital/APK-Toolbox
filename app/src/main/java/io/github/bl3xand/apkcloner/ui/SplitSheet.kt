@@ -80,8 +80,16 @@ class SplitSheet : BottomSheetDialogFragment() {
                 binding.switchSign.setOnCheckedChangeListener { _, checked -> settings.installSign = checked }
                 binding.buttonAction.setText(R.string.button_install)
                 binding.buttonAction.setIconResource(R.drawable.ic_install)
+                if (source.obbEntries.isNotEmpty()) {
+                    val size = Formatter.formatShortFileSize(requireContext(), source.obbEntries.sumOf { it.size })
+                    binding.switchObb.isVisible = true
+                    binding.switchObb.text = getString(R.string.install_copy_obb, source.obbEntries.size, size)
+                }
                 binding.buttonAction.setOnClickListener {
-                    viewModel.startSplitInstall(selected(), binding.switchSign.isChecked)
+                    viewModel.startSplitInstall(
+                        selected(), binding.switchSign.isChecked,
+                        copyObb = binding.switchObb.isVisible && binding.switchObb.isChecked,
+                    )
                 }
             }
             SplitMode.EXPORT -> {
@@ -180,6 +188,7 @@ class SplitSheet : BottomSheetDialogFragment() {
         binding.chipDevice.isEnabled = editable
         binding.switchSign.isEnabled = editable
         binding.switchForce.isEnabled = editable
+        binding.switchObb.isEnabled = editable
         binding.buttonAction.isEnabled = !running && !installing
         binding.buttonAction.isVisible = done == null
         binding.resultActions.isVisible = done != null
@@ -203,6 +212,7 @@ class SplitSheet : BottomSheetDialogFragment() {
                     SplitStep.SAVING -> R.string.merge_step_saving
                     SplitStep.SIGNING -> R.string.merge_step_signing
                     SplitStep.EXPORTING -> R.string.merge_step_exporting
+                    SplitStep.COPYING_OBB -> R.string.merge_step_obb
                 }
             )
             is SplitState.Failed -> binding.textStatus.text = getString(R.string.merge_failed, state.message)

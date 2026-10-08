@@ -1,9 +1,9 @@
-# APK Cloner
+# APK Toolbox
 
 Clone, install, merge and keep Android apps up to date — right on the phone, no root.
 
-APK Cloner started as a way to get a second copy of an app next to the
-original and grew into a small toolbox for APK files:
+APK Toolbox started as a way to get a second copy of an app next to the
+original and grew into a small set of tools for APK files:
 
 - **Clone** an app under a new package name and app name, and keep the clone
   in step with the original as it gets updated.
@@ -36,23 +36,29 @@ you choose, and temporary files are removed afterwards.
 
 ## Getting started
 
-Install APK Cloner and open it. It asks for two things: access to files and
+Install APK Toolbox and open it. It asks for two things: access to files and
 permission to install apps. After that the four tabs are ready to use.
 
 ## Apps — cloning
 
 1. Pick an installed app, or tap **Choose APK file**.
-2. Adjust the package name (`<original>.clone` by default) and the app name.
-3. Tap **Clone**, then **Install** the result or **Save** it.
+2. Adjust the package name and the app name. The defaults are
+   `<original>.clone` and "<name> Clone", or the next free number
+   (`.clone2`, "Clone 2", …) if you have cloned the app before.
+3. Leave **Mark the icon with a dot** on to tell the clone from the original
+   on the home screen. Each clone gets its own colour.
+4. Tap **Clone**, then **Install** the result or **Save** it.
 
 The clone is a separate app with its own data, installed side by side with
-the original.
+the original. An app can be cloned as many times as you like.
 
 ## Clones — keeping them current
 
 Every clone you have installed is listed here. Tap one to see which app and
 version it was made from, to **Update** it to the original's current version
-or to **Delete** it. Updating keeps the clone's data.
+or to **Delete** it. Updating keeps the clone's data and its icon mark.
+When several clones are behind, **Update all** brings them up to date one
+after another.
 
 To have this done for you, open settings:
 
@@ -61,12 +67,13 @@ To have this done for you, open settings:
 - **Install automatically** — update the clones right away, by one of two
   methods:
   - **Standard** — the system installer. Updates without a prompt only clones
-    that APK Cloner installed itself and that target a recent Android
+    that APK Toolbox installed itself and that target a recent Android
     version, and only while Google Play Protect app scanning is off.
   - **Shizuku** — installs with shell privileges, with no prompts, for any
     clone. After a reboot the check waits for Shizuku to be started.
 
 Whatever could not be updated automatically is reported in a notification.
+**Check now** runs the check at once, whatever the schedule.
 
 <p align="center">
   <img src="docs/screenshots/settings.jpg" width="30%" alt="Standard method" />
@@ -78,7 +85,8 @@ Whatever could not be updated automatically is reported in a notification.
 - **Choose APKS file** installs a bundle (APKS, XAPK, APKM, ZIP), several
   split APK files or a single APK as one app. Pick which splits to include —
   all of them, or only those this device needs — and optionally re-sign them
-  first.
+  first. OBB expansion files inside an XAPK are copied to where the app
+  expects them.
 - Tap an installed app to **Export** it as an `.apks` archive. The archive
   carries the icon and metadata in the format
   [SAI](https://github.com/Aefyr/SAI) defined, so other tools recognise it.
@@ -88,7 +96,7 @@ Whatever could not be updated automatically is reported in a notification.
 Turns an app that comes as several APKs into a single regular APK.
 
 - Pick an installed split app, tap **Choose split APK files**, or share /
-  open the files into APK Cloner from another app.
+  open the files into APK Toolbox from another app.
 - Choose the splits: all, or only the ABI, screen density and language this
   device uses.
 - **Merge**, then install or save the result as `<name>_antisplit.apk`.
@@ -97,12 +105,23 @@ Splits whose version or package differs from the base are refused unless you
 allow merging them anyway. Apps protected by PairIP are left unsigned, since
 a re-signed build of such an app would not start.
 
+## Signing key
+
+Everything APK Toolbox produces has to be signed, and the original signature
+cannot be kept: it stops matching as soon as the APK is modified. Out of the
+box a built-in key is used. It is the same for every copy of the app and its
+private half is in this repository, so anyone could sign with it.
+
+In settings you can **Create** a key of your own or **Import** one from a
+PKCS#12 (`.p12`, `.pfx`) or BKS keystore. Your key is stored encrypted in the
+app's private storage. **Export** it and keep the file: clones can only be
+updated with the key they were signed with, and the key is gone if the app is
+uninstalled. Clones made with the built-in key keep updating with it.
+
 ## Good to know
 
-- Clones and merged APKs are signed with APK Cloner's own key. The original
-  signature cannot be kept: it stops matching as soon as the APK is modified.
-  For the same reason a merged APK cannot be installed over the original from
-  a store — the original has to be removed first.
+- A merged APK is signed with a different key than the original from a store,
+  so it cannot be installed over it — the original has to be removed first.
 - Google Play Protect treats re-signed apps as unknown and may block them,
   including installs you start by hand.
 - Cloning changes only the manifest. Apps that check their own package name

@@ -19,13 +19,12 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
 
         // Clones are recognised by the key they are signed with rather than by a local database,
         // so the list survives this app's data being cleared.
-        val ownCertificate = cloner.certificate.encoded
         val clones = packages.mapNotNull { info ->
             val signers = info.signingInfo?.apkContentsSigners ?: return@mapNotNull null
-            if (signers.none { it.toByteArray().contentEquals(ownCertificate) }) return@mapNotNull null
+            val key = signers.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) } ?: return@mapNotNull null
             val source = sources.getValue(info.packageName)
-            val original = ApkCloner.readOriginalPackage(source.apkPaths.first()) ?: return@mapNotNull null
-            CloneInfo(source, original, sources[original])
+            val metadata = ApkCloner.readMetadata(source.apkPaths.first()) ?: return@mapNotNull null
+            CloneInfo(source, metadata.originalPackage, sources[metadata.originalPackage], key, metadata.badged)
         }
         return InstalledApps(
             apps = sources.values.sortedBy { it.label.lowercase() },
