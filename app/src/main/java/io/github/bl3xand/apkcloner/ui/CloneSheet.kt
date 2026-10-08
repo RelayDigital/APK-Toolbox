@@ -17,6 +17,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.databinding.SheetCloneBinding
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class CloneSheet : BottomSheetDialogFragment() {
@@ -54,7 +55,11 @@ class CloneSheet : BottomSheetDialogFragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { viewModel.cloneState.collect(::render) }
+                launch {
+                    viewModel.cloneState.combine(viewModel.installing, ::Pair).collect { (state, installing) ->
+                        render(state, installing)
+                    }
+                }
                 launch {
                     viewModel.events.collect { event ->
                         if (event is MainEvent.Message) {
@@ -86,16 +91,18 @@ class CloneSheet : BottomSheetDialogFragment() {
         _binding = null
     }
 
-    private fun render(state: CloneState) {
+    private fun render(state: CloneState, installing: Boolean) {
         val running = state is CloneState.Running
         val done = state is CloneState.Done
-        isCancelable = !running
+        isCancelable = !running && !installing
         binding.layoutPackage.isEnabled = !running && !done
         binding.layoutName.isEnabled = !running && !done
         binding.buttonClone.isEnabled = !running
         binding.buttonClone.isVisible = !done
         binding.resultActions.isVisible = done
-        binding.progress.isVisible = running
+        binding.buttonInstall.isEnabled = !installing
+        binding.buttonSave.isEnabled = !installing
+        binding.progress.isVisible = running || installing
         binding.textStatus.isVisible = state !is CloneState.Idle
 
         when (state) {
@@ -103,9 +110,18 @@ class CloneSheet : BottomSheetDialogFragment() {
             is CloneState.Running -> binding.textStatus.text =
                 getString(R.string.status_running, state.file, maxOf(state.index, 1), state.total)
             is CloneState.Failed -> binding.textStatus.text = getString(R.string.status_failed, state.message)
-            is CloneState.Done -> binding.textStatus.setText(R.string.status_done)
+            // Left alone otherwise, so the outcome of an install or a save stays on screen.
+            is CloneState.Done -> if (installing) {
+                binding.textStatus.setText(R.string.status_installing)
+            } else if (lastRunning || binding.textStatus.text.toString() in setOf("", getString(R.string.status_installing))) {
+                binding.textStatus.setText(R.string.status_done)
+            }
         }
+        lastRunning = running
     }
+
+    /** Whether the previous render was still cloning, i.e. "Done" is news. */
+    private var lastRunning = false
 
     private fun startClone() {
         val newPackage = binding.editPackage.text?.toString().orEmpty().trim()

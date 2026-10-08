@@ -21,6 +21,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.databinding.ActivityMainBinding
+import io.github.bl3xand.apkcloner.update.UpdateNotifications
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -116,6 +117,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         // Both grants happen on system settings screens, so re-check every time we come back.
         // This also picks up apps installed, updated or removed in the meantime.
+        UpdateNotifications.cancelOutdated(this)
         viewModel.setPermissions(
             fileAccess = Environment.isExternalStorageManager(),
             canInstall = packageManager.canRequestPackageInstalls(),

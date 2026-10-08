@@ -38,7 +38,7 @@ class InstallReceiver : BroadcastReceiver() {
 
     /**
      * A background update either goes through silently or not at all: anything that would need
-     * the user is dropped and reported as "updates available" instead.
+     * the user is dropped and reported as a failed update instead.
      */
     private fun onBackgroundResult(context: Context, intent: Intent, status: Int) {
         if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
@@ -46,7 +46,7 @@ class InstallReceiver : BroadcastReceiver() {
             runCatching { context.packageManager.packageInstaller.abandonSession(sessionId) }
         }
         if (status != PackageInstaller.STATUS_SUCCESS) {
-            UpdateNotifications.showAvailable(context, intent.getStringExtra(EXTRA_LABEL).orEmpty())
+            UpdateNotifications.showFailed(context, intent.getStringExtra(EXTRA_LABEL).orEmpty())
         }
         if (status != PackageInstaller.STATUS_PENDING_USER_ACTION) finished.tryEmit(Unit)
     }
@@ -57,7 +57,12 @@ class InstallReceiver : BroadcastReceiver() {
 
         private val finished = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
-        /** Fires whenever an install session ends, successfully or not. */
+        /** Fires whenever an install ends, successfully or not. */
         val sessionFinished = finished.asSharedFlow()
+
+        /** For installers that learn the result themselves instead of through this receiver. */
+        fun notifyFinished() {
+            finished.tryEmit(Unit)
+        }
     }
 }

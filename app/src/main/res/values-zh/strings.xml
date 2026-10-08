@@ -40,8 +40,6 @@
     <string name="button_delete">删除</string>
 
     <string name="settings_title">设置</string>
-    <string name="settings_auto_update">自动更新克隆应用</string>
-    <string name="settings_auto_update_description">在后台检查（重启后依然有效），并在原应用有新版本时更新克隆应用。</string>
     <string name="settings_check_interval">检查更新：%1$s</string>
     <string-array name="check_intervals">
         <item>每天一次</item>
@@ -55,9 +53,33 @@
     </string-array>
 
     <string name="channel_updates">克隆应用更新</string>
-    <string name="settings_play_protect_note">Google Play 保护机制会将重新签名的应用视为未知应用，可能要求扫描或直接拦截。被拦截的更新不会安装，你会收到有可用更新的通知。关闭应用扫描可以消除这些提示，但会降低设备的安全性。</string>
     <string name="settings_play_protect_button">Play 保护机制设置</string>
     <string name="notification_updating">正在更新 %1$s…</string>
     <string name="notification_available_title">克隆应用有可用更新</string>
-    <string name="notification_available_text">%1$s 无法自动更新。点按即可更新。</string>
+    <string name="notification_available_text">有可用更新：%1$s。点按打开克隆应用列表。</string>
+
+    <string name="settings_install_method">安装方式</string>
+    <string name="method_stock">标准</string>
+
+    <string name="shizuku_title">需要 Shizuku 权限</string>
+    <string name="button_grant_shizuku">授予 Shizuku 权限</string>
+    <string name="shizuku_granted">Shizuku 权限已授予</string>
+    <string name="shizuku_denied">Shizuku 权限被拒绝</string>
+
+    <string name="shizuku_not_running_title">Shizuku 未运行</string>
+    <string name="shizuku_not_running">请启动 Shizuku 后再返回。在此之前将使用标准方式。</string>
+    <string name="shizuku_description">APK Cloner 使用 Shizuku 在无需确认的情况下安装和更新克隆应用。请授予权限以启用此方式；在此之前将使用标准方式。</string>
+    <string name="shizuku_granted_description">克隆应用的安装和更新无需任何确认。</string>
+    <string name="play_protect_on_title">Play 保护机制已开启</string>
+    <string name="play_protect_unknown_title">Play 保护机制可能会造成干扰</string>
+    <string name="play_protect_on_description">它会将重新签名的应用视为未知应用，可能要求扫描或直接拦截。无法静默完成的更新不会安装，你会收到有可用更新的通知。关闭应用扫描可以消除这些提示，但会降低设备的安全性。</string>
+    <string name="play_protect_off_title">Play 保护机制已关闭</string>
+    <string name="play_protect_off_description">安装克隆应用不会受到干扰。由 APK Cloner 安装、且面向较新 Android 版本的克隆应用可免确认更新。</string>
+
+    <string name="settings_check_updates">检查克隆应用更新</string>
+    <string name="settings_check_updates_description">在后台进行，重启后依然有效。克隆应用落后于原应用时会收到通知。</string>
+    <string name="settings_auto_install">自动安装</string>
+    <string name="settings_auto_install_description">直接更新克隆应用，而不只是通知。</string>
+    <string name="notification_failed_title">克隆应用更新失败</string>
+    <string name="status_installing">正在安装…</string>
 </resources>

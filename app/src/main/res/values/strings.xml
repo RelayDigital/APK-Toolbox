@@ -44,8 +44,6 @@
     <string name="button_delete">Delete</string>
 
     <string name="settings_title">Settings</string>
-    <string name="settings_auto_update">Update clones automatically</string>
-    <string name="settings_auto_update_description">Check in the background, including after a reboot, and update clones when the original app gets a new version.</string>
     <string name="settings_check_interval">Check for updates: %1$s</string>
     <string-array name="check_intervals">
         <item>once a day</item>
@@ -62,9 +60,34 @@
     <string name="source_url" translatable="false">https://github.com/bl3xand/APK-Cloner</string>
 
     <string name="channel_updates">Clone updates</string>
-    <string name="settings_play_protect_note">Google Play Protect treats re-signed apps as unknown and may ask to scan or block them. An update it does not let through is not installed; you get a notification that updates are available instead. Turning app scanning off removes these prompts, but lowers the protection of the device.</string>
     <string name="settings_play_protect_button">Play Protect settings</string>
     <string name="notification_updating">Updating %1$s…</string>
     <string name="notification_available_title">Clone updates available</string>
-    <string name="notification_available_text">%1$s could not be updated automatically. Tap to update.</string>
+    <string name="notification_available_text">Updates available: %1$s. Tap to open the clones list.</string>
+
+    <string name="settings_install_method">Installation method</string>
+    <string name="method_stock">Standard</string>
+    <string name="method_shizuku" translatable="false">Shizuku</string>
+
+    <string name="shizuku_title">Shizuku access required</string>
+    <string name="button_grant_shizuku">Grant Shizuku access</string>
+    <string name="shizuku_granted">Shizuku access granted</string>
+    <string name="shizuku_denied">Shizuku access denied</string>
+
+    <string name="shizuku_not_running_title">Shizuku is not running</string>
+    <string name="shizuku_not_running">Start Shizuku and come back. Until then the standard method is used.</string>
+    <string name="shizuku_description">APK Cloner uses Shizuku to install and update clones without prompts. Grant access to enable it; until then the standard method is used.</string>
+    <string name="shizuku_granted_description">Clones are installed and updated without any prompts.</string>
+    <string name="play_protect_on_title">Play Protect is on</string>
+    <string name="play_protect_unknown_title">Play Protect may get in the way</string>
+    <string name="play_protect_on_description">It treats re-signed apps as unknown and may ask to scan or block them. An update that cannot go through silently is not installed; you get a notification that updates are available instead. Turning app scanning off removes these prompts, but lowers the protection of the device.</string>
+    <string name="play_protect_off_title">Play Protect is off</string>
+    <string name="play_protect_off_description">Nothing gets in the way of installing clones. Those installed by APK Cloner that target a recent Android version update without a prompt.</string>
+
+    <string name="settings_check_updates">Check for clone updates</string>
+    <string name="settings_check_updates_description">In the background, including after a reboot. You are notified when a clone falls behind the app it was made from.</string>
+    <string name="settings_auto_install">Install automatically</string>
+    <string name="settings_auto_install_description">Update clones right away instead of only notifying.</string>
+    <string name="notification_failed_title">Could not update clones</string>
+    <string name="status_installing">Installing…</string>
 </resources>

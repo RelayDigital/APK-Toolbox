@@ -23,10 +23,19 @@ keeping its data — in one tap, or automatically in the background.
 4. **Install** the clone, or **Save** the APK wherever you like.
 
 Installed clones are listed on the **Clones** tab. Tap one to see which app
-and version it was made from, and to **Update** or **Delete** it. To keep
-clones current without opening the app, turn on **Update clones
-automatically** in settings and choose how often to check, from once a day
-to once a year.
+and version it was made from, and to **Update** or **Delete** it.
+
+## Keeping clones up to date
+
+Turn on **Check for clone updates** in settings and choose how often, from
+once a day to once a year. By default you only get a notification. With
+**Install automatically** the clones are updated right away, by one of two
+methods:
+
+- **Standard** — the system installer. Updates without a prompt only clones
+  that APK Cloner installed itself and that target a recent Android version.
+- **Shizuku** — installs with shell privileges through
+  [Shizuku](https://shizuku.rikka.app/): no prompts, for any clone.
 
 ## Good to know
 

@@ -8,37 +8,61 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import io.github.bl3xand.apkcloner.clone.ApkCloner
 import io.github.bl3xand.apkcloner.data.AppRepository
-import io.github.bl3xand.apkcloner.install.ApkInstaller
+import io.github.bl3xand.apkcloner.install.InstallOutcome
+import io.github.bl3xand.apkcloner.install.Installer
 import io.github.bl3xand.apkcloner.settings.AppSettings
 import java.io.File
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** Brings every outdated clone up to the version of the app it was cloned from. */
+/**
+ * Looks for clones older than the app they were made from and, depending on the settings,
+ * either updates them or just tells the user.
+ */
 class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val context = applicationContext
-        if (!context.packageManager.canRequestPackageInstalls()) return@withContext Result.success()
-
         val cloner = ApkCloner(context)
+        val autoInstall = AppSettings(context).autoInstall
+        val installer = Installer.current(context)
         val output = File(context.cacheDir, "auto-update")
+        // Whatever the previous run reported is about to be re-evaluated.
+        UpdateNotifications.cancelOutdated(context)
+        val available = ArrayList<String>()
+        val failed = ArrayList<String>()
         try {
             for (clone in AppRepository(context, cloner).installed().clones) {
                 if (!clone.updateAvailable) continue
                 val request = clone.updateRequest() ?: continue
+                if (!autoInstall) {
+                    available += clone.app.label
+                    continue
+                }
+                // Decided up front, so a clone the system would only install after a
+                // confirmation is not rebuilt for nothing.
+                if (!installer.canInstallSilently(context, clone.app)) {
+                    failed += clone.app.label
+                    continue
+                }
                 UpdateNotifications.showProgress(context, clone.app.label)
                 // One broken app must not keep the rest from updating.
-                runCatching {
+                val outcome = try {
                     val apks = cloner.clone(request, output) { _, _, _ -> }
-                    ApkInstaller.install(context, apks, background = true, label = clone.app.label)
-                }.onFailure { UpdateNotifications.showAvailable(context, clone.app.label) }
+                    installer.install(context, apks, background = true, label = clone.app.label)
+                } catch (e: Exception) {
+                    InstallOutcome.Failed(e.message.orEmpty())
+                }
+                if (outcome is InstallOutcome.Failed) failed += clone.app.label
             }
         } finally {
             UpdateNotifications.cancelProgress(context)
             output.deleteRecursively()
         }
+        // A successful automatic update says nothing beyond the progress it showed.
+        if (available.isNotEmpty()) UpdateNotifications.showAvailable(context, available.joinToString())
+        if (failed.isNotEmpty()) UpdateNotifications.showFailed(context, failed.joinToString())
         Result.success()
     }
 
@@ -52,7 +76,7 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
         fun schedule(context: Context) {
             val settings = AppSettings(context)
             val workManager = WorkManager.getInstance(context)
-            if (!settings.autoUpdate) {
+            if (!settings.checkUpdates) {
                 workManager.cancelUniqueWork(WORK_NAME)
                 return
             }

@@ -29,17 +29,27 @@ object UpdateNotifications {
 
     fun cancelProgress(context: Context) = manager(context).cancel(ID_PROGRESS)
 
+    /** Drops a leftover "available"/"failed" notice once it may no longer be true. */
+    fun cancelOutdated(context: Context) = manager(context).cancel(ID_AVAILABLE)
+
+    /** Notify-only mode: outdated clones were found and nothing was installed, by design. */
+    fun showAvailable(context: Context, labels: String) =
+        showOutdated(context, R.string.notification_available_title, labels)
+
     /**
-     * For updates the system would not install on its own - it wanted a confirmation, or Play
-     * Protect stepped in. Opens the Clones tab, where they can be installed by hand.
+     * Automatic mode, and it did not work: the system wanted a confirmation, Play Protect stepped
+     * in, or the build failed. The update is still there to be installed by hand.
      */
-    fun showAvailable(context: Context, label: String) {
+    fun showFailed(context: Context, labels: String) =
+        showOutdated(context, R.string.notification_failed_title, labels)
+
+    private fun showOutdated(context: Context, title: Int, labels: String) {
         val open = Intent(context, MainActivity::class.java)
             .putExtra(MainActivity.EXTRA_TAB, MainActivity.TAB_CLONES)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val notification = builder(context)
-            .setContentTitle(context.getString(R.string.notification_available_title))
-            .setContentText(context.getString(R.string.notification_available_text, label))
+            .setContentTitle(context.getString(title))
+            .setContentText(context.getString(R.string.notification_available_text, labels))
             .setContentIntent(
                 PendingIntent.getActivity(context, 0, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             )

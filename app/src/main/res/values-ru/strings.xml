@@ -40,8 +40,6 @@
     <string name="button_delete">Удалить</string>
 
     <string name="settings_title">Настройки</string>
-    <string name="settings_auto_update">Обновлять клоны автоматически</string>
-    <string name="settings_auto_update_description">Проверять в фоне, в том числе после перезагрузки, и обновлять клоны, когда у оригинала выходит новая версия.</string>
     <string name="settings_check_interval">Проверять обновления: %1$s</string>
     <string-array name="check_intervals">
         <item>раз в день</item>
@@ -55,9 +53,33 @@
     </string-array>
 
     <string name="channel_updates">Обновления клонов</string>
-    <string name="settings_play_protect_note">Google Play Защита считает переподписанные приложения неизвестными и может предлагать проверку или блокировать их. Обновление, которое она не пропустила, не устанавливается — вместо этого придёт уведомление о доступных обновлениях. Отключение проверки приложений убирает эти запросы, но снижает защиту устройства.</string>
     <string name="settings_play_protect_button">Настройки Play Защиты</string>
     <string name="notification_updating">Обновление %1$s…</string>
     <string name="notification_available_title">Доступны обновления клонов</string>
-    <string name="notification_available_text">%1$s не удалось обновить автоматически. Нажмите, чтобы обновить.</string>
+    <string name="notification_available_text">Есть обновления: %1$s. Нажмите, чтобы открыть список клонов.</string>
+
+    <string name="settings_install_method">Способ установки</string>
+    <string name="method_stock">Стандартный</string>
+
+    <string name="shizuku_title">Нужен доступ Shizuku</string>
+    <string name="button_grant_shizuku">Выдать доступ Shizuku</string>
+    <string name="shizuku_granted">Доступ Shizuku выдан</string>
+    <string name="shizuku_denied">В доступе Shizuku отказано</string>
+
+    <string name="shizuku_not_running_title">Shizuku не запущен</string>
+    <string name="shizuku_not_running">Запустите Shizuku и вернитесь. До тех пор используется стандартный способ.</string>
+    <string name="shizuku_description">APK Cloner использует Shizuku, чтобы устанавливать и обновлять клоны без подтверждений. Выдайте доступ, чтобы включить этот способ; до тех пор используется стандартный.</string>
+    <string name="shizuku_granted_description">Клоны устанавливаются и обновляются без подтверждений.</string>
+    <string name="play_protect_on_title">Play Защита включена</string>
+    <string name="play_protect_unknown_title">Play Защита может мешать</string>
+    <string name="play_protect_on_description">Она считает переподписанные приложения неизвестными и может предлагать проверку или блокировать их. Обновление, которое не проходит молча, не устанавливается — вместо этого придёт уведомление о доступных обновлениях. Отключение проверки приложений убирает эти запросы, но снижает защиту устройства.</string>
+    <string name="play_protect_off_title">Play Защита отключена</string>
+    <string name="play_protect_off_description">Установке клонов ничего не мешает. Клоны, установленные самим APK Cloner и рассчитанные на свежую версию Android, обновляются без подтверждения.</string>
+
+    <string name="settings_check_updates">Проверять обновления клонов</string>
+    <string name="settings_check_updates_description">В фоне, в том числе после перезагрузки. Когда клон отстаёт от оригинала, придёт уведомление.</string>
+    <string name="settings_auto_install">Устанавливать автоматически</string>
+    <string name="settings_auto_install_description">Сразу обновлять клоны, а не только уведомлять.</string>
+    <string name="notification_failed_title">Не удалось обновить клоны</string>
+    <string name="status_installing">Установка…</string>
 </resources>

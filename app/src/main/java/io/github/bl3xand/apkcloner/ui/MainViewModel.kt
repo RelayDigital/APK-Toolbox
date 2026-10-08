@@ -10,21 +10,27 @@ import io.github.bl3xand.apkcloner.clone.ApkCloner
 import io.github.bl3xand.apkcloner.data.ApkSource
 import io.github.bl3xand.apkcloner.data.AppRepository
 import io.github.bl3xand.apkcloner.data.CloneInfo
-import io.github.bl3xand.apkcloner.install.ApkInstaller
+import io.github.bl3xand.apkcloner.install.InstallOutcome
+import io.github.bl3xand.apkcloner.install.Installer
 import io.github.bl3xand.apkcloner.install.InstallReceiver
 import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 data class MainUiState(
     val hasFileAccess: Boolean = false,
@@ -52,6 +58,11 @@ sealed interface MainEvent {
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
+    private companion object {
+        /** How long to keep showing progress for an install the system never reports back on. */
+        const val INSTALL_TIMEOUT_MS = 120_000L
+    }
+
     private val cloner = ApkCloner(application)
     private val repository = AppRepository(application, cloner)
 
@@ -75,6 +86,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _cloneState = MutableStateFlow<CloneState>(CloneState.Idle)
     val cloneState: StateFlow<CloneState> = _cloneState.asStateFlow()
+
+    private val _installing = MutableStateFlow(false)
+
+    /** True while the result of the clone sheet is being installed. */
+    val installing: StateFlow<Boolean> = _installing.asStateFlow()
 
     private val _events = MutableSharedFlow<MainEvent>(extraBufferCapacity = 4)
     val events: SharedFlow<MainEvent> = _events.asSharedFlow()
@@ -149,7 +165,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun installResult() {
         val apks = (_cloneState.value as? CloneState.Done)?.apks ?: return
-        viewModelScope.launch(Dispatchers.IO) { install(apks) }
+        if (_installing.value) return
+        _installing.value = true
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                install(apks)
+            } finally {
+                _installing.value = false
+            }
+        }
     }
 
     /** A single APK is written as is; an app with splits becomes an .apks archive of all parts. */
@@ -226,12 +250,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun install(apks: List<File>) {
-        try {
-            ApkInstaller.install(getApplication(), apks)
-        } catch (e: Exception) {
-            _events.tryEmit(MainEvent.Message(R.string.install_failed, e.message ?: e.javaClass.simpleName))
+    /** Returns once the install has actually ended, so progress can be shown for all of it. */
+    private suspend fun install(apks: List<File>) = coroutineScope {
+        val context = getApplication<Application>()
+        // Subscribed before the install starts: a silent update can finish before we get to wait.
+        val finished = async(start = CoroutineStart.UNDISPATCHED) {
+            withTimeoutOrNull(INSTALL_TIMEOUT_MS) { InstallReceiver.sessionFinished.first() }
         }
+        when (val outcome = Installer.current(context).install(context, apks)) {
+            // The system installer reports its own result later, as a toast.
+            InstallOutcome.Pending -> finished.await()
+            InstallOutcome.Success -> _events.tryEmit(MainEvent.Message(R.string.install_success))
+            is InstallOutcome.Failed -> _events.tryEmit(MainEvent.Message(R.string.install_failed, outcome.reason))
+        }
+        finished.cancel()
     }
 
     private fun publishApps() {
