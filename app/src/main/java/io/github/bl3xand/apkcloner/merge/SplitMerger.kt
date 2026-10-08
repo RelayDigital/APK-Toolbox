@@ -8,10 +8,17 @@ import com.reandroid.arsc.chunk.xml.ResXmlElement
 import com.reandroid.arsc.value.ValueType
 import io.github.bl3xand.apkcloner.clone.ApkCloner
 import java.io.File
+import java.util.zip.ZipFile
 
 enum class SplitStep { EXTRACTING, MERGING, SAVING, SIGNING, EXPORTING, COPYING_OBB }
 
 class MergeResult(val apk: File, val signed: Boolean, val pairip: Boolean)
+
+/**
+ * The resource tables are too big to merge within the memory Android gives an app.
+ * [megabytes] is their combined size.
+ */
+class TablesTooLargeException(val megabytes: Long) : Exception()
 
 /** Some splits do not belong to the same build as the base; merging them needs an explicit go-ahead. */
 class SplitMismatchException(val splits: List<String>) : Exception()
@@ -39,6 +46,19 @@ class SplitMerger(private val cloner: ApkCloner) {
         val chosenWithFiles = source.materialize(selected, extracted)
         val chosen = chosenWithFiles.map { it.first }
         val files = chosenWithFiles.map { it.second }
+
+        // The merge decodes every resource table into objects, which takes many times the
+        // table's size. Past what the heap can hold it would not fail cleanly but take the whole
+        // app down, so it is refused up front.
+        val tableBytes = files.sumOf { file ->
+            ZipFile(file).use { it.getEntry(RESOURCE_TABLE)?.size ?: 0L }
+        }
+        val runtime = Runtime.getRuntime()
+        val available = runtime.maxMemory() - (runtime.totalMemory() - runtime.freeMemory()) - HEAP_RESERVE_BYTES
+        if (tableBytes * HEAP_BYTES_PER_TABLE_BYTE > available) {
+            extracted.deleteRecursively()
+            throw TablesTooLargeException(tableBytes / (1024 * 1024))
+        }
 
         val merged = File(output, "merged.apk")
         var pairip = false
@@ -142,6 +162,11 @@ class SplitMerger(private val cloner: ApkCloner) {
 
     private companion object {
         const val SPLITS_META = "com.android.vending.splits"
+        const val RESOURCE_TABLE = "resources.arsc"
+
+        // Measured on device: merging an app with a 13.9 MB table peaked at 285 MB of heap.
+        const val HEAP_BYTES_PER_TABLE_BYTE = 22
+        const val HEAP_RESERVE_BYTES = 32L * 1024 * 1024
         val ABIS = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
 
         val SILENT = object : APKLogger {

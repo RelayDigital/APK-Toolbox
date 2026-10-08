@@ -216,6 +216,7 @@ class SplitSheet : BottomSheetDialogFragment() {
                 }
             )
             is SplitState.Failed -> binding.textStatus.text = getString(R.string.merge_failed, state.message)
+            is SplitState.TooLarge -> binding.textStatus.text = getString(R.string.merge_too_large, state.megabytes)
             is SplitState.Mismatch ->
                 binding.textStatus.text = getString(R.string.merge_mismatch, state.splits.joinToString())
             // Left alone otherwise, so the outcome of an install or a save stays on screen.

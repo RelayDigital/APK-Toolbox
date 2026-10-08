@@ -39,38 +39,35 @@ class ApkCloner(private val context: Context) {
         outputDir.deleteRecursively()
         check(outputDir.mkdirs()) { "Cannot create $outputDir" }
         val unsigned = File(outputDir, "unsigned.tmp")
-        val badged = File(outputDir, "badged.tmp")
         try {
             return request.apks.mapIndexed { index, apk ->
                 val name = if (index == 0) "base.apk" else apk.name
                 onProgress(name, index + 1, request.apks.size)
                 val output = File(outputDir, name)
 
-                // The icon is a matter of the base APK only. Rewriting an app's resources can
-                // fail on unusual ones; a clone without the dot beats no clone at all.
-                var source = apk
-                var marked = false
-                if (index == 0 && request.badgeIconOf != null) {
-                    // Catches Errors as well: running out of memory here must not take the app down.
-                    marked = try {
-                        IconBadger(context).apply(apk, badged, request.badgeIconOf, request.newPackage)
+                // The icon lives in the base APK. An icon that cannot be marked is left as it
+                // is: a clone without the dot beats no clone at all.
+                val iconFiles = if (index == 0 && request.badgeIconOf != null) {
+                    try {
+                        IconBadger(context).replacements(request.badgeIconOf, request.newPackage)
                     } catch (_: Throwable) {
-                        false
+                        emptyMap()
                     }
-                    if (marked) source = badged
+                } else {
+                    emptyMap()
                 }
 
                 val patcher = ManifestPatcher(request.newPackage, request.newLabel.takeIf { index == 0 })
                 val metadata = {
+                    val marked = iconFiles.isNotEmpty()
                     METADATA_ENTRY to "$METADATA_ORIGINAL=${patcher.oldPackage}\n$METADATA_BADGE=$marked\n".toByteArray()
                 }
-                ApkRebuilder.rebuild(source, unsigned, patcher, metadata.takeIf { index == 0 })
+                ApkRebuilder.rebuild(apk, unsigned, patcher, iconFiles, metadata.takeIf { index == 0 })
                 sign(unsigned, output, request.key ?: keys.active)
                 output
             }
         } finally {
             unsigned.delete()
-            badged.delete()
         }
     }
 

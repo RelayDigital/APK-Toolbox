@@ -46,7 +46,8 @@ permission to install apps. After that the four tabs are ready to use.
    `<original>.clone` and "<name> Clone", or the next free number
    (`.clone2`, "Clone 2", …) if you have cloned the app before.
 3. Leave **Mark the icon with a dot** on to tell the clone from the original
-   on the home screen. Each clone gets its own colour.
+   on the home screen. Each clone gets its own colour. The dot is drawn on
+   top of the app's own icon layers, so it works for apps of any size.
 4. Tap **Clone**, then **Install** the result or **Save** it.
 
 The clone is a separate app with its own data, installed side by side with
@@ -104,6 +105,12 @@ Turns an app that comes as several APKs into a single regular APK.
 Splits whose version or package differs from the base are refused unless you
 allow merging them anyway. Apps protected by PairIP are left unsigned, since
 a re-signed build of such an app would not start.
+
+Merging decodes the app's resource tables in memory, which takes about twenty
+times their size, and Android caps what an app may use. Apps whose tables
+come to more than roughly 20 MB are therefore refused with a message rather
+than merged; those are better merged on a computer with
+[APKEditor](https://github.com/REAndroid/APKEditor).
 
 ## Signing key
 

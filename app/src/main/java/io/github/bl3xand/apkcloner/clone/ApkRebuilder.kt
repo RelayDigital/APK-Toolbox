@@ -18,8 +18,17 @@ object ApkRebuilder {
     private const val LOCAL_HEADER_SIZE = 30
     private val SIGNATURE_FILE = Regex("META-INF/([^/]+\\.(SF|RSA|DSA|EC)|MANIFEST\\.MF)", RegexOption.IGNORE_CASE)
 
-    /** [extraEntry] is evaluated after the manifest was patched, so it may depend on the patcher. */
-    fun rebuild(source: File, target: File, patcher: ManifestPatcher, extraEntry: (() -> Pair<String, ByteArray>)?) {
+    /**
+     * [replacements] swaps whole entries by name. [extraEntry] is evaluated after the manifest
+     * was patched, so it may depend on the patcher.
+     */
+    fun rebuild(
+        source: File,
+        target: File,
+        patcher: ManifestPatcher,
+        replacements: Map<String, ByteArray>,
+        extraEntry: (() -> Pair<String, ByteArray>)?,
+    ) {
         val counter = CountingOutputStream(BufferedOutputStream(target.outputStream(), 1 shl 16))
         ZipFile(source).use { zip ->
             ZipOutputStream(counter).use { out ->
@@ -34,6 +43,9 @@ object ApkRebuilder {
                         manifestFound = true
                         out.putNextEntry(copy)
                         out.write(patcher.patch(zip.getInputStream(entry).use { it.readBytes() }))
+                    } else if (entry.name in replacements) {
+                        out.putNextEntry(copy)
+                        out.write(replacements.getValue(entry.name))
                     } else if (entry.method == ZipEntry.STORED) {
                         // resources.arsc and uncompressed native libraries are mmap-ed straight
                         // out of the APK, so they must stay stored and aligned.

@@ -140,4 +140,5 @@
     <string name="key_replace_message">用当前密钥签名的克隆应用将不再显示，也无法更新，除非重新导入该密钥。如果以后可能需要，请先导出。</string>
     <string name="key_replace_confirm">替换</string>
     <string name="clone_badge">用圆点标记图标</string>
+    <string name="merge_too_large">无法在设备上合并此应用：其资源表（%1$d MB）所需内存超出了 Android 分配给应用的上限。取消勾选不需要的拆分包可能有帮助，否则请在电脑上合并。</string>
 </resources>

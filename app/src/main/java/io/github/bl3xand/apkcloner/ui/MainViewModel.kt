@@ -21,6 +21,7 @@ import io.github.bl3xand.apkcloner.merge.SplitLoader
 import io.github.bl3xand.apkcloner.merge.SplitMerger
 import io.github.bl3xand.apkcloner.merge.SplitMismatchException
 import io.github.bl3xand.apkcloner.merge.SplitSource
+import io.github.bl3xand.apkcloner.merge.TablesTooLargeException
 import io.github.bl3xand.apkcloner.install.InstallReceiver
 import java.io.File
 import java.util.zip.ZipEntry
@@ -72,6 +73,7 @@ sealed interface SplitState {
     data class Running(val step: SplitStep) : SplitState
     data class Done(val result: MergeResult) : SplitState
     data class Mismatch(val splits: List<String>) : SplitState
+    data class TooLarge(val megabytes: Long) : SplitState
     data class Failed(val message: String) : SplitState
 }
 
@@ -380,6 +382,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     })
                 } catch (e: SplitMismatchException) {
                     SplitState.Mismatch(e.splits.map { it.substringAfterLast('/') })
+                } catch (e: TablesTooLargeException) {
+                    SplitState.TooLarge(e.megabytes)
                 } catch (e: Throwable) {
                     // Malformed APKs can blow up deep inside the resource parser, not only with exceptions.
                     mergeWork.deleteRecursively()
