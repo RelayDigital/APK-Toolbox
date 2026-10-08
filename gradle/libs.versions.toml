@@ -11,6 +11,12 @@ apksig = "9.3.0"
 work = "2.12.0"
 shizuku = "13.1.5"
 arsclib = "1.4.0"
+jsoup = "1.21.2"
+junit = "4.13.2"
+orgJson = "20250517"
+jbcrypt = "0.4"
+commonsCompress = "1.27.1"
+xz = "1.10"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -27,6 +33,12 @@ shizuku-api = { group = "dev.rikka.shizuku", name = "api", version.ref = "shizuk
 shizuku-provider = { group = "dev.rikka.shizuku", name = "provider", version.ref = "shizuku" }
 arsclib = { group = "io.github.reandroid", name = "ARSCLib", version.ref = "arsclib" }
 apksig = { group = "com.android.tools.build", name = "apksig", version.ref = "apksig" }
+jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+jbcrypt = { group = "org.mindrot", name = "jbcrypt", version.ref = "jbcrypt" }
+commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commonsCompress" }
+xz = { group = "org.tukaani", name = "xz", version.ref = "xz" }
+org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

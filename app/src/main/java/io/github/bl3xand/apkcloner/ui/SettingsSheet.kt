@@ -29,6 +29,8 @@ import io.github.bl3xand.apkcloner.install.PlayProtect
 import io.github.bl3xand.apkcloner.settings.AppSettings
 import io.github.bl3xand.apkcloner.settings.AppSettings.InstallMethod
 import io.github.bl3xand.apkcloner.shizuku.ShizukuBridge
+import io.github.bl3xand.apkcloner.install.Root
+import io.github.bl3xand.apkcloner.sources.ui.SourcesSettingsSheet
 import io.github.bl3xand.apkcloner.update.AutoUpdateWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -137,6 +139,39 @@ class SettingsSheet : BottomSheetDialogFragment() {
         }
         binding.buttonKeyReset.setOnClickListener { confirmKeyChange { keyAction(R.string.key_reset_done) { keys.reset() } } }
 
+        // Rows that are a plain on/off value: the row toggles its switch, the switch stores it.
+        fun bindSwitch(row: View, switch: com.google.android.material.materialswitch.MaterialSwitch, get: () -> Boolean, set: (Boolean) -> Unit) {
+            switch.isChecked = get()
+            row.setOnClickListener { if (switch.isEnabled) switch.toggle() }
+            switch.setOnCheckedChangeListener { _, checked ->
+                set(checked)
+                render()
+            }
+        }
+        bindSwitch(binding.rowCheckClones, binding.switchCheckClones, { settings.checkClones }, { settings.checkClones = it })
+        bindSwitch(binding.rowCheckSources, binding.switchCheckSources, { settings.checkSources }, { settings.checkSources = it })
+        bindSwitch(binding.rowWifi, binding.switchWifi, { settings.wifiOnly }, { settings.wifiOnly = it })
+        bindSwitch(binding.rowCharging, binding.switchCharging, { settings.chargingOnly }, { settings.chargingOnly = it })
+        bindSwitch(binding.rowRoot, binding.switchRoot, { settings.useRoot }) { enabled ->
+            settings.useRoot = enabled
+            if (enabled) {
+                // Asking right away brings up the grant prompt of the root manager.
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val granted = withContext(Dispatchers.IO) { Root.isAvailable() }
+                    if (!granted) {
+                        // Without root the switch would only pretend; say so and turn it back off.
+                        Toast.makeText(requireContext(), R.string.root_not_granted, Toast.LENGTH_LONG).show()
+                        _binding?.switchRoot?.isChecked = false
+                    }
+                }
+            }
+        }
+        binding.buttonSourcesSettings.setOnClickListener {
+            if (parentFragmentManager.findFragmentByTag(SourcesSettingsSheet.TAG) == null) {
+                SourcesSettingsSheet().show(parentFragmentManager, SourcesSettingsSheet.TAG)
+            }
+        }
+
         binding.textVersion.text = getString(R.string.settings_version, BuildConfig.VERSION_NAME)
         binding.buttonSource.setOnClickListener {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.source_url))))
@@ -178,8 +213,15 @@ class SettingsSheet : BottomSheetDialogFragment() {
         binding.rowAutoInstall.isEnabled = checking
         binding.textAutoInstall.isEnabled = checking
         binding.switchAutoInstall.isEnabled = checking
-        // The method only matters once something is installed without the user.
-        binding.groupMethod.isVisible = checking && settings.autoInstall
+        for ((text, switch) in listOf(
+            binding.textCheckClones to binding.switchCheckClones,
+            binding.textCheckSources to binding.switchCheckSources,
+            binding.textWifi to binding.switchWifi,
+            binding.textCharging to binding.switchCharging,
+        )) {
+            text.isEnabled = checking
+            switch.isEnabled = checking
+        }
         binding.textInterval.text = getString(R.string.settings_check_interval, intervals[settings.checkInterval])
 
         if (settings.installMethod == InstallMethod.SHIZUKU) {

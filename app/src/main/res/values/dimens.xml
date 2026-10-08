@@ -1,0 +1,11 @@
+<resources>
+    <!-- Height of the buttons that act as rows of a settings screen. -->
+    <dimen name="action_button_height">56dp</dimen>
+    <dimen name="action_button_icon_padding">12dp</dimen>
+
+    <!-- The one distance from the edge of the screen or sheet at which everything starts. -->
+    <dimen name="screen_margin">24dp</dimen>
+
+    <!-- An icon button drawn at the edge: its glyph then ends at the screen margin. -->
+    <dimen name="icon_button_margin">12dp</dimen>
+</resources>

@@ -2,18 +2,18 @@
     <string name="app_name" translatable="false">APK Toolbox</string>
 
     <string name="access_title">File access required</string>
-    <string name="access_description">Allow access to all files so APK Toolbox can work with APK files in shared storage.</string>
+    <string name="access_description">Allow access to all files so APK Toolbox can work with APKs in shared storage.</string>
     <string name="install_access_title">Install permission required</string>
     <string name="install_access_description">Allow APK Toolbox to install apps so clones can be installed and updated right from here.</string>
     <string name="button_grant_access">Grant access</string>
 
-    <string name="tab_apps">Apps</string>
+    <string name="tab_apps">Cloning</string>
     <string name="tab_clones">Clones</string>
     <string name="search_hint">Search apps</string>
     <string name="chip_system_apps">System apps</string>
     <string name="empty_list">No apps found</string>
     <string name="empty_clones">No clones yet. Installed clones will show up here.</string>
-    <string name="button_pick_apk">Choose APK file</string>
+    <string name="button_pick_apk">Choose APK</string>
     <string name="error_invalid_apk">This file is not a valid APK</string>
 
     <string name="clone_up_to_date">Version %1$s · up to date</string>
@@ -75,24 +75,24 @@
     <string name="shizuku_not_running_title">Shizuku is not running</string>
     <string name="shizuku_not_running">Start Shizuku and come back. Until then the standard method is used.</string>
     <string name="shizuku_description">APK Toolbox uses Shizuku to install and update clones without prompts. Grant access to enable it; until then the standard method is used.</string>
-    <string name="shizuku_granted_description">Clones are installed and updated without any prompts.</string>
+    <string name="shizuku_granted_description">Updates are installed without confirmation.</string>
     <string name="play_protect_on_title">Play Protect is on</string>
     <string name="play_protect_unknown_title">Play Protect may get in the way</string>
-    <string name="play_protect_on_description">Re-signed apps are unknown to it, so it may block them. While it is on, clones are not updated automatically by this method: you get a notification and update them by hand. Turning app scanning off lets updates through, but lowers the protection of the device.</string>
+    <string name="play_protect_on_description">While it is on, clones are not updated in the background by this method: you get a notification and update by hand. Apps from sources are not affected. Turning app scanning off lifts the limit but lowers the protection of the device.</string>
     <string name="play_protect_off_title">Play Protect is off</string>
-    <string name="play_protect_off_description">Nothing gets in the way of installing clones. Those installed by APK Toolbox that target a recent Android version update without a prompt.</string>
+    <string name="play_protect_off_description">Apps installed through APK Toolbox, clones included, are updated without confirmation.</string>
 
-    <string name="settings_check_updates">Check for clone updates</string>
-    <string name="settings_check_updates_description">In the background, including after a reboot. You are notified when a clone falls behind the app it was made from.</string>
+    <string name="settings_check_updates">Check for updates</string>
+    <string name="settings_check_updates_description">In the background, on schedule. You get a notification about what was found.</string>
     <string name="settings_auto_install">Install automatically</string>
-    <string name="settings_auto_install_description">Update clones right away instead of only notifying.</string>
+    <string name="settings_auto_install_description">Install found updates without confirmation.</string>
     <string name="notification_failed_title">Could not update clones</string>
     <string name="status_installing">Installing…</string>
 
-    <string name="tab_split">Split</string>
+    <string name="tab_split">AntiSplit</string>
     <string name="empty_split">No split apps found. Pick a bundle (APKS, XAPK, APKM) or several split APKs below.</string>
-    <string name="button_pick_split">Choose split APK files</string>
-    <string name="merge_open_with">Install or merge APK files</string>
+    <string name="button_pick_split">Choose split APKs</string>
+    <string name="merge_open_with">Install or merge APKs</string>
     <string name="merge_splits_title">Splits: %1$d of %2$d</string>
     <string name="merge_split_item" translatable="false">%1$s · %2$s</string>
     <string name="merge_select_all">All</string>
@@ -100,21 +100,21 @@
     <string name="merge_sign">Sign after merging</string>
     <string name="merge_force">Merge mismatched splits anyway</string>
     <string name="button_merge">Merge</string>
-    <string name="merge_step_extracting">Collecting APK files…</string>
+    <string name="merge_step_extracting">Collecting APKs…</string>
     <string name="merge_step_merging">Merging…</string>
-    <string name="merge_step_saving">Writing the APK…</string>
+    <string name="merge_step_saving">Writing APK…</string>
     <string name="merge_step_signing">Signing…</string>
     <string name="merge_done">Merged into a single APK</string>
     <string name="merge_done_unsigned">Merged, not signed. An unsigned APK cannot be installed until it is signed.</string>
     <string name="merge_done_pairip">Merged, left unsigned: this app is protected by PairIP and checks its own integrity, so a re-signed build will crash on start.</string>
     <string name="merge_mismatch">These splits have a different version or package than the base: %1$s. Deselect them, or turn on merging mismatched splits.</string>
     <string name="merge_failed">Merging failed: %1$s</string>
-    <string name="merge_not_split">This does not look like a split APK. Pick a bundle (APKS, XAPK, APKM, ZIP) or at least two APK files.</string>
+    <string name="merge_not_split">This does not look like a split APK. Pick a bundle (APKS, XAPK, APKM, ZIP) or at least two APKs.</string>
 
-    <string name="tab_install">Install</string>
-    <string name="button_pick_install">Choose APKS file</string>
+    <string name="tab_install">SAI</string>
+    <string name="button_pick_install">Choose APKS</string>
     <string name="install_sign">Sign before installing</string>
-    <string name="button_export">Export as .apks</string>
+    <string name="button_export">Export as APKS</string>
     <string name="merge_step_exporting">Exporting…</string>
     <string name="files_received_title">What to do with these files?</string>
     <string name="files_action_install">Install</string>
@@ -123,7 +123,7 @@
     <string name="button_update_all">Update all (%1$d)</string>
     <string name="button_check_now">Check now</string>
     <string name="check_now_started">Checking; the result will come as a notification</string>
-    <string name="notification_up_to_date">All clones are up to date</string>
+    <string name="notification_up_to_date">No updates</string>
     <string name="install_copy_obb">Copy OBB files (%1$d · %2$s)</string>
     <string name="merge_step_obb">Copying OBB files…</string>
 
@@ -148,4 +148,39 @@
     <string name="key_replace_confirm">Replace</string>
     <string name="clone_badge">Mark the icon with a dot</string>
     <string name="merge_too_large">This app cannot be merged on the device: its resource tables (%1$d MB) need more memory than Android gives an app. Deselecting splits you do not need may help; otherwise merge it on a computer.</string>
+    <string name="tab_sources">Sources</string>
+    <string name="settings_check_sources">Apps from sources</string>
+    <string name="settings_check_sources_description">New versions of apps from the Sources tab.</string>
+    <string name="settings_sources">Sources settings</string>
+    <string name="sources_share_label">Track in APK Toolbox</string>
+    <string name="sources_empty">No tracked apps yet.\nAdd one by its link or find it through search.</string>
+    <string name="sources_add">Add app</string>
+    <string name="sources_filter">Filter</string>
+    <string name="sources_filter_clear">Clear filter</string>
+    <string name="settings_section_updates">Updates</string>
+    <string name="settings_section_install">Automatic installation</string>
+    <string name="settings_section_experimental">Experimental</string>
+    <string name="settings_check_clones">Clones</string>
+    <string name="settings_check_clones_description">A clone is outdated when its original was updated.</string>
+    <string name="settings_wifi_only">Wait for Wi-Fi</string>
+    <string name="settings_wifi_only_description">Updates found on mobile data are installed once Wi-Fi is connected.</string>
+    <string name="settings_charging_only">Wait for the charger</string>
+    <string name="settings_charging_only_description">Updates found on battery are installed once the charger is connected.</string>
+    <string name="settings_sources_description">Tokens, choosing releases, import and export.</string>
+    <string name="settings_root">Install with root</string>
+    <string name="settings_root_description">When on, takes priority over the other installation methods. Not tested.</string>
+    <string name="cloning_installed">Installed</string>
+    <string name="cloning_clones">Clones</string>
+    <string name="export_done">Exported as APKS</string>
+    <string name="root_not_granted">Root access was not granted</string>
+    <string name="settings_install_method_description">How updates are installed in the background.</string>
+    <string name="hint_tab_install">Installs APKS, XAPK and APKM bundles and sets of split APKs. An installed app from the list can be exported as an APKS file.</string>
+    <string name="hint_tab_split">Merges an app made of several split APKs into one ordinary APK. Only apps installed as splits are listed; a bundle file can be picked as well.</string>
+    <string name="install_sign_description">Re-signs the files with the key from the settings. Needed when they were modified or their signature is broken; the app then cannot update over the original.</string>
+    <string name="merge_sign_description">Signs the merged APK with the key from the settings so it can be installed. Without it the file is left unsigned.</string>
+    <string name="merge_force_description">Merges splits even when their versions or packages differ. Use only if the normal merge refuses; the result may not work.</string>
+    <string name="tab_info">About this list</string>
+    <string name="hint_tab_sources">Tracks apps from GitHub, F-Droid, stores and other sites: add an app by link or by name, and new versions are found, downloaded and installed from here.</string>
+    <string name="hint_tab_apps">Makes a second copy of an installed app under another package name, so both live side by side with separate data. Pick an app from the list or an APK file.</string>
+    <string name="hint_tab_clones">The clones made here. A clone becomes outdated when its original is updated; it can be rebuilt from the new version here or automatically.</string>
 </resources>

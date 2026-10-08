@@ -1,17 +1,17 @@
 <resources>
     <string name="access_title">Нужен доступ к файлам</string>
-    <string name="access_description">Разрешите доступ ко всем файлам, чтобы APK Toolbox мог работать с APK-файлами в общем хранилище.</string>
+    <string name="access_description">Разрешите доступ ко всем файлам, чтобы APK Toolbox мог работать с APK в общем хранилище.</string>
     <string name="install_access_title">Нужно разрешение на установку</string>
-    <string name="install_access_description">Разрешите APK Toolbox устанавливать приложения, чтобы ставить и обновлять клоны прямо отсюда.</string>
+    <string name="install_access_description">Разрешите APK Toolbox устанавливать приложения, чтобы устанавливать и обновлять их прямо отсюда.</string>
     <string name="button_grant_access">Разрешить</string>
 
-    <string name="tab_apps">Приложения</string>
+    <string name="tab_apps">Клонирование</string>
     <string name="tab_clones">Клоны</string>
     <string name="search_hint">Поиск приложений</string>
     <string name="chip_system_apps">Системные</string>
     <string name="empty_list">Приложения не найдены</string>
     <string name="empty_clones">Клонов пока нет. Установленные клоны появятся здесь.</string>
-    <string name="button_pick_apk">Выбрать APK-файл</string>
+    <string name="button_pick_apk">Выбрать APK</string>
     <string name="error_invalid_apk">Этот файл не является корректным APK</string>
 
     <string name="clone_up_to_date">Версия %1$s · актуальная</string>
@@ -69,21 +69,21 @@
     <string name="shizuku_not_running_title">Shizuku не запущен</string>
     <string name="shizuku_not_running">Запустите Shizuku и вернитесь. До тех пор используется стандартный способ.</string>
     <string name="shizuku_description">APK Toolbox использует Shizuku, чтобы устанавливать и обновлять клоны без подтверждений. Выдайте доступ, чтобы включить этот способ; до тех пор используется стандартный.</string>
-    <string name="shizuku_granted_description">Клоны устанавливаются и обновляются без подтверждений.</string>
+    <string name="shizuku_granted_description">Обновления устанавливаются без подтверждений.</string>
     <string name="play_protect_on_title">Play Защита включена</string>
     <string name="play_protect_unknown_title">Play Защита может мешать</string>
-    <string name="play_protect_on_description">Переподписанные приложения ей неизвестны, и она может их блокировать. Пока она включена, этим способом клоны автоматически не обновляются: придёт уведомление, и обновить нужно будет вручную. Отключение проверки приложений пропускает обновления, но снижает защиту устройства.</string>
+    <string name="play_protect_on_description">Пока она включена, клоны в фоне этим способом не обновляются: придёт уведомление, обновить нужно вручную. На приложения из источников это не влияет. Отключение проверки приложений снимает ограничение, но снижает защиту устройства.</string>
     <string name="play_protect_off_title">Play Защита отключена</string>
-    <string name="play_protect_off_description">Установке клонов ничего не мешает. Клоны, установленные самим APK Toolbox и рассчитанные на свежую версию Android, обновляются без подтверждения.</string>
+    <string name="play_protect_off_description">Приложения, установленные через APK Toolbox, включая клоны, обновляются без подтверждения.</string>
 
-    <string name="settings_check_updates">Проверять обновления клонов</string>
-    <string name="settings_check_updates_description">В фоне, в том числе после перезагрузки. Когда клон отстаёт от оригинала, придёт уведомление.</string>
+    <string name="settings_check_updates">Проверять обновления</string>
+    <string name="settings_check_updates_description">В фоне по расписанию. О найденном придёт уведомление.</string>
     <string name="settings_auto_install">Устанавливать автоматически</string>
-    <string name="settings_auto_install_description">Сразу обновлять клоны, а не только уведомлять.</string>
+    <string name="settings_auto_install_description">Устанавливать найденные обновления без подтверждения.</string>
     <string name="notification_failed_title">Не удалось обновить клоны</string>
     <string name="status_installing">Установка…</string>
 
-    <string name="tab_split">Сплит</string>
+    <string name="tab_split">AntiSplit</string>
     <string name="empty_split">Сплит-приложения не найдены. Выберите ниже пакет (APKS, XAPK, APKM) или несколько сплит-APK.</string>
     <string name="button_pick_split">Выбрать сплит-APK</string>
     <string name="merge_open_with">Установить или объединить APK</string>
@@ -93,7 +93,7 @@
     <string name="merge_sign">Подписать после объединения</string>
     <string name="merge_force">Объединять несовпадающие сплиты</string>
     <string name="button_merge">Объединить</string>
-    <string name="merge_step_extracting">Сбор APK-файлов…</string>
+    <string name="merge_step_extracting">Сбор APK…</string>
     <string name="merge_step_merging">Объединение…</string>
     <string name="merge_step_saving">Запись APK…</string>
     <string name="merge_step_signing">Подпись…</string>
@@ -102,12 +102,12 @@
     <string name="merge_done_pairip">Объединено, но не подписано: приложение защищено PairIP и проверяет свою целостность, переподписанная сборка будет падать при запуске.</string>
     <string name="merge_mismatch">У этих сплитов версия или пакет отличаются от базового APK: %1$s. Снимите с них отметку или включите объединение несовпадающих сплитов.</string>
     <string name="merge_failed">Ошибка объединения: %1$s</string>
-    <string name="merge_not_split">Это не похоже на сплит-APK. Выберите пакет (APKS, XAPK, APKM, ZIP) или минимум два APK-файла.</string>
+    <string name="merge_not_split">Это не похоже на сплит-APK. Выберите пакет (APKS, XAPK, APKM, ZIP) или минимум два APK.</string>
 
-    <string name="tab_install">Установка</string>
+    <string name="tab_install">SAI</string>
     <string name="button_pick_install">Выбрать APKS</string>
     <string name="install_sign">Подписать перед установкой</string>
-    <string name="button_export">Экспорт в .apks</string>
+    <string name="button_export">Экспорт в APKS</string>
     <string name="merge_step_exporting">Экспорт…</string>
     <string name="files_received_title">Что сделать с этими файлами?</string>
     <string name="files_action_install">Установить</string>
@@ -116,7 +116,7 @@
     <string name="button_update_all">Обновить все (%1$d)</string>
     <string name="button_check_now">Проверить сейчас</string>
     <string name="check_now_started">Проверяю; результат придёт уведомлением</string>
-    <string name="notification_up_to_date">Все клоны актуальны</string>
+    <string name="notification_up_to_date">Обновлений нет</string>
     <string name="install_copy_obb">Скопировать OBB-файлы (%1$d · %2$s)</string>
     <string name="merge_step_obb">Копирование OBB-файлов…</string>
 
@@ -141,4 +141,39 @@
     <string name="key_replace_confirm">Заменить</string>
     <string name="clone_badge">Пометить значок точкой</string>
     <string name="merge_too_large">Это приложение нельзя объединить на устройстве: его таблицы ресурсов (%1$d МБ) требуют больше памяти, чем Android даёт приложению. Может помочь снятие ненужных сплитов; иначе объедините его на компьютере.</string>
+    <string name="tab_sources">Источники</string>
+    <string name="settings_check_sources">Приложения из источников</string>
+    <string name="settings_check_sources_description">Новые версии приложений со вкладки «Источники».</string>
+    <string name="settings_sources">Настройки источников</string>
+    <string name="sources_share_label">Отслеживать в APK Toolbox</string>
+    <string name="sources_empty">Пока нет отслеживаемых приложений.\nДобавьте по ссылке или найдите через поиск.</string>
+    <string name="sources_add">Добавить приложение</string>
+    <string name="sources_filter">Фильтр</string>
+    <string name="sources_filter_clear">Сбросить фильтр</string>
+    <string name="settings_section_updates">Обновления</string>
+    <string name="settings_section_install">Автоматическая установка</string>
+    <string name="settings_section_experimental">Экспериментальное</string>
+    <string name="settings_check_clones">Клоны</string>
+    <string name="settings_check_clones_description">Клон устарел, если обновился его оригинал.</string>
+    <string name="settings_wifi_only">Ждать Wi-Fi</string>
+    <string name="settings_wifi_only_description">Найденное в мобильной сети установится при подключении к Wi-Fi.</string>
+    <string name="settings_charging_only">Ждать зарядку</string>
+    <string name="settings_charging_only_description">Найденное без зарядки установится при подключении к зарядке.</string>
+    <string name="settings_sources_description">Токены, выбор выпусков, импорт и экспорт.</string>
+    <string name="settings_root">Установка через root</string>
+    <string name="settings_root_description">Если включено, имеет приоритет над другими способами установки. Не тестировалось.</string>
+    <string name="cloning_installed">Установленные</string>
+    <string name="cloning_clones">Клоны</string>
+    <string name="export_done">Экспортировано в APKS</string>
+    <string name="root_not_granted">Доступ root не выдан</string>
+    <string name="settings_install_method_description">Как устанавливаются обновления в фоне.</string>
+    <string name="hint_tab_install">Устанавливает пакеты APKS, XAPK, APKM и наборы сплитов. Установленное приложение из списка можно экспортировать в файл APKS.</string>
+    <string name="hint_tab_split">Объединяет приложение из нескольких сплитов в один обычный APK. В списке только приложения, установленные сплитами; можно выбрать и файл пакета.</string>
+    <string name="install_sign_description">Переподписывает файлы ключом из настроек. Нужно, если они изменены или подпись повреждена; поверх оригинала такое приложение не обновится.</string>
+    <string name="merge_sign_description">Подписывает объединённый APK ключом из настроек, чтобы его можно было установить. Без этого файл останется неподписанным.</string>
+    <string name="merge_force_description">Объединяет сплиты, даже если у них разные версии или пакеты. Только если обычное объединение отказывается; результат может не работать.</string>
+    <string name="tab_info">Об этом списке</string>
+    <string name="hint_tab_sources">Отслеживает приложения с GitHub, F-Droid, магазинов и других сайтов: добавьте приложение по ссылке или по названию, и новые версии будут находиться, скачиваться и устанавливаться отсюда.</string>
+    <string name="hint_tab_apps">Делает вторую копию установленного приложения с другим именем пакета: обе живут рядом, у каждой свои данные. Выберите приложение из списка или файл APK.</string>
+    <string name="hint_tab_clones">Клоны, сделанные здесь. Клон устаревает, когда обновляется его оригинал; пересобрать его из новой версии можно здесь или автоматически.</string>
 </resources>

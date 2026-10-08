@@ -101,12 +101,14 @@
             app:iconGravity="textStart"
             app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
 
-        <com.google.android.material.button.MaterialButtonGroup
+        <!-- A plain row: a button group would animate the widths of its buttons on every press. -->
+        <LinearLayout
             android:id="@+id/resultActions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:visibility="gone">
+            android:visibility="gone"
+            android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/buttonSave"
@@ -120,6 +122,7 @@
                 app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
 
             <com.google.android.material.button.MaterialButton
+                android:layout_marginStart="8dp"
                 android:id="@+id/buttonInstall"
                 style="@style/Widget.Material3Expressive.Button"
                 android:layout_width="0dp"
@@ -130,7 +133,7 @@
                 app:iconGravity="textStart"
                 app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
 
-        </com.google.android.material.button.MaterialButtonGroup>
+        </LinearLayout>
 
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

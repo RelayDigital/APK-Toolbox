@@ -1,3 +1,20 @@
 <resources>
     <style name="Theme.ApkCloner" parent="Theme.Material3Expressive.DynamicColors.DayNight.NoActionBar" />
+
+    <!-- A settings action: as wide as the screen, tall, icon and text from the start edge. -->
+    <style name="Widget.ApkCloner.Button.Action" parent="Widget.Material3Expressive.Button.TonalButton">
+        <item name="android:minHeight">@dimen/action_button_height</item>
+        <item name="android:gravity">start|center_vertical</item>
+        <item name="iconGravity">start</item>
+        <item name="iconPadding">@dimen/action_button_icon_padding</item>
+    </style>
+
+    <!-- The same height for buttons that sit side by side. -->
+    <style name="Widget.ApkCloner.Button.Tall" parent="Widget.Material3Expressive.Button.TonalButton">
+        <item name="android:minHeight">@dimen/action_button_height</item>
+    </style>
+
+    <style name="Widget.ApkCloner.Button.Tall.Outlined" parent="Widget.Material3Expressive.Button.OutlinedButton">
+        <item name="android:minHeight">@dimen/action_button_height</item>
+    </style>
 </resources>

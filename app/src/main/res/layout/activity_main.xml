@@ -160,11 +160,12 @@
             android:orientation="vertical"
             android:paddingTop="12dp">
 
+
             <com.google.android.material.card.MaterialCardView
                 style="?attr/materialCardViewFilledStyle"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:layout_marginHorizontal="16dp"
+                android:layout_marginHorizontal="@dimen/screen_margin"
                 app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
                 app:cardCornerRadius="28dp"
                 app:cardElevation="0dp">
@@ -199,14 +200,116 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipSystem"
-                style="@style/Widget.Material3.Chip.Filter"
-                android:layout_width="wrap_content"
+            <!-- The Cloning tab has two sides: what can be cloned and what already was. -->
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/toggleCloning"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
+                android:layout_marginHorizontal="@dimen/screen_margin"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonSideInstalled"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/cloning_installed" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonSideClones"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/cloning_clones" />
+
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <LinearLayout
+                android:id="@+id/systemRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/screen_margin"
                 android:layout_marginTop="8dp"
-                android:text="@string/chip_system_apps" />
+                android:layout_marginEnd="@dimen/icon_button_margin"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipSystem"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/chip_system_apps" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <!-- Says what this tab is for. -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonTabInfo"
+                    style="?attr/materialIconButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/tab_info"
+                    app:icon="@drawable/ic_info_outline" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/sourcesChips"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/screen_margin"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="@dimen/icon_button_margin"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipSourcesRefresh"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:chipIcon="@drawable/ic_update" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipSourcesFilter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/sources_filter"
+                    app:chipIcon="@drawable/ic_filter" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipSourcesClearFilter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/sources_filter_clear"
+                    android:visibility="gone"
+                    app:chipIcon="@drawable/ic_close" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonSourcesInfo"
+                    style="?attr/materialIconButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/tab_info"
+                    app:icon="@drawable/ic_info_outline" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
@@ -214,7 +317,7 @@
             android:id="@+id/progress"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
+            android:layout_marginHorizontal="@dimen/screen_margin"
             android:indeterminate="true" />
 
         <FrameLayout
@@ -258,6 +361,16 @@
                 android:paddingBottom="8dp"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/listSources"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingTop="4dp"
+                android:paddingBottom="8dp"
+                android:visibility="gone"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
             <TextView
                 android:id="@+id/textEmpty"
                 android:layout_width="wrap_content"
@@ -283,7 +396,7 @@
             style="@style/Widget.Material3Expressive.Button.TonalButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
+            android:layout_marginHorizontal="@dimen/screen_margin"
             android:layout_marginVertical="12dp"
             android:text="@string/button_pick_apk"
             app:icon="@drawable/ic_folder"

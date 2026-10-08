@@ -12,7 +12,7 @@ import io.github.bl3xand.apkcloner.data.ApkSource
 import io.github.bl3xand.apkcloner.data.AppRepository
 import io.github.bl3xand.apkcloner.data.CloneInfo
 import io.github.bl3xand.apkcloner.install.InstallOutcome
-import io.github.bl3xand.apkcloner.install.StockInstaller
+import io.github.bl3xand.apkcloner.install.Installer
 import io.github.bl3xand.apkcloner.merge.MergeResult
 import io.github.bl3xand.apkcloner.merge.SplitStep
 import io.github.bl3xand.apkcloner.merge.NotSplitException
@@ -112,7 +112,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var loaded = false
 
     /** Which tab is showing; kept here so it survives rotation. */
-    var tab = 0
+    var tab = MainActivity.TAB_SOURCES
+
+    /** The side of the Cloning tab shown last: installed apps or clones. */
+    var cloningSide = MainActivity.TAB_APPS
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -361,6 +364,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 SplitExporter(getApplication()).export(source, files, checkNotNull(output) { "Cannot open destination" })
             }
             _splitState.value = SplitState.Idle
+            if (result.isSuccess) {
+                // The sheet is still open and hides the main screen's messages, so say it here.
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(getApplication(), R.string.export_done, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
             _events.tryEmit(
                 result.fold(
                     { MainEvent.Message(R.string.status_saved) },
@@ -471,7 +480,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val finished = async(start = CoroutineStart.UNDISPATCHED) {
             withTimeoutOrNull(INSTALL_TIMEOUT_MS) { InstallReceiver.sessionFinished.first() }
         }
-        when (val outcome = StockInstaller.install(context, apks)) {
+        when (val outcome = Installer.choose(context, background = false).install(context, apks)) {
             // The system installer reports its own result later, as a toast.
             InstallOutcome.Pending -> finished.await()
             InstallOutcome.Success -> Unit

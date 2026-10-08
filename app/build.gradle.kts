@@ -21,8 +21,8 @@ android {
         applicationId = "io.github.bl3xand.apkcloner"
         minSdk = 35
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.0"
+        versionCode = 6
+        versionName = "1.0.1"
     }
 
     signingConfigs {
@@ -57,6 +57,15 @@ android {
         buildConfig = true
         aidl = true
     }
+
+    testOptions {
+        unitTests.all {
+            // Tests that reach real sites only run on request: -Plive=true [-Plive.only=<Source>].
+            it.systemProperty("live", providers.gradleProperty("live").getOrElse("false"))
+            it.systemProperty("live.only", providers.gradleProperty("live.only").getOrElse(""))
+            it.testLogging.showStandardStreams = true
+        }
+    }
 }
 
 // ARSCLib is a desktop library and bundles its own stubs of a few Android framework classes
@@ -89,4 +98,13 @@ dependencies {
     implementation(libs.shizuku.provider)
     implementation(files(strippedArsclib))
     implementation(libs.apksig)
+    implementation(libs.jsoup)
+    implementation(libs.jbcrypt)
+    // Tarballs offered as release assets: tar itself plus bzip2 and xz.
+    implementation(libs.commons.compress)
+    implementation(libs.xz)
+
+    testImplementation(libs.junit)
+    // The org.json classes in android.jar are stubs; unit tests need a real implementation.
+    testImplementation(libs.org.json)
 }

@@ -28,3 +28,18 @@
 -dontwarn com.reandroid.**
 -dontwarn java.awt.**
 -dontwarn javax.**
+
+# Constructed reflectively by ViewModelProvider, like MainViewModel.
+-keep class io.github.bl3xand.apkcloner.sources.ui.SourcesViewModel {
+    <init>(android.app.Application);
+}
+
+# jsoup loads its HTML entity tables as resources addressed by the package name.
+-keeppackagenames org.jsoup.nodes
+
+# Optional parts of the HTML, archive and compression libraries that are never used here
+# (other archive formats, desktop-only helpers).
+-dontwarn org.jsoup.**
+-dontwarn org.apache.commons.compress.**
+-dontwarn org.tukaani.xz.**
+-dontwarn org.jspecify.**

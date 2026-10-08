@@ -32,7 +32,7 @@ object UpdateNotifications {
     /** Drops a leftover "available"/"failed" notice once it may no longer be true. */
     fun cancelOutdated(context: Context) = manager(context).cancel(ID_AVAILABLE)
 
-    /** The answer to "check now" when every clone already matches its original. */
+    /** The answer to "check now" when nothing, clone or tracked app, has an update. */
     fun showUpToDate(context: Context) {
         val notification = builder(context)
             .setContentTitle(context.getString(R.string.notification_up_to_date))

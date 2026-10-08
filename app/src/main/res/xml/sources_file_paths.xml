@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <external-cache-path name="sources" path="sources/" />
+    <cache-path name="sources_internal" path="sources/" />
+    <cache-path name="sources_share" path="sources_share/" />
+</paths>

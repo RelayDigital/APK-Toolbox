@@ -1,3 +1,5 @@
 <resources>
-    <color name="ic_launcher_background">#3F51B5</color>
+    <!-- The launcher icon's background runs from the first colour to the second. -->
+    <color name="ic_launcher_background">#5C6BFF</color>
+    <color name="ic_launcher_background_end">#1A237E</color>
 </resources>

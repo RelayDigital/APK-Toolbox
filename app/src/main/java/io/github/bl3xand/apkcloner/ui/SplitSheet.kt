@@ -73,9 +73,13 @@ class SplitSheet : BottomSheetDialogFragment() {
         val fileName = source.label.replace(Regex("[\\\\/:*?\"<>|]"), "_").ifBlank { "app" }
         binding.switchSign.isVisible = mode != SplitMode.EXPORT
         binding.switchForce.isVisible = mode == SplitMode.MERGE
+        binding.textSignDescription.isVisible = binding.switchSign.isVisible
+        binding.textForceDescription.isVisible = binding.switchForce.isVisible
+        binding.textForceDescription.setText(R.string.merge_force_description)
         when (mode) {
             SplitMode.INSTALL -> {
                 binding.switchSign.setText(R.string.install_sign)
+                binding.textSignDescription.setText(R.string.install_sign_description)
                 binding.switchSign.isChecked = settings.installSign
                 binding.switchSign.setOnCheckedChangeListener { _, checked -> settings.installSign = checked }
                 binding.buttonAction.setText(R.string.button_install)
@@ -101,6 +105,7 @@ class SplitSheet : BottomSheetDialogFragment() {
             }
             SplitMode.MERGE -> {
                 binding.switchSign.setText(R.string.merge_sign)
+                binding.textSignDescription.setText(R.string.merge_sign_description)
                 binding.switchSign.isChecked = settings.mergeSign
                 binding.switchForce.isChecked = settings.mergeForce
                 binding.switchSign.setOnCheckedChangeListener { _, checked -> settings.mergeSign = checked }

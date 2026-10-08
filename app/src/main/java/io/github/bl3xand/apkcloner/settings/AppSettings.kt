@@ -26,6 +26,29 @@ class AppSettings(context: Context) {
             ?: InstallMethod.STOCK
         set(value) = prefs.edit().putString(KEY_INSTALL_METHOD, value.name).apply()
 
+    /** What the background check covers: clones, apps tracked from sources, or both. */
+    var checkClones: Boolean
+        get() = prefs.getBoolean(KEY_CHECK_CLONES, true)
+        set(value) = prefs.edit().putBoolean(KEY_CHECK_CLONES, value).apply()
+
+    var checkSources: Boolean
+        get() = prefs.getBoolean(KEY_CHECK_SOURCES, true)
+        set(value) = prefs.edit().putBoolean(KEY_CHECK_SOURCES, value).apply()
+
+    /** Background installs wait for an unmetered network and/or a charger. */
+    var wifiOnly: Boolean
+        get() = prefs.getBoolean(KEY_WIFI_ONLY, false)
+        set(value) = prefs.edit().putBoolean(KEY_WIFI_ONLY, value).apply()
+
+    var chargingOnly: Boolean
+        get() = prefs.getBoolean(KEY_CHARGING_ONLY, false)
+        set(value) = prefs.edit().putBoolean(KEY_CHARGING_ONLY, value).apply()
+
+    /** Experimental: install with `su`, taking precedence over the chosen method. */
+    var useRoot: Boolean
+        get() = prefs.getBoolean(KEY_USE_ROOT, false)
+        set(value) = prefs.edit().putBoolean(KEY_USE_ROOT, value).apply()
+
     /** Last choices made in the merge sheet. */
     var mergeSign: Boolean
         get() = prefs.getBoolean(KEY_MERGE_SIGN, true)
@@ -49,6 +72,11 @@ class AppSettings(context: Context) {
 
     companion object {
         private const val KEY_INSTALL_METHOD = "install_method"
+        private const val KEY_CHECK_CLONES = "check_clones"
+        private const val KEY_CHECK_SOURCES = "check_sources"
+        private const val KEY_WIFI_ONLY = "wifi_only"
+        private const val KEY_CHARGING_ONLY = "charging_only"
+        private const val KEY_USE_ROOT = "use_root"
         private const val KEY_MERGE_SIGN = "merge_sign"
         private const val KEY_INSTALL_SIGN = "install_sign"
         private const val KEY_CLONE_BADGE = "clone_badge"

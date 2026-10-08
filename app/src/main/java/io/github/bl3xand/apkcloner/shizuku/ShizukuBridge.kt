@@ -71,7 +71,7 @@ object ShizukuBridge {
     }
 
     /** Returns null on success, otherwise the reason the install failed. */
-    suspend fun install(apks: List<File>): String? {
+    suspend fun install(apks: List<File>, installerPackage: String = BuildConfig.APPLICATION_ID): String? {
         val service = getOrBindService() ?: return "Shizuku is not available"
         return withContext(Dispatchers.IO) {
             try {
@@ -81,7 +81,7 @@ object ShizukuBridge {
                         descriptors.toTypedArray(),
                         apks.map { it.name }.toTypedArray(),
                         apks.map { it.length() }.toLongArray(),
-                        BuildConfig.APPLICATION_ID,
+                        installerPackage,
                         Process.myUserHandle().hashCode(),
                     ).ifEmpty { null }
                 } finally {

@@ -1,47 +1,83 @@
 # APK Toolbox
 
-Clone, install, merge and keep Android apps up to date — right on the phone, no root.
+Track, clone, install and merge Android apps — right on the phone, no root.
 
 APK Toolbox started as a way to get a second copy of an app next to the
 original and grew into a small set of tools for APK files:
 
-- **Clone** an app under a new package name and app name, and keep the clone
-  in step with the original as it gets updated.
-- **Install** split APKs (APKS, XAPK, APKM, ZIP) and export installed apps
-  as `.apks` archives.
-- **Merge** an app that ships as several APKs into one regular APK.
+- **Sources** — track apps from GitHub, GitLab, F-Droid, app stores and other
+  sites, and install their new versions straight from the source.
+- **Cloning** — make a copy of an app under a new package name and app name,
+  and keep the clone in step with the original as it gets updated.
+- **SAI** — install split APKs (APKS, XAPK, APKM, ZIP) and export installed
+  apps as `.apks` archives.
+- **AntiSplit** — merge an app that ships as several APKs into one regular APK.
+
+One schedule and one installation method serve all of it: what is found in
+the background is installed the same way whether it is a tracked app or a
+clone.
 
 Nothing is left behind on disk: a result is either installed or saved where
 you choose, and temporary files are removed afterwards.
 
 <p align="center">
-  <img src="docs/screenshots/apps.jpg" width="24%" alt="Apps" />
+  <img src="docs/screenshots/sources.jpg" width="24%" alt="Sources" />
+  <img src="docs/screenshots/source-details.jpg" width="24%" alt="A tracked app" />
+  <img src="docs/screenshots/add.jpg" width="24%" alt="Adding an app" />
+  <img src="docs/screenshots/settings.jpg" width="24%" alt="Settings" />
+</p>
+<p align="center">
+  <img src="docs/screenshots/apps.jpg" width="24%" alt="Cloning" />
   <img src="docs/screenshots/clone.jpg" width="24%" alt="Cloning an app" />
   <img src="docs/screenshots/clones.jpg" width="24%" alt="Clones" />
   <img src="docs/screenshots/clone-details.jpg" width="24%" alt="Clone details" />
 </p>
 <p align="center">
-  <img src="docs/screenshots/install.jpg" width="24%" alt="Install tab" />
+  <img src="docs/screenshots/install.jpg" width="24%" alt="SAI tab" />
   <img src="docs/screenshots/export.jpg" width="24%" alt="Exporting as .apks" />
   <img src="docs/screenshots/merge.jpg" width="24%" alt="Merging splits" />
-  <img src="docs/screenshots/settings.jpg" width="24%" alt="Settings" />
 </p>
 
 ## Requirements
 
 - Android 15 or newer
 - No root needed
-- [Shizuku](https://shizuku.rikka.app/) is optional — it lets clones update
-  without any prompts
+- [Shizuku](https://shizuku.rikka.app/) is optional — it lets apps and clones
+  update without any prompts
 
 ## Getting started
 
 Install APK Toolbox and open it. It asks for two things: access to files and
-permission to install apps. After that the four tabs are ready to use.
+permission to install apps. After that the four tabs are ready to use. The
+**i** button on each tab says what the tab is for.
 
-## Apps — cloning
+## Sources — apps straight from where they are published
 
-1. Pick an installed app, or tap **Choose APK file**.
+Add an app by the link to its page — a GitHub or GitLab repository, an
+F-Droid package, a store page, a direct link to an APK — or find it by name
+in the sources that can be searched. APK Toolbox then knows which version is
+the latest, shows what is new in it, and installs or updates the app on
+request or in the background.
+
+- Tap an app to see its versions and release notes, to **Update** or
+  **Remove** it.
+- Hold an app for everything else: check it now, change its options, give it
+  categories, pin it, share its link, download a release file, or select
+  several apps at once.
+- **Filter** narrows the list by state, source and category.
+- **More settings** when adding, and **App options** later, hold what a
+  particular app may need: which file of a release to take, how to read its
+  version, whether to update it automatically. Every option says what it does.
+
+Access tokens, the choice of releases, the order of the list and import and
+export live under **Sources settings**. Lists are stored in the format of
+[Obtainium](https://github.com/ImranR98/Obtainium), so they can be moved
+between the two apps in either direction, and `obtainium://` links open in
+APK Toolbox.
+
+## Cloning — a second copy of an app
+
+1. On the **Installed** side pick an app, or tap **Choose APK**.
 2. Adjust the package name and the app name. The defaults are
    `<original>.clone` and "<name> Clone", or the next free number
    (`.clone2`, "Clone 2", …) if you have cloned the app before.
@@ -53,37 +89,47 @@ permission to install apps. After that the four tabs are ready to use.
 The clone is a separate app with its own data, installed side by side with
 the original. An app can be cloned as many times as you like.
 
-## Clones — keeping them current
+### Keeping clones current
 
-Every clone you have installed is listed here. Tap one to see which app and
-version it was made from, to **Update** it to the original's current version
-or to **Delete** it. Updating keeps the clone's data and its icon mark.
-When several clones are behind, **Update all** brings them up to date one
-after another.
+The **Clones** side lists every clone you have installed. Tap one to see
+which app and version it was made from, to **Update** it to the original's
+current version or to **Delete** it. Updating keeps the clone's data and its
+icon mark. When several clones are behind, **Update all** brings them up to
+date one after another.
 
-To have this done for you, open settings:
+## Updates in the background
 
-- **Check for clone updates** — a background check, from once a day to once a
-  year. It survives reboots. On its own it only notifies.
-- **Install automatically** — update the clones right away, by one of two
-  methods:
-  - **Standard** — the system installer. Updates without a prompt only clones
-    that APK Toolbox installed itself and that target a recent Android
-    version, and only while Google Play Protect app scanning is off.
+One group of settings covers both tracked apps and clones:
+
+- **Check for updates** — a background check, from once a day to once a
+  year, for **Apps from sources**, **Clones** or both. It survives reboots.
+  On its own it only notifies. **Check now** runs it at once and reports
+  everything that is waiting.
+- **Install automatically** — install what was found without asking.
+  **Wait for Wi-Fi** and **Wait for the charger** hold an update back until
+  the condition is met and then install it by themselves.
+- **Installation method**:
+  - **Standard** — the system installer. Without a prompt it updates only
+    what APK Toolbox installed itself and what targets a recent Android
+    version. Clones, being re-signed, are additionally held back while Google
+    Play Protect app scanning is on.
   - **Shizuku** — installs with shell privileges, with no prompts, for any
-    clone. After a reboot the check waits for Shizuku to be started.
+    app. After a reboot the check waits for Shizuku to be started.
 
 Whatever could not be updated automatically is reported in a notification.
-**Check now** runs the check at once, whatever the schedule.
+An install you start by hand always goes through the system installer.
+
+Installing through root is available as an experimental switch. It has not
+been tested on a rooted device.
 
 <p align="center">
-  <img src="docs/screenshots/settings.jpg" width="30%" alt="Standard method" />
-  <img src="docs/screenshots/settings-shizuku.jpg" width="30%" alt="Shizuku method" />
+  <img src="docs/screenshots/settings.jpg" width="30%" alt="Settings" />
+  <img src="docs/screenshots/settings-shizuku.jpg" width="30%" alt="Installation method" />
 </p>
 
-## Install — split APKs in, `.apks` out
+## SAI — split APKs in, `.apks` out
 
-- **Choose APKS file** installs a bundle (APKS, XAPK, APKM, ZIP), several
+- **Choose APKS** installs a bundle (APKS, XAPK, APKM, ZIP), several
   split APK files or a single APK as one app. Pick which splits to include —
   all of them, or only those this device needs — and optionally re-sign them
   first. OBB expansion files inside an XAPK are copied to where the app
@@ -92,7 +138,7 @@ Whatever could not be updated automatically is reported in a notification.
   carries the icon and metadata in the format
   [SAI](https://github.com/Aefyr/SAI) defined, so other tools recognise it.
 
-## Split — merging into one APK
+## AntiSplit — merging into one APK
 
 Turns an app that comes as several APKs into a single regular APK.
 
@@ -134,7 +180,8 @@ uninstalled. Clones made with the built-in key keep updating with it.
 - A merged APK is signed with a different key than the original from a store,
   so it cannot be installed over it — the original has to be removed first.
 - Google Play Protect treats re-signed apps as unknown and may block them,
-  including installs you start by hand.
+  including installs you start by hand. It may also object to APK Toolbox
+  itself, as an app that installs other apps.
 - Cloning changes only the manifest. Apps that check their own package name
   or signature, and services bound to them (Google sign-in, Firebase, in-app
   purchases), may not work in a clone.
@@ -152,14 +199,22 @@ A release build is shrunk and obfuscated with R8. It is signed if a
 
 ## Used projects
 
+APK Toolbox stands on other people's work. It is not an attempt to replace
+any of these apps, and it is made with respect for the effort that went into
+them — the author simply finds it convenient to have everything in one place.
+If one of these tools does all you need, use it and support its author.
+
+⭐ [Obtainium](https://github.com/ImranR98/Obtainium) by ImranR98 — the Sources tab is a port of it: the sources, the update checks, the storage format and most of the texts
+
 ⭐ [AntiSplit-M](https://github.com/AbdurazaaqMohammed/AntiSplit-M) by AbdurazaaqMohammed — the split merging feature follows its functionality
 
 - [APKEditor](https://github.com/REAndroid/APKEditor) and [ARSCLib](https://github.com/REAndroid/ARSCLib) by REAndroid — the merge itself
 - [SAI](https://github.com/Aefyr/SAI) by Aefyr — the model for installing split APKs and the `.apks` export format
-- [Obtainium](https://github.com/ImranR98/Obtainium) by ImranR98 — the background update pipeline is modelled on it
 - [Shizuku](https://github.com/RikkaApps/Shizuku) by RikkaApps — installing without prompts
 - [apksig](https://android.googlesource.com/platform/tools/apksig/) from the Android Open Source Project — signing APKs
+- [jsoup](https://jsoup.org/), [jBCrypt](https://www.mindrot.org/projects/jBCrypt/), [Apache Commons Compress](https://commons.apache.org/proper/commons-compress/) and [XZ for Java](https://tukaani.org/xz/java.html) — reading what the sources publish
 
 ## License
 
-[MIT](LICENSE)
+[GPL-3.0](LICENSE). The Sources tab derives from Obtainium, which is
+published under the same licence.

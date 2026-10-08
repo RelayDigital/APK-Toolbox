@@ -2,6 +2,8 @@ package io.github.bl3xand.apkcloner.update
 
 import android.content.Context
 import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.NetworkType
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
@@ -16,6 +18,9 @@ import io.github.bl3xand.apkcloner.install.InstallOutcome
 import io.github.bl3xand.apkcloner.install.Installer
 import io.github.bl3xand.apkcloner.settings.AppSettings
 import io.github.bl3xand.apkcloner.shizuku.ShizukuBridge
+import io.github.bl3xand.apkcloner.sources.data.SourcesLog
+import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
+import io.github.bl3xand.apkcloner.sources.work.SourcesBackground
 import java.io.File
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
@@ -40,7 +45,7 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
             return@withContext Result.retry()
         }
         val cloner = ApkCloner(context)
-        val installer = Installer.forBackground(context)
+        val installer = Installer.choose(context, background = true)
         val output = File(context.cacheDir, "auto-update")
         // Whatever the previous run reported is about to be re-evaluated.
         UpdateNotifications.cancelOutdated(context)
@@ -48,10 +53,13 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
         val failed = ArrayList<String>()
         var updated = 0
         try {
-            for (clone in AppRepository(context, cloner).installed().clones) {
+            // Without the network or the charger the settings ask for, updates are only reported.
+            val mayInstall = autoInstall && restrictionsMet(context, settings)
+            val clones = if (settings.checkClones) AppRepository(context, cloner).installed().clones else emptyList()
+            for (clone in clones) {
                 if (!clone.updateAvailable) continue
                 val request = clone.updateRequest() ?: continue
-                if (!autoInstall) {
+                if (!mayInstall) {
                     available += clone.app.label
                     continue
                 }
@@ -75,24 +83,74 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
             UpdateNotifications.cancelProgress(context)
             output.deleteRecursively()
         }
-        // A successful automatic update says nothing beyond the progress it showed.
-        if (inputData.getBoolean(KEY_MANUAL, false) && available.isEmpty() && failed.isEmpty() && updated == 0) {
-            // Asked for by hand: say so even when there was nothing to do.
-            UpdateNotifications.showUpToDate(context)
-        }
         if (available.isNotEmpty()) UpdateNotifications.showAvailable(context, available.joinToString())
         if (failed.isNotEmpty()) UpdateNotifications.showFailed(context, failed.joinToString())
+        val manual = inputData.getBoolean(KEY_MANUAL, false)
+        // Apps tracked from sources share this schedule when their own switch is on.
+        var sourcesHadSomething = false
+        if (settings.checkSources) {
+            try {
+                sourcesHadSomething = SourcesBackground.run(context, forceAll = manual)
+            } catch (e: Exception) {
+                SourcesLog.error("Background check of sources failed", e)
+                sourcesHadSomething = true
+            }
+        }
+        // A successful automatic update says nothing beyond the progress it showed. Asked for
+        // by hand, the check answers even when there was nothing to do anywhere.
+        if (manual && available.isEmpty() && failed.isEmpty() && updated == 0 && !sourcesHadSomething) {
+            UpdateNotifications.showUpToDate(context)
+        }
+        if (autoInstall && !restrictionsMet(context, settings)) {
+            // Found, but not allowed to install yet: come back by itself once the network and
+            // the charger the settings ask for are there.
+            val waiting = available.isNotEmpty() || (
+                settings.checkSources &&
+                    SourcesRepository.get(context).findAppIdsWithPendingUpdates(installedOnly = true).isNotEmpty()
+                )
+            if (waiting) installWhenAllowed(context, settings)
+        }
         Result.success()
     }
 
     companion object {
+        /** Whether the "Wi-Fi only" and "while charging" conditions hold right now. */
+        fun restrictionsMet(context: Context, settings: AppSettings): Boolean {
+            if (settings.wifiOnly) {
+                val manager = context.getSystemService(android.net.ConnectivityManager::class.java)
+                val capabilities = manager.getNetworkCapabilities(manager.activeNetwork)
+                val unmetered = capabilities != null && (
+                    capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) ||
+                        capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET)
+                    )
+                if (!unmetered) return false
+            }
+            if (settings.chargingOnly &&
+                !context.getSystemService(android.os.BatteryManager::class.java).isCharging
+            ) {
+                return false
+            }
+            return true
+        }
+
         private const val WORK_NAME = "auto-update"
         private const val WORK_NAME_MANUAL = "auto-update-now"
+        private const val WORK_NAME_WAITING = "auto-update-waiting"
         private const val KEY_MANUAL = "manual"
 
         // Linear backoff: retries about 10, 30 and 60 minutes after the first attempt.
         private const val SHIZUKU_RETRIES = 3
         private const val SHIZUKU_RETRY_STEP_MINUTES = 10L
+
+        /** Queues one more run for the moment the conditions for installing hold. */
+        private fun installWhenAllowed(context: Context, settings: AppSettings) {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(if (settings.wifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED)
+                .setRequiresCharging(settings.chargingOnly)
+                .build()
+            val request = OneTimeWorkRequestBuilder<AutoUpdateWorker>().setConstraints(constraints).build()
+            WorkManager.getInstance(context).enqueueUniqueWork(WORK_NAME_WAITING, ExistingWorkPolicy.REPLACE, request)
+        }
 
         /** One check right now, whatever the schedule says. The result comes as a notification. */
         fun runNow(context: Context) {
@@ -111,6 +169,7 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
             val workManager = WorkManager.getInstance(context)
             if (!settings.checkUpdates) {
                 workManager.cancelUniqueWork(WORK_NAME)
+                workManager.cancelUniqueWork(WORK_NAME_WAITING)
                 return
             }
             val request = PeriodicWorkRequestBuilder<AutoUpdateWorker>(settings.checkIntervalDays, TimeUnit.DAYS)

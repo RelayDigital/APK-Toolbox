@@ -5,13 +5,13 @@
     <string name="install_access_description">请允许 APK Toolbox 安装应用，以便直接在此安装和更新克隆应用。</string>
     <string name="button_grant_access">授予权限</string>
 
-    <string name="tab_apps">应用</string>
+    <string name="tab_apps">克隆</string>
     <string name="tab_clones">克隆</string>
     <string name="search_hint">搜索应用</string>
     <string name="chip_system_apps">系统应用</string>
     <string name="empty_list">未找到应用</string>
     <string name="empty_clones">暂无克隆。已安装的克隆应用会显示在这里。</string>
-    <string name="button_pick_apk">选择 APK 文件</string>
+    <string name="button_pick_apk">选择 APK</string>
     <string name="error_invalid_apk">该文件不是有效的 APK</string>
 
     <string name="clone_up_to_date">版本 %1$s · 已是最新</string>
@@ -69,23 +69,23 @@
     <string name="shizuku_not_running_title">Shizuku 未运行</string>
     <string name="shizuku_not_running">请启动 Shizuku 后再返回。在此之前将使用标准方式。</string>
     <string name="shizuku_description">APK Toolbox 使用 Shizuku 在无需确认的情况下安装和更新克隆应用。请授予权限以启用此方式；在此之前将使用标准方式。</string>
-    <string name="shizuku_granted_description">克隆应用的安装和更新无需任何确认。</string>
+    <string name="shizuku_granted_description">更新无需确认即可安装。</string>
     <string name="play_protect_on_title">Play 保护机制已开启</string>
     <string name="play_protect_unknown_title">Play 保护机制可能会造成干扰</string>
-    <string name="play_protect_on_description">它不认识重新签名的应用，可能会将其拦截。开启期间，此方式不会自动更新克隆应用：你会收到通知，需要手动更新。关闭应用扫描可以放行更新，但会降低设备的安全性。</string>
+    <string name="play_protect_on_description">开启时，此方式不会在后台更新克隆应用：您会收到通知并需手动更新。来源中的应用不受影响。关闭应用扫描可解除限制，但会降低设备的保护。</string>
     <string name="play_protect_off_title">Play 保护机制已关闭</string>
-    <string name="play_protect_off_description">安装克隆应用不会受到干扰。由 APK Toolbox 安装、且面向较新 Android 版本的克隆应用可免确认更新。</string>
+    <string name="play_protect_off_description">通过 APK Toolbox 安装的应用（包括克隆应用）无需确认即可更新。</string>
 
-    <string name="settings_check_updates">检查克隆应用更新</string>
-    <string name="settings_check_updates_description">在后台进行，重启后依然有效。克隆应用落后于原应用时会收到通知。</string>
+    <string name="settings_check_updates">检查更新</string>
+    <string name="settings_check_updates_description">在后台按计划进行。发现更新时会通知。</string>
     <string name="settings_auto_install">自动安装</string>
-    <string name="settings_auto_install_description">直接更新克隆应用，而不只是通知。</string>
+    <string name="settings_auto_install_description">无需确认即安装找到的更新。</string>
     <string name="notification_failed_title">克隆应用更新失败</string>
     <string name="status_installing">正在安装…</string>
 
-    <string name="tab_split">拆分包</string>
+    <string name="tab_split">AntiSplit</string>
     <string name="empty_split">未找到拆分应用。请在下方选择安装包合集（APKS、XAPK、APKM）或多个拆分 APK。</string>
-    <string name="button_pick_split">选择拆分 APK 文件</string>
+    <string name="button_pick_split">选择拆分 APK</string>
     <string name="merge_open_with">安装或合并 APK</string>
     <string name="merge_splits_title">拆分包：%1$d / %2$d</string>
     <string name="merge_select_all">全选</string>
@@ -104,10 +104,10 @@
     <string name="merge_failed">合并失败：%1$s</string>
     <string name="merge_not_split">这似乎不是拆分 APK。请选择安装包合集（APKS、XAPK、APKM、ZIP）或至少两个 APK 文件。</string>
 
-    <string name="tab_install">安装</string>
-    <string name="button_pick_install">选择 APKS 文件</string>
+    <string name="tab_install">SAI</string>
+    <string name="button_pick_install">选择 APKS</string>
     <string name="install_sign">安装前签名</string>
-    <string name="button_export">导出为 .apks</string>
+    <string name="button_export">导出为 APKS</string>
     <string name="merge_step_exporting">正在导出…</string>
     <string name="files_received_title">要如何处理这些文件？</string>
     <string name="files_action_install">安装</string>
@@ -116,7 +116,7 @@
     <string name="button_update_all">全部更新（%1$d）</string>
     <string name="button_check_now">立即检查</string>
     <string name="check_now_started">正在检查，结果将以通知形式显示</string>
-    <string name="notification_up_to_date">所有克隆应用均为最新</string>
+    <string name="notification_up_to_date">没有更新</string>
     <string name="install_copy_obb">复制 OBB 文件（%1$d · %2$s）</string>
     <string name="merge_step_obb">正在复制 OBB 文件…</string>
 
@@ -141,4 +141,39 @@
     <string name="key_replace_confirm">替换</string>
     <string name="clone_badge">用圆点标记图标</string>
     <string name="merge_too_large">无法在设备上合并此应用：其资源表（%1$d MB）所需内存超出了 Android 分配给应用的上限。取消勾选不需要的拆分包可能有帮助，否则请在电脑上合并。</string>
+    <string name="tab_sources">来源</string>
+    <string name="settings_check_sources">来源中的应用</string>
+    <string name="settings_check_sources_description">“来源”标签页中应用的新版本。</string>
+    <string name="settings_sources">来源设置</string>
+    <string name="sources_share_label">在 APK Toolbox 中跟踪</string>
+    <string name="sources_empty">还没有跟踪的应用。\n通过链接添加，或通过搜索查找。</string>
+    <string name="sources_add">添加应用</string>
+    <string name="sources_filter">筛选</string>
+    <string name="sources_filter_clear">清除筛选</string>
+    <string name="settings_section_updates">更新</string>
+    <string name="settings_section_install">自动安装</string>
+    <string name="settings_section_experimental">实验性功能</string>
+    <string name="settings_check_clones">克隆应用</string>
+    <string name="settings_check_clones_description">原应用更新后，克隆即为过期。</string>
+    <string name="settings_wifi_only">等待 Wi-Fi</string>
+    <string name="settings_wifi_only_description">在移动网络下找到的更新会在连接 Wi-Fi 后安装。</string>
+    <string name="settings_charging_only">等待充电</string>
+    <string name="settings_charging_only_description">未充电时找到的更新会在接入充电器后安装。</string>
+    <string name="settings_sources_description">令牌、版本选择、导入和导出。</string>
+    <string name="settings_root">使用 root 安装</string>
+    <string name="settings_root_description">开启后优先于其他安装方式。未经测试。</string>
+    <string name="cloning_installed">已安装</string>
+    <string name="cloning_clones">克隆</string>
+    <string name="export_done">已导出为 APKS</string>
+    <string name="root_not_granted">未获得 root 权限</string>
+    <string name="settings_install_method_description">后台安装更新的方式。</string>
+    <string name="hint_tab_install">安装 APKS、XAPK、APKM 包和拆分 APK 集合。列表中已安装的应用可导出为 APKS 文件。</string>
+    <string name="hint_tab_split">将由多个拆分 APK 组成的应用合并为一个普通 APK。仅列出以拆分方式安装的应用；也可以选择包文件。</string>
+    <string name="install_sign_description">使用设置中的密钥重新签名。文件被修改或签名损坏时需要；之后无法覆盖安装原版。</string>
+    <string name="merge_sign_description">使用设置中的密钥为合并后的 APK 签名，以便安装。否则文件将保持未签名。</string>
+    <string name="merge_force_description">即使版本或包名不同也合并拆分包。仅在普通合并被拒绝时使用；结果可能无法运行。</string>
+    <string name="tab_info">关于此列表</string>
+    <string name="hint_tab_sources">跟踪来自 GitHub、F-Droid、应用商店和其他网站的应用：通过链接或名称添加应用，新版本将在此处被发现、下载并安装。</string>
+    <string name="hint_tab_apps">用另一个包名为已安装的应用制作第二个副本：两者并存，数据各自独立。从列表中选择应用或选择 APK 文件。</string>
+    <string name="hint_tab_clones">在此制作的克隆。原应用更新后克隆即过期；可在此处或自动用新版本重新构建。</string>
 </resources>
