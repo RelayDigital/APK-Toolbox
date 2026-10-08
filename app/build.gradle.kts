@@ -1,5 +1,16 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
+}
+
+// Kept out of git (see .gitignore) - absent on any machine that hasn't set up a release key,
+// in which case release builds just come out unsigned instead of failing the whole build.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
 }
 
 android {
@@ -14,9 +25,25 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
@@ -32,7 +59,22 @@ android {
     }
 }
 
+// ARSCLib is a desktop library and bundles its own stubs of a few Android framework classes
+// (android.util.AttributeSet, XmlResourceParser, org.xmlpull.*). Packaged into the app they
+// shadow the real ones for R8, which then miscompiles AppCompat's layout inflation in release
+// builds. The library is therefore repackaged without them.
+val arsclibOriginal: Configuration by configurations.creating { isTransitive = false }
+
+val strippedArsclib = tasks.register<Jar>("strippedArsclib") {
+    archiveFileName.set("arsclib-stripped.jar")
+    destinationDirectory.set(layout.buildDirectory.dir("stripped-libs"))
+    from({ arsclibOriginal.map { zipTree(it) } }) {
+        exclude("android/**", "org/xmlpull/**")
+    }
+}
+
 dependencies {
+    arsclibOriginal(libs.arsclib)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity.ktx)
@@ -45,6 +87,6 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
-    implementation(libs.arsclib)
+    implementation(files(strippedArsclib))
     implementation(libs.apksig)
 }

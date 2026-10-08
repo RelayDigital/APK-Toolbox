@@ -105,7 +105,7 @@
     <string name="merge_not_split">Это не похоже на сплит-APK. Выберите пакет (APKS, XAPK, APKM, ZIP) или минимум два APK-файла.</string>
 
     <string name="tab_install">Установка</string>
-    <string name="button_pick_install">Установить APK-файлы</string>
+    <string name="button_pick_install">Выбрать APKS</string>
     <string name="install_sign">Подписать перед установкой</string>
     <string name="button_export">Экспорт в .apks</string>
     <string name="merge_step_exporting">Экспорт…</string>

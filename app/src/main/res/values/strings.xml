@@ -114,7 +114,7 @@
     <string name="merge_not_split">This does not look like a split APK. Pick a bundle (APKS, XAPK, APKM, ZIP) or at least two APK files.</string>
 
     <string name="tab_install">Install</string>
-    <string name="button_pick_install">Install APK files</string>
+    <string name="button_pick_install">Choose APKS file</string>
     <string name="install_sign">Sign before installing</string>
     <string name="button_export">Export as .apks</string>
     <string name="merge_step_exporting">Exporting…</string>
