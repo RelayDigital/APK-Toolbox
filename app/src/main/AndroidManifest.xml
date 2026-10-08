@@ -33,13 +33,14 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Split APK bundles shared or opened from another app go straight to the merge sheet.
+            <!-- APK files and bundles shared or opened from another app can be installed or merged.
                  Bundles have no registered type of their own, hence the generic ones. -->
             <intent-filter android:label="@string/merge_open_with">
                 <action android:name="android.intent.action.SEND" />
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:scheme="content" />
+                <data android:mimeType="application/vnd.android.package-archive" />
                 <data android:mimeType="application/zip" />
                 <data android:mimeType="application/vnd.apkm" />
                 <data android:mimeType="application/octet-stream" />

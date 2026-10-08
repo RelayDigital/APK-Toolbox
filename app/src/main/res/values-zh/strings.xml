@@ -31,7 +31,7 @@
     <string name="status_failed">克隆失败：%1$s</string>
     <string name="save_failed">无法保存：%1$s</string>
 
-    <string name="install_success">克隆已安装</string>
+    <string name="install_success">已安装</string>
     <string name="install_failed">安装失败：%1$s</string>
     <string name="detail_cloned_from">克隆自</string>
     <string name="detail_original_version">原应用版本</string>
@@ -86,7 +86,7 @@
     <string name="tab_split">拆分包</string>
     <string name="empty_split">未找到拆分应用。请在下方选择安装包合集（APKS、XAPK、APKM）或多个拆分 APK。</string>
     <string name="button_pick_split">选择拆分 APK 文件</string>
-    <string name="merge_open_with">合并拆分 APK</string>
+    <string name="merge_open_with">安装或合并 APK</string>
     <string name="merge_splits_title">拆分包：%1$d / %2$d</string>
     <string name="merge_select_all">全选</string>
     <string name="merge_select_device">适配本机</string>
@@ -103,4 +103,13 @@
     <string name="merge_mismatch">这些拆分包的版本或包名与基础 APK 不一致：%1$s。请取消勾选，或开启合并不匹配的拆分包。</string>
     <string name="merge_failed">合并失败：%1$s</string>
     <string name="merge_not_split">这似乎不是拆分 APK。请选择安装包合集（APKS、XAPK、APKM、ZIP）或至少两个 APK 文件。</string>
+
+    <string name="tab_install">安装</string>
+    <string name="button_pick_install">安装 APK 文件</string>
+    <string name="install_sign">安装前签名</string>
+    <string name="button_export">导出为 .apks</string>
+    <string name="merge_step_exporting">正在导出…</string>
+    <string name="files_received_title">要如何处理这些文件？</string>
+    <string name="files_action_install">安装</string>
+    <string name="files_action_merge">合并为单个 APK</string>
 </resources>

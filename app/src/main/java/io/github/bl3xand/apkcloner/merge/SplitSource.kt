@@ -20,7 +20,29 @@ class SplitSource(
     val entries: List<SplitEntry>,
     val baseName: String,
     val bundle: File?,
-)
+) {
+    /**
+     * The base and the [selected] splits as real files, base first. Entries still inside the
+     * bundle are extracted into [directory]; the caller owns it.
+     */
+    fun materialize(selected: Set<String>, directory: File): List<Pair<SplitEntry, File>> {
+        val chosen = entries.filter { it.name == baseName || it.name in selected }
+            .sortedByDescending { it.name == baseName }
+        val archive = bundle ?: return chosen.map { it to it.file!! }
+        directory.deleteRecursively()
+        check(directory.mkdirs()) { "Cannot create $directory" }
+        return ZipFile(archive).use { zip ->
+            chosen.mapIndexed { index, entry ->
+                // Entry names come from the archive, so they are not used as paths.
+                val target = File(directory, "$index.apk")
+                zip.getInputStream(zip.getEntry(entry.name)).use { input ->
+                    target.outputStream().use { input.copyTo(it, 1 shl 16) }
+                }
+                entry to target
+            }
+        }
+    }
+}
 
 class NotSplitException : Exception()
 
@@ -37,8 +59,10 @@ class SplitLoader(private val context: Context) {
     /**
      * Copies the picked documents into [workDir] (they may not be real files). A single archive
      * holding APKs is treated as a bundle; anything else as a set of loose split APKs.
+     * [allowSingleApk] lets an ordinary one-file app through, which is fine for installing but
+     * leaves nothing to merge.
      */
-    fun fromUris(uris: List<Uri>, workDir: File): SplitSource {
+    fun fromUris(uris: List<Uri>, workDir: File, allowSingleApk: Boolean): SplitSource {
         workDir.deleteRecursively()
         check(workDir.mkdirs()) { "Cannot create $workDir" }
         val files = uris.mapIndexed { index, uri ->
@@ -63,7 +87,7 @@ class SplitLoader(private val context: Context) {
 
         // Loose files: a lone APK is just an ordinary app, there is nothing to merge.
         val apks = files.filter { it.name.endsWith(".apk", ignoreCase = true) }
-        if (apks.size < 2) throw NotSplitException()
+        if (apks.isEmpty() || (apks.size < 2 && !allowSingleApk)) throw NotSplitException()
         val entries = apks.map { SplitEntry(it.name.substringAfter('-'), it.length(), it) }
         val baseName = pickBase(entries.map { it.name to it.size })
         return describe(entries.first { it.name == baseName }.file!!, entries, baseName, bundle = null, fallbackLabel = baseName)

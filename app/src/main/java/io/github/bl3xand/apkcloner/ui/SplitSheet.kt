@@ -17,34 +17,41 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.checkbox.MaterialCheckBox
 import io.github.bl3xand.apkcloner.R
-import io.github.bl3xand.apkcloner.databinding.SheetMergeBinding
-import io.github.bl3xand.apkcloner.merge.MergeStep
+import io.github.bl3xand.apkcloner.databinding.SheetSplitBinding
+import io.github.bl3xand.apkcloner.merge.SplitStep
 import io.github.bl3xand.apkcloner.merge.SplitSelection
 import io.github.bl3xand.apkcloner.merge.SplitSource
 import io.github.bl3xand.apkcloner.settings.AppSettings
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
-class MergeSheet : BottomSheetDialogFragment() {
+/**
+ * One sheet for everything that starts from a set of split APKs: installing them, exporting an
+ * installed app as an .apks archive, or merging them into a single APK.
+ */
+class SplitSheet : BottomSheetDialogFragment() {
 
-    private var _binding: SheetMergeBinding? = null
+    private var _binding: SheetSplitBinding? = null
     private val binding get() = _binding!!
     private val viewModel: MainViewModel by activityViewModels()
     private val boxes = LinkedHashMap<String, MaterialCheckBox>()
     private var lastRunning = false
 
-    // A generic type keeps the picker from rewriting the .apk extension.
+    // A generic type keeps the picker from rewriting the extension.
     private val saveAs = registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
         if (uri != null) viewModel.saveMerged(uri)
     }
+    private val exportAs = registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        if (uri != null) viewModel.exportSplit(selected(), uri)
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        _binding = SheetMergeBinding.inflate(inflater, container, false)
+        _binding = SheetSplitBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        val source = viewModel.mergeSource ?: return dismiss()
+        val source = viewModel.splitSource ?: return dismiss()
         val settings = AppSettings(requireContext())
 
         val subtitle = listOfNotNull(source.packageName, source.versionName).joinToString(" · ")
@@ -62,24 +69,48 @@ class MergeSheet : BottomSheetDialogFragment() {
             select(SplitSelection.forDevice(requireContext(), source.entries.map { it.name }, source.baseName))
         }
 
-        binding.switchSign.isChecked = settings.mergeSign
-        binding.switchForce.isChecked = settings.mergeForce
-        binding.switchSign.setOnCheckedChangeListener { _, checked -> settings.mergeSign = checked }
-        binding.switchForce.setOnCheckedChangeListener { _, checked -> settings.mergeForce = checked }
-
-        binding.buttonMerge.setOnClickListener {
-            viewModel.startMerge(selected(), binding.switchSign.isChecked, binding.switchForce.isChecked)
+        val mode = viewModel.splitMode
+        val fileName = source.label.replace(Regex("[\\\\/:*?\"<>|]"), "_").ifBlank { "app" }
+        binding.switchSign.isVisible = mode != SplitMode.EXPORT
+        binding.switchForce.isVisible = mode == SplitMode.MERGE
+        when (mode) {
+            SplitMode.INSTALL -> {
+                binding.switchSign.setText(R.string.install_sign)
+                binding.switchSign.isChecked = settings.installSign
+                binding.switchSign.setOnCheckedChangeListener { _, checked -> settings.installSign = checked }
+                binding.buttonAction.setText(R.string.button_install)
+                binding.buttonAction.setIconResource(R.drawable.ic_install)
+                binding.buttonAction.setOnClickListener {
+                    viewModel.startSplitInstall(selected(), binding.switchSign.isChecked)
+                }
+            }
+            SplitMode.EXPORT -> {
+                binding.buttonAction.setText(R.string.button_export)
+                binding.buttonAction.setIconResource(R.drawable.ic_folder)
+                binding.buttonAction.setOnClickListener {
+                    exportAs.launch(listOfNotNull(fileName, source.versionName).joinToString("_") + ".apks")
+                }
+            }
+            SplitMode.MERGE -> {
+                binding.switchSign.setText(R.string.merge_sign)
+                binding.switchSign.isChecked = settings.mergeSign
+                binding.switchForce.isChecked = settings.mergeForce
+                binding.switchSign.setOnCheckedChangeListener { _, checked -> settings.mergeSign = checked }
+                binding.switchForce.setOnCheckedChangeListener { _, checked -> settings.mergeForce = checked }
+                binding.buttonAction.setText(R.string.button_merge)
+                binding.buttonAction.setIconResource(R.drawable.ic_merge)
+                binding.buttonAction.setOnClickListener {
+                    viewModel.startMerge(selected(), binding.switchSign.isChecked, binding.switchForce.isChecked)
+                }
+            }
         }
         binding.buttonInstall.setOnClickListener { viewModel.installMerged() }
-        binding.buttonSave.setOnClickListener {
-            val name = source.label.replace(Regex("[\\\\/:*?\"<>|]"), "_").ifBlank { "merged" }
-            saveAs.launch(name + OUTPUT_SUFFIX)
-        }
+        binding.buttonSave.setOnClickListener { saveAs.launch(fileName + MERGED_SUFFIX) }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    viewModel.mergeState.combine(viewModel.installing, ::Pair).collect { (state, installing) ->
+                    viewModel.splitState.combine(viewModel.installing, ::Pair).collect { (state, installing) ->
                         render(state, installing)
                     }
                 }
@@ -103,7 +134,7 @@ class MergeSheet : BottomSheetDialogFragment() {
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
         // Also called when the sheet is torn down for a rotation, where the result must survive.
-        if (activity?.isChangingConfigurations != true) viewModel.discardMerge()
+        if (activity?.isChangingConfigurations != true) viewModel.discardSplit()
     }
 
     override fun onDestroyView() {
@@ -127,7 +158,7 @@ class MergeSheet : BottomSheetDialogFragment() {
     }
 
     private fun select(names: Set<String>) {
-        val base = viewModel.mergeSource?.baseName
+        val base = viewModel.splitSource?.baseName
         for ((name, box) in boxes) box.isChecked = name == base || name in names
         updateTitle()
     }
@@ -138,41 +169,47 @@ class MergeSheet : BottomSheetDialogFragment() {
         binding.textSplitsTitle.text = getString(R.string.merge_splits_title, selected().size, boxes.size)
     }
 
-    private fun render(state: MergeState, installing: Boolean) {
-        val running = state is MergeState.Running
-        val done = state as? MergeState.Done
+    private fun render(state: SplitState, installing: Boolean) {
+        val running = state is SplitState.Running
+        val done = state as? SplitState.Done
         isCancelable = !running && !installing
 
-        val editable = !running && done == null
-        boxes.forEach { (name, box) -> box.isEnabled = editable && name != viewModel.mergeSource?.baseName }
+        val editable = !running && !installing && done == null
+        boxes.forEach { (name, box) -> box.isEnabled = editable && name != viewModel.splitSource?.baseName }
         binding.chipAll.isEnabled = editable
         binding.chipDevice.isEnabled = editable
         binding.switchSign.isEnabled = editable
         binding.switchForce.isEnabled = editable
-        binding.buttonMerge.isEnabled = !running
-        binding.buttonMerge.isVisible = done == null
+        binding.buttonAction.isEnabled = !running && !installing
+        binding.buttonAction.isVisible = done == null
         binding.resultActions.isVisible = done != null
         // An unsigned APK cannot be installed, only saved.
         binding.buttonInstall.isEnabled = done?.result?.signed == true && !installing
         binding.buttonSave.isEnabled = !installing
         binding.progress.isVisible = running || installing
-        binding.textStatus.isVisible = state !is MergeState.Idle
 
         when (state) {
-            MergeState.Idle -> Unit
-            is MergeState.Running -> binding.textStatus.setText(
+            // Idle is also where installing and exporting end up; their outcome arrives as a message.
+            SplitState.Idle -> if (installing) {
+                binding.textStatus.setText(R.string.status_installing)
+            } else if (binding.textStatus.text.toString() == getString(R.string.status_installing)) {
+                // The system reports how the install went on its own; nothing is left to say here.
+                binding.textStatus.text = ""
+            }
+            is SplitState.Running -> binding.textStatus.setText(
                 when (state.step) {
-                    MergeStep.EXTRACTING -> R.string.merge_step_extracting
-                    MergeStep.MERGING -> R.string.merge_step_merging
-                    MergeStep.SAVING -> R.string.merge_step_saving
-                    MergeStep.SIGNING -> R.string.merge_step_signing
+                    SplitStep.EXTRACTING -> R.string.merge_step_extracting
+                    SplitStep.MERGING -> R.string.merge_step_merging
+                    SplitStep.SAVING -> R.string.merge_step_saving
+                    SplitStep.SIGNING -> R.string.merge_step_signing
+                    SplitStep.EXPORTING -> R.string.merge_step_exporting
                 }
             )
-            is MergeState.Failed -> binding.textStatus.text = getString(R.string.merge_failed, state.message)
-            is MergeState.Mismatch ->
+            is SplitState.Failed -> binding.textStatus.text = getString(R.string.merge_failed, state.message)
+            is SplitState.Mismatch ->
                 binding.textStatus.text = getString(R.string.merge_mismatch, state.splits.joinToString())
             // Left alone otherwise, so the outcome of an install or a save stays on screen.
-            is MergeState.Done -> if (installing) {
+            is SplitState.Done -> if (installing) {
                 binding.textStatus.setText(R.string.status_installing)
             } else if (lastRunning || binding.textStatus.text.toString() in setOf("", getString(R.string.status_installing))) {
                 binding.textStatus.setText(
@@ -184,11 +221,12 @@ class MergeSheet : BottomSheetDialogFragment() {
                 )
             }
         }
+        binding.textStatus.isVisible = binding.textStatus.text.isNotEmpty()
         lastRunning = running
     }
 
     companion object {
         const val TAG = "merge"
-        private const val OUTPUT_SUFFIX = "_antisplit.apk"
+        private const val MERGED_SUFFIX = "_antisplit.apk"
     }
 }

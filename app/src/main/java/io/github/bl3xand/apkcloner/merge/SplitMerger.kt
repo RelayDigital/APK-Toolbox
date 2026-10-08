@@ -8,9 +8,8 @@ import com.reandroid.arsc.chunk.xml.ResXmlElement
 import com.reandroid.arsc.value.ValueType
 import io.github.bl3xand.apkcloner.clone.ApkCloner
 import java.io.File
-import java.util.zip.ZipFile
 
-enum class MergeStep { EXTRACTING, MERGING, SAVING, SIGNING }
+enum class SplitStep { EXTRACTING, MERGING, SAVING, SIGNING, EXPORTING }
 
 class MergeResult(val apk: File, val signed: Boolean, val pairip: Boolean)
 
@@ -31,39 +30,34 @@ class SplitMerger(private val cloner: ApkCloner) {
         sign: Boolean,
         force: Boolean,
         workDir: File,
-        onStep: (MergeStep) -> Unit,
+        onStep: (SplitStep) -> Unit,
     ): MergeResult {
         val output = File(workDir, "out").apply { deleteRecursively(); mkdirs() }
         val extracted = File(workDir, "splits").apply { deleteRecursively(); mkdirs() }
 
-        onStep(MergeStep.EXTRACTING)
-        val chosen = source.entries.filter { it.name == source.baseName || it.name in selected }
-        val files = source.bundle?.let { bundle ->
-            ZipFile(bundle).use { zip ->
-                chosen.mapIndexed { index, entry ->
-                    // Entry names come from the archive, so they are not used as paths.
-                    File(extracted, "$index.apk").also { target ->
-                        zip.getInputStream(zip.getEntry(entry.name)).use { input ->
-                            target.outputStream().use { input.copyTo(it, 1 shl 16) }
-                        }
-                    }
-                }
-            }
-        } ?: chosen.map { it.file!! }
+        onStep(SplitStep.EXTRACTING)
+        val chosenWithFiles = source.materialize(selected, extracted)
+        val chosen = chosenWithFiles.map { it.first }
+        val files = chosenWithFiles.map { it.second }
 
         val merged = File(output, "merged.apk")
         var pairip = false
         try {
             ApkBundle().use { bundle ->
                 bundle.setAPKLogger(SILENT)
+                // The bundle does not keep modules in the order they were added, so each one is
+                // traced back to its split through the name it was loaded under.
+                val names = HashMap<String, String>()
                 files.forEachIndexed { index, file ->
-                    bundle.addModule(ApkModule.loadApkFile(file, "module$index").apply { setAPKLogger(SILENT) })
+                    val module = ApkModule.loadApkFile(file, "module$index").apply { setAPKLogger(SILENT) }
+                    names[module.moduleName] = chosen[index].name
+                    bundle.addModule(module)
                 }
                 val base = bundle.baseModule ?: error("No base APK among the selected files")
-                val mismatched = bundle.apkModuleList.withIndex().filter { (_, module) ->
+                val mismatched = bundle.apkModuleList.filter { module ->
                     module !== base &&
                         (module.versionCode != base.versionCode || module.packageName != base.packageName)
-                }.map { chosen[it.index].name }
+                }.map { names[it.moduleName] ?: it.moduleName }
                 if (mismatched.isNotEmpty() && !force) throw SplitMismatchException(mismatched)
 
                 // PairIP checks the app's integrity at start-up: a re-signed build of such an
@@ -72,10 +66,10 @@ class SplitMerger(private val cloner: ApkCloner) {
                     ABIS.any { module.containsFile("lib/$it/libpairipcore.so") }
                 }
 
-                onStep(MergeStep.MERGING)
+                onStep(SplitStep.MERGING)
                 bundle.mergeModules(force).use { module ->
                     sanitize(module)
-                    onStep(MergeStep.SAVING)
+                    onStep(SplitStep.SAVING)
                     module.writeApk(merged)
                 }
             }
@@ -84,7 +78,7 @@ class SplitMerger(private val cloner: ApkCloner) {
         }
 
         if (!sign || pairip) return MergeResult(merged, signed = false, pairip = pairip)
-        onStep(MergeStep.SIGNING)
+        onStep(SplitStep.SIGNING)
         val signed = File(output, "signed.apk")
         cloner.sign(merged, signed)
         merged.delete()

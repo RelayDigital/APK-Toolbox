@@ -35,7 +35,7 @@
     <string name="status_failed">Cloning failed: %1$s</string>
     <string name="save_failed">Could not save: %1$s</string>
 
-    <string name="install_success">Clone installed</string>
+    <string name="install_success">Installed</string>
     <string name="install_failed">Installation failed: %1$s</string>
     <string name="detail_cloned_from">Cloned from</string>
     <string name="detail_original_version">Original version</string>
@@ -94,7 +94,7 @@
     <string name="tab_split">Split</string>
     <string name="empty_split">No split apps found. Pick a bundle (APKS, XAPK, APKM) or several split APKs below.</string>
     <string name="button_pick_split">Choose split APK files</string>
-    <string name="merge_open_with">Merge split APK</string>
+    <string name="merge_open_with">Install or merge APK files</string>
     <string name="merge_splits_title">Splits: %1$d of %2$d</string>
     <string name="merge_split_item" translatable="false">%1$s · %2$s</string>
     <string name="merge_select_all">All</string>
@@ -112,4 +112,13 @@
     <string name="merge_mismatch">These splits have a different version or package than the base: %1$s. Deselect them, or turn on merging mismatched splits.</string>
     <string name="merge_failed">Merging failed: %1$s</string>
     <string name="merge_not_split">This does not look like a split APK. Pick a bundle (APKS, XAPK, APKM, ZIP) or at least two APK files.</string>
+
+    <string name="tab_install">Install</string>
+    <string name="button_pick_install">Install APK files</string>
+    <string name="install_sign">Sign before installing</string>
+    <string name="button_export">Export as .apks</string>
+    <string name="merge_step_exporting">Exporting…</string>
+    <string name="files_received_title">What to do with these files?</string>
+    <string name="files_action_install">Install</string>
+    <string name="files_action_merge">Merge into a single APK</string>
 </resources>

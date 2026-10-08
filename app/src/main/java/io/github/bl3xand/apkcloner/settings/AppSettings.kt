@@ -31,6 +31,10 @@ class AppSettings(context: Context) {
         get() = prefs.getBoolean(KEY_MERGE_SIGN, true)
         set(value) = prefs.edit().putBoolean(KEY_MERGE_SIGN, value).apply()
 
+    var installSign: Boolean
+        get() = prefs.getBoolean(KEY_INSTALL_SIGN, false)
+        set(value) = prefs.edit().putBoolean(KEY_INSTALL_SIGN, value).apply()
+
     var mergeForce: Boolean
         get() = prefs.getBoolean(KEY_MERGE_FORCE, false)
         set(value) = prefs.edit().putBoolean(KEY_MERGE_FORCE, value).apply()
@@ -42,6 +46,7 @@ class AppSettings(context: Context) {
     companion object {
         private const val KEY_INSTALL_METHOD = "install_method"
         private const val KEY_MERGE_SIGN = "merge_sign"
+        private const val KEY_INSTALL_SIGN = "install_sign"
         private const val KEY_MERGE_FORCE = "merge_force"
         private const val KEY_CHECK_UPDATES = "check_updates"
         private const val KEY_AUTO_INSTALL = "auto_install"

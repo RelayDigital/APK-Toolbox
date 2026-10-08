@@ -31,7 +31,7 @@
     <string name="status_failed">Ошибка клонирования: %1$s</string>
     <string name="save_failed">Не удалось сохранить: %1$s</string>
 
-    <string name="install_success">Клон установлен</string>
+    <string name="install_success">Установлено</string>
     <string name="install_failed">Ошибка установки: %1$s</string>
     <string name="detail_cloned_from">Клонировано из</string>
     <string name="detail_original_version">Версия оригинала</string>
@@ -86,7 +86,7 @@
     <string name="tab_split">Сплит</string>
     <string name="empty_split">Сплит-приложения не найдены. Выберите ниже пакет (APKS, XAPK, APKM) или несколько сплит-APK.</string>
     <string name="button_pick_split">Выбрать сплит-APK</string>
-    <string name="merge_open_with">Объединить сплит-APK</string>
+    <string name="merge_open_with">Установить или объединить APK</string>
     <string name="merge_splits_title">Сплиты: %1$d из %2$d</string>
     <string name="merge_select_all">Все</string>
     <string name="merge_select_device">Для устройства</string>
@@ -103,4 +103,13 @@
     <string name="merge_mismatch">У этих сплитов версия или пакет отличаются от базового APK: %1$s. Снимите с них отметку или включите объединение несовпадающих сплитов.</string>
     <string name="merge_failed">Ошибка объединения: %1$s</string>
     <string name="merge_not_split">Это не похоже на сплит-APK. Выберите пакет (APKS, XAPK, APKM, ZIP) или минимум два APK-файла.</string>
+
+    <string name="tab_install">Установка</string>
+    <string name="button_pick_install">Установить APK-файлы</string>
+    <string name="install_sign">Подписать перед установкой</string>
+    <string name="button_export">Экспорт в .apks</string>
+    <string name="merge_step_exporting">Экспорт…</string>
+    <string name="files_received_title">Что сделать с этими файлами?</string>
+    <string name="files_action_install">Установить</string>
+    <string name="files_action_merge">Объединить в один APK</string>
 </resources>

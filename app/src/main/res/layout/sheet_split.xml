@@ -105,7 +105,7 @@
             tools:text="@string/merge_done" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/buttonMerge"
+            android:id="@+id/buttonAction"
             style="@style/Widget.Material3Expressive.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
