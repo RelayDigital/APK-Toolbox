@@ -42,6 +42,14 @@ methods:
 Whatever cannot be updated automatically is reported in a notification.
 Installing and updating by hand always goes through the system installer.
 
+## Merging split APKs
+
+The **Split** tab turns an app that comes as several APKs into one regular
+APK. Pick an installed split app, choose a bundle (APKS, XAPK, APKM, ZIP) or
+several split APK files, or share / open them into APK Cloner from another
+app. Choose which splits to include (all of them, or only those this device
+needs), then **Merge** and install or save the result.
+
 ## Good to know
 
 - Clones are signed with APK Cloner's own key. The original signature cannot
@@ -52,6 +60,15 @@ Installing and updating by hand always goes through the system installer.
   signature, and services bound to them (Google sign-in, Firebase, in-app
   purchases), may not work in a clone.
 - Apps made of split APKs are saved as a single `.apks` archive.
+
+## Used projects
+
+⭐ [AntiSplit-M](https://github.com/AbdurazaaqMohammed/AntiSplit-M) by AbdurazaaqMohammed — the split merging feature follows its functionality
+
+- [APKEditor](https://github.com/REAndroid/APKEditor) and [ARSCLib](https://github.com/REAndroid/ARSCLib) by REAndroid — the merge itself
+- [apksig](https://android.googlesource.com/platform/tools/apksig/) from the Android Open Source Project — signing APKs
+- [Shizuku](https://github.com/RikkaApps/Shizuku) by RikkaApps — installing without prompts
+- [Obtainium](https://github.com/ImranR98/Obtainium) by ImranR98 — the background update pipeline is modelled on it
 
 ## License
 

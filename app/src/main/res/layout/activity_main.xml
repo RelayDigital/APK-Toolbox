@@ -239,6 +239,15 @@
                 android:paddingBottom="8dp"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/listSplit"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingTop="4dp"
+                android:paddingBottom="8dp"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
             <TextView
                 android:id="@+id/textEmpty"
                 android:layout_width="wrap_content"

@@ -26,12 +26,23 @@ class AppSettings(context: Context) {
             ?: InstallMethod.STOCK
         set(value) = prefs.edit().putString(KEY_INSTALL_METHOD, value.name).apply()
 
+    /** Last choices made in the merge sheet. */
+    var mergeSign: Boolean
+        get() = prefs.getBoolean(KEY_MERGE_SIGN, true)
+        set(value) = prefs.edit().putBoolean(KEY_MERGE_SIGN, value).apply()
+
+    var mergeForce: Boolean
+        get() = prefs.getBoolean(KEY_MERGE_FORCE, false)
+        set(value) = prefs.edit().putBoolean(KEY_MERGE_FORCE, value).apply()
+
     val checkIntervalDays: Long get() = CHECK_INTERVAL_DAYS[checkInterval].toLong()
 
     enum class InstallMethod { STOCK, SHIZUKU }
 
     companion object {
         private const val KEY_INSTALL_METHOD = "install_method"
+        private const val KEY_MERGE_SIGN = "merge_sign"
+        private const val KEY_MERGE_FORCE = "merge_force"
         private const val KEY_CHECK_UPDATES = "check_updates"
         private const val KEY_AUTO_INSTALL = "auto_install"
         private const val KEY_CHECK_INTERVAL = "check_interval"

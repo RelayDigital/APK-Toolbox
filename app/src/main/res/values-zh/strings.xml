@@ -82,4 +82,25 @@
     <string name="settings_auto_install_description">直接更新克隆应用，而不只是通知。</string>
     <string name="notification_failed_title">克隆应用更新失败</string>
     <string name="status_installing">正在安装…</string>
+
+    <string name="tab_split">拆分包</string>
+    <string name="empty_split">未找到拆分应用。请在下方选择安装包合集（APKS、XAPK、APKM）或多个拆分 APK。</string>
+    <string name="button_pick_split">选择拆分 APK 文件</string>
+    <string name="merge_open_with">合并拆分 APK</string>
+    <string name="merge_splits_title">拆分包：%1$d / %2$d</string>
+    <string name="merge_select_all">全选</string>
+    <string name="merge_select_device">适配本机</string>
+    <string name="merge_sign">合并后签名</string>
+    <string name="merge_force">仍然合并不匹配的拆分包</string>
+    <string name="button_merge">合并</string>
+    <string name="merge_step_extracting">正在收集 APK 文件…</string>
+    <string name="merge_step_merging">正在合并…</string>
+    <string name="merge_step_saving">正在写入 APK…</string>
+    <string name="merge_step_signing">正在签名…</string>
+    <string name="merge_done">已合并为单个 APK</string>
+    <string name="merge_done_unsigned">已合并，未签名。未签名的 APK 需签名后才能安装。</string>
+    <string name="merge_done_pairip">已合并，但未签名：该应用受 PairIP 保护并会校验自身完整性，重新签名后的版本会在启动时崩溃。</string>
+    <string name="merge_mismatch">这些拆分包的版本或包名与基础 APK 不一致：%1$s。请取消勾选，或开启合并不匹配的拆分包。</string>
+    <string name="merge_failed">合并失败：%1$s</string>
+    <string name="merge_not_split">这似乎不是拆分 APK。请选择安装包合集（APKS、XAPK、APKM、ZIP）或至少两个 APK 文件。</string>
 </resources>

@@ -33,6 +33,10 @@ class MainActivity : AppCompatActivity() {
         if (uri != null) viewModel.loadApkFile(uri)
     }
 
+    private val pickSplits = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        viewModel.loadSplitFiles(uris)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -55,12 +59,15 @@ class MainActivity : AppCompatActivity() {
                 CloneDetailSheet.newInstance(clone).show(supportFragmentManager, CloneDetailSheet.TAG)
             }
         }
+        val splitAdapter = AppAdapter(icons, viewModel::selectSplitApp)
         binding.listApps.adapter = appAdapter
+        binding.listSplit.adapter = splitAdapter
         binding.listClones.adapter = cloneAdapter
 
         binding.tabs.addTab(binding.tabs.newTab().setText(R.string.tab_apps))
         binding.tabs.addTab(binding.tabs.newTab().setText(R.string.tab_clones))
-        if (savedInstanceState == null) selectTabFrom(intent)
+        binding.tabs.addTab(binding.tabs.newTab().setText(R.string.tab_split))
+        if (savedInstanceState == null) handleIntent(intent)
         binding.tabs.getTabAt(viewModel.tab)?.select()
         binding.tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
@@ -80,7 +87,10 @@ class MainActivity : AppCompatActivity() {
         binding.buttonGrantInstall.setOnClickListener {
             openSettings(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
         }
-        binding.buttonPickApk.setOnClickListener { pickApk.launch(APK_MIME_TYPES) }
+        binding.buttonPickApk.setOnClickListener {
+            // Bundles have no MIME type of their own, so the split picker accepts anything.
+            if (viewModel.tab == TAB_SPLIT) pickSplits.launch(arrayOf("*/*")) else pickApk.launch(APK_MIME_TYPES)
+        }
         binding.buttonSettings.setOnClickListener {
             if (supportFragmentManager.findFragmentByTag(SettingsSheet.TAG) == null) {
                 SettingsSheet().show(supportFragmentManager, SettingsSheet.TAG)
@@ -93,6 +103,7 @@ class MainActivity : AppCompatActivity() {
                     viewModel.uiState.collect { state ->
                         render(state)
                         appAdapter.submitList(state.apps)
+                        splitAdapter.submitList(state.splitApps)
                         cloneAdapter.submitList(state.clones)
                         cloneAdapter.updating = state.updatingClone
                     }
@@ -104,13 +115,27 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        selectTabFrom(intent)
+        handleIntent(intent)
         binding.tabs.getTabAt(viewModel.tab)?.select()
     }
 
-    /** The "updates available" notification asks for the Clones tab. */
-    private fun selectTabFrom(intent: Intent) {
+    /**
+     * Besides a plain launch: the "updates available" notification asks for the Clones tab, and
+     * split APKs can be shared or opened into the app to be merged.
+     */
+    private fun handleIntent(intent: Intent) {
         if (intent.hasExtra(EXTRA_TAB)) viewModel.tab = intent.getIntExtra(EXTRA_TAB, TAB_APPS)
+        val uris = when (intent.action) {
+            Intent.ACTION_VIEW -> listOfNotNull(intent.data)
+            Intent.ACTION_SEND -> listOfNotNull(intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java))
+            Intent.ACTION_SEND_MULTIPLE ->
+                intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
+            else -> emptyList()
+        }
+        if (uris.isNotEmpty()) {
+            viewModel.tab = TAB_SPLIT
+            viewModel.loadSplitFiles(uris)
+        }
     }
 
     override fun onResume() {
@@ -126,26 +151,41 @@ class MainActivity : AppCompatActivity() {
 
     private fun render(state: MainUiState) {
         val ready = state.permissionsGranted
-        val appsTab = viewModel.tab == TAB_APPS
+        val tab = viewModel.tab
+        val appsTab = tab == TAB_APPS
         binding.permissionGroup.isVisible = !ready
         binding.cardFiles.isVisible = !state.hasFileAccess
         binding.cardInstall.isVisible = !state.canInstall
         binding.contentGroup.isVisible = ready
-        binding.chipSystem.isVisible = appsTab
+        binding.chipSystem.isVisible = tab != TAB_CLONES
         binding.listApps.isVisible = appsTab
-        binding.listClones.isVisible = !appsTab
-        binding.bottomBar.isVisible = ready && appsTab
+        binding.listClones.isVisible = tab == TAB_CLONES
+        binding.listSplit.isVisible = tab == TAB_SPLIT
+        binding.bottomBar.isVisible = ready && tab != TAB_CLONES
+        binding.buttonPickApk.setText(if (tab == TAB_SPLIT) R.string.button_pick_split else R.string.button_pick_apk)
         binding.progress.isVisible = state.loading
 
-        val empty = if (appsTab) state.apps.isEmpty() else state.clones.isEmpty()
+        val empty = when (tab) {
+            TAB_CLONES -> state.clones.isEmpty()
+            TAB_SPLIT -> state.splitApps.isEmpty()
+            else -> state.apps.isEmpty()
+        }
         binding.textEmpty.isVisible = ready && !state.loading && empty
-        binding.textEmpty.setText(if (appsTab) R.string.empty_list else R.string.empty_clones)
+        binding.textEmpty.setText(
+            when (tab) {
+                TAB_CLONES -> R.string.empty_clones
+                TAB_SPLIT -> R.string.empty_split
+                else -> R.string.empty_list
+            }
+        )
     }
 
     private fun handle(event: MainEvent) {
-        val sheetShown = supportFragmentManager.findFragmentByTag(CloneSheet.TAG) != null
+        val sheetShown = supportFragmentManager.findFragmentByTag(CloneSheet.TAG) != null ||
+            supportFragmentManager.findFragmentByTag(MergeSheet.TAG) != null
         when (event) {
             is MainEvent.SourceReady -> if (!sheetShown) CloneSheet().show(supportFragmentManager, CloneSheet.TAG)
+            MainEvent.MergeSourceReady -> if (!sheetShown) MergeSheet().show(supportFragmentManager, MergeSheet.TAG)
             // While the sheet is up it covers this window and reports messages itself.
             is MainEvent.Message -> if (!sheetShown) {
                 Snackbar.make(binding.root, getString(event.text, event.argument), Snackbar.LENGTH_LONG)
@@ -163,6 +203,7 @@ class MainActivity : AppCompatActivity() {
         const val EXTRA_TAB = "tab"
         const val TAB_APPS = 0
         const val TAB_CLONES = 1
+        const val TAB_SPLIT = 2
 
         // Many file managers report APKs as a generic binary.
         private val APK_MIME_TYPES = arrayOf("application/vnd.android.package-archive", "application/octet-stream")

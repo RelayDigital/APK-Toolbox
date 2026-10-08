@@ -1,6 +1,7 @@
 package io.github.bl3xand.apkcloner.ui
 
 import android.content.Intent
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.provider.Settings
 import io.github.bl3xand.apkcloner.data.ApkSource
@@ -11,11 +12,18 @@ import io.github.bl3xand.apkcloner.databinding.ViewAppCardBinding
  * Tapping it opens the system settings page of [settingsPackage]; pass null for an app that is
  * not installed.
  */
-fun ViewAppCardBinding.bind(app: ApkSource, settingsPackage: String?) {
+fun ViewAppCardBinding.bind(app: ApkSource, settingsPackage: String?) = bind(
+    label = app.label,
+    subtitle = listOfNotNull(app.packageName, app.versionName).joinToString(" · "),
+    icon = app.appInfo.loadIcon(root.context.packageManager),
+    settingsPackage = settingsPackage,
+)
+
+fun ViewAppCardBinding.bind(label: String, subtitle: String, icon: Drawable?, settingsPackage: String?) {
     val context = root.context
-    textLabel.text = app.label
-    textPackage.text = listOfNotNull(app.packageName, app.versionName).joinToString(" · ")
-    imageIcon.setImageDrawable(app.appInfo.loadIcon(context.packageManager))
+    textLabel.text = label
+    textPackage.text = subtitle
+    imageIcon.setImageDrawable(icon)
     root.isClickable = settingsPackage != null
     root.setOnClickListener {
         context.startActivity(

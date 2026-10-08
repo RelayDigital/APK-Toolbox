@@ -30,6 +30,13 @@ class ApkCloner(private val context: Context) {
         }
     }
 
+    private val signer: ApkSigner.SignerConfig by lazy {
+        val key = context.assets.open("debug.pk8").use {
+            KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(it.readBytes()))
+        }
+        ApkSigner.SignerConfig.Builder("CERT", key, listOf(certificate)).build()
+    }
+
     /** Writes the cloned APKs into [outputDir], in the same order as [CloneRequest.apks]. */
     fun clone(
         request: CloneRequest,
@@ -38,10 +45,6 @@ class ApkCloner(private val context: Context) {
     ): List<File> {
         outputDir.deleteRecursively()
         check(outputDir.mkdirs()) { "Cannot create $outputDir" }
-        val key = context.assets.open("debug.pk8").use {
-            KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(it.readBytes()))
-        }
-        val signer = ApkSigner.SignerConfig.Builder("CERT", key, listOf(certificate)).build()
         val unsigned = File(outputDir, "unsigned.tmp")
         try {
             return request.apks.mapIndexed { index, apk ->
@@ -51,17 +54,22 @@ class ApkCloner(private val context: Context) {
                 val patcher = ManifestPatcher(request.newPackage, request.newLabel.takeIf { index == 0 })
                 val metadata = { METADATA_ENTRY to "$METADATA_ORIGINAL=${patcher.oldPackage}\n".toByteArray() }
                 ApkRebuilder.rebuild(apk, unsigned, patcher, metadata.takeIf { index == 0 })
-                ApkSigner.Builder(listOf(signer))
-                    .setInputApk(unsigned)
-                    .setOutputApk(output)
-                    .setCreatedBy("ApkCloner")
-                    .build()
-                    .sign()
+                sign(unsigned, output)
                 output
             }
         } finally {
             unsigned.delete()
         }
+    }
+
+    /** Signs [input] with the bundled key (v1, v2 and v3 as the APK's minSdk allows). */
+    fun sign(input: File, output: File) {
+        ApkSigner.Builder(listOf(signer))
+            .setInputApk(input)
+            .setOutputApk(output)
+            .setCreatedBy("ApkCloner")
+            .build()
+            .sign()
     }
 
     companion object {

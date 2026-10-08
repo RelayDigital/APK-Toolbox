@@ -90,4 +90,26 @@
     <string name="settings_auto_install_description">Update clones right away instead of only notifying.</string>
     <string name="notification_failed_title">Could not update clones</string>
     <string name="status_installing">Installing…</string>
+
+    <string name="tab_split">Split</string>
+    <string name="empty_split">No split apps found. Pick a bundle (APKS, XAPK, APKM) or several split APKs below.</string>
+    <string name="button_pick_split">Choose split APK files</string>
+    <string name="merge_open_with">Merge split APK</string>
+    <string name="merge_splits_title">Splits: %1$d of %2$d</string>
+    <string name="merge_split_item" translatable="false">%1$s · %2$s</string>
+    <string name="merge_select_all">All</string>
+    <string name="merge_select_device">For this device</string>
+    <string name="merge_sign">Sign after merging</string>
+    <string name="merge_force">Merge mismatched splits anyway</string>
+    <string name="button_merge">Merge</string>
+    <string name="merge_step_extracting">Collecting APK files…</string>
+    <string name="merge_step_merging">Merging…</string>
+    <string name="merge_step_saving">Writing the APK…</string>
+    <string name="merge_step_signing">Signing…</string>
+    <string name="merge_done">Merged into a single APK</string>
+    <string name="merge_done_unsigned">Merged, not signed. An unsigned APK cannot be installed until it is signed.</string>
+    <string name="merge_done_pairip">Merged, left unsigned: this app is protected by PairIP and checks its own integrity, so a re-signed build will crash on start.</string>
+    <string name="merge_mismatch">These splits have a different version or package than the base: %1$s. Deselect them, or turn on merging mismatched splits.</string>
+    <string name="merge_failed">Merging failed: %1$s</string>
+    <string name="merge_not_split">This does not look like a split APK. Pick a bundle (APKS, XAPK, APKM, ZIP) or at least two APK files.</string>
 </resources>

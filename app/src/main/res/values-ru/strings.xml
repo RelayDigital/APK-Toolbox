@@ -82,4 +82,25 @@
     <string name="settings_auto_install_description">Сразу обновлять клоны, а не только уведомлять.</string>
     <string name="notification_failed_title">Не удалось обновить клоны</string>
     <string name="status_installing">Установка…</string>
+
+    <string name="tab_split">Сплит</string>
+    <string name="empty_split">Сплит-приложения не найдены. Выберите ниже пакет (APKS, XAPK, APKM) или несколько сплит-APK.</string>
+    <string name="button_pick_split">Выбрать сплит-APK</string>
+    <string name="merge_open_with">Объединить сплит-APK</string>
+    <string name="merge_splits_title">Сплиты: %1$d из %2$d</string>
+    <string name="merge_select_all">Все</string>
+    <string name="merge_select_device">Для устройства</string>
+    <string name="merge_sign">Подписать после объединения</string>
+    <string name="merge_force">Объединять несовпадающие сплиты</string>
+    <string name="button_merge">Объединить</string>
+    <string name="merge_step_extracting">Сбор APK-файлов…</string>
+    <string name="merge_step_merging">Объединение…</string>
+    <string name="merge_step_saving">Запись APK…</string>
+    <string name="merge_step_signing">Подпись…</string>
+    <string name="merge_done">Объединено в один APK</string>
+    <string name="merge_done_unsigned">Объединено без подписи. Неподписанный APK нельзя установить, пока его не подпишут.</string>
+    <string name="merge_done_pairip">Объединено, но не подписано: приложение защищено PairIP и проверяет свою целостность, переподписанная сборка будет падать при запуске.</string>
+    <string name="merge_mismatch">У этих сплитов версия или пакет отличаются от базового APK: %1$s. Снимите с них отметку или включите объединение несовпадающих сплитов.</string>
+    <string name="merge_failed">Ошибка объединения: %1$s</string>
+    <string name="merge_not_split">Это не похоже на сплит-APK. Выберите пакет (APKS, XAPK, APKM, ZIP) или минимум два APK-файла.</string>
 </resources>

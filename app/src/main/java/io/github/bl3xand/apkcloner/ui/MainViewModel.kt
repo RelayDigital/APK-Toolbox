@@ -12,6 +12,13 @@ import io.github.bl3xand.apkcloner.data.AppRepository
 import io.github.bl3xand.apkcloner.data.CloneInfo
 import io.github.bl3xand.apkcloner.install.InstallOutcome
 import io.github.bl3xand.apkcloner.install.StockInstaller
+import io.github.bl3xand.apkcloner.merge.MergeResult
+import io.github.bl3xand.apkcloner.merge.MergeStep
+import io.github.bl3xand.apkcloner.merge.NotSplitException
+import io.github.bl3xand.apkcloner.merge.SplitLoader
+import io.github.bl3xand.apkcloner.merge.SplitMerger
+import io.github.bl3xand.apkcloner.merge.SplitMismatchException
+import io.github.bl3xand.apkcloner.merge.SplitSource
 import io.github.bl3xand.apkcloner.install.InstallReceiver
 import java.io.File
 import java.util.zip.ZipEntry
@@ -38,6 +45,8 @@ data class MainUiState(
     val loading: Boolean = false,
     val apps: List<ApkSource> = emptyList(),
     val clones: List<CloneInfo> = emptyList(),
+    /** Installed apps that consist of more than one APK. */
+    val splitApps: List<ApkSource> = emptyList(),
     /** Package of the clone currently being rebuilt for an update. */
     val updatingClone: String? = null,
 ) {
@@ -51,8 +60,17 @@ sealed interface CloneState {
     data class Failed(val message: String) : CloneState
 }
 
+sealed interface MergeState {
+    data object Idle : MergeState
+    data class Running(val step: MergeStep) : MergeState
+    data class Done(val result: MergeResult) : MergeState
+    data class Mismatch(val splits: List<String>) : MergeState
+    data class Failed(val message: String) : MergeState
+}
+
 sealed interface MainEvent {
     data class SourceReady(val source: ApkSource) : MainEvent
+    data object MergeSourceReady : MainEvent
     data class Message(@StringRes val text: Int, val argument: String = "") : MainEvent
 }
 
@@ -71,6 +89,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val pickedApk = File(tempDir, "picked.apk")
     private val sheetOutput = File(tempDir, "clone")
     private val updateOutput = File(tempDir, "update")
+    private val mergeInput = File(tempDir, "merge-in")
+    private val mergeWork = File(tempDir, "merge")
+
+    private val splitLoader = SplitLoader(application)
+    private val merger = SplitMerger(cloner)
 
     private var allApps: List<ApkSource> = emptyList()
     private var allClones: List<CloneInfo> = emptyList()
@@ -94,6 +117,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _events = MutableSharedFlow<MainEvent>(extraBufferCapacity = 4)
     val events: SharedFlow<MainEvent> = _events.asSharedFlow()
+
+    private val _mergeState = MutableStateFlow<MergeState>(MergeState.Idle)
+    val mergeState: StateFlow<MergeState> = _mergeState.asStateFlow()
+
+    /** The split app the merge sheet is currently showing. */
+    var mergeSource: SplitSource? = null
+        private set
 
     /** The source the clone sheet is currently configured for. */
     var selected: ApkSource? = null
@@ -165,6 +195,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun installResult() {
         val apks = (_cloneState.value as? CloneState.Done)?.apks ?: return
+        installAndTrack(apks)
+    }
+
+    private fun installAndTrack(apks: List<File>) {
         if (_installing.value) return
         _installing.value = true
         viewModelScope.launch(Dispatchers.IO) {
@@ -176,9 +210,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** A single APK is written as is; an app with splits becomes an .apks archive of all parts. */
     fun saveResult(uri: Uri) {
         val apks = (_cloneState.value as? CloneState.Done)?.apks ?: return
+        save(apks, uri)
+    }
+
+    /** A single APK is written as is; an app with splits becomes an .apks archive of all parts. */
+    private fun save(apks: List<File>, uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
             val result = runCatching {
                 val output = getApplication<Application>().contentResolver.openOutputStream(uri, "wt")
@@ -204,6 +242,76 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     { MainEvent.Message(R.string.save_failed, it.message.orEmpty()) },
                 )
             )
+        }
+    }
+
+    fun selectSplitApp(app: ApkSource) {
+        if (_mergeState.value is MergeState.Running) return
+        openMerge(splitLoader.fromInstalled(app))
+    }
+
+    /** A bundle (APKS, XAPK, APKM, ZIP) or several loose split APKs, picked or shared into the app. */
+    fun loadSplitFiles(uris: List<Uri>) {
+        if (uris.isEmpty() || _mergeState.value is MergeState.Running) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(loading = true) }
+            val source = withContext(Dispatchers.IO) { runCatching { splitLoader.fromUris(uris, mergeInput) } }
+            _uiState.update { it.copy(loading = false) }
+            source.onSuccess(::openMerge).onFailure { error ->
+                withContext(Dispatchers.IO) { mergeInput.deleteRecursively() }
+                _events.tryEmit(
+                    if (error is NotSplitException) MainEvent.Message(R.string.merge_not_split)
+                    else MainEvent.Message(R.string.merge_failed, error.message ?: error.javaClass.simpleName)
+                )
+            }
+        }
+    }
+
+    private fun openMerge(source: SplitSource) {
+        mergeSource = source
+        _mergeState.value = MergeState.Idle
+        _events.tryEmit(MainEvent.MergeSourceReady)
+    }
+
+    fun startMerge(selected: Set<String>, sign: Boolean, force: Boolean) {
+        val source = mergeSource ?: return
+        if (_mergeState.value is MergeState.Running) return
+        _mergeState.value = MergeState.Running(MergeStep.EXTRACTING)
+        viewModelScope.launch {
+            _mergeState.value = withContext(Dispatchers.IO) {
+                try {
+                    MergeState.Done(merger.merge(source, selected, sign, force, mergeWork) { step ->
+                        _mergeState.value = MergeState.Running(step)
+                    })
+                } catch (e: SplitMismatchException) {
+                    MergeState.Mismatch(e.splits.map { it.substringAfterLast('/') })
+                } catch (e: Throwable) {
+                    // Malformed APKs can blow up deep inside the resource parser, not only with exceptions.
+                    mergeWork.deleteRecursively()
+                    MergeState.Failed(e.message ?: e.javaClass.simpleName)
+                }
+            }
+        }
+    }
+
+    fun installMerged() {
+        val apk = (_mergeState.value as? MergeState.Done)?.result?.apk ?: return
+        installAndTrack(listOf(apk))
+    }
+
+    fun saveMerged(uri: Uri) {
+        val apk = (_mergeState.value as? MergeState.Done)?.result?.apk ?: return
+        save(listOf(apk), uri)
+    }
+
+    /** Called when the merge sheet closes: nothing it produced or copied is kept. */
+    fun discardMerge() {
+        if (_mergeState.value is MergeState.Running) return
+        _mergeState.value = MergeState.Idle
+        mergeSource = null
+        viewModelScope.launch(Dispatchers.IO) {
+            mergeWork.deleteRecursively()
+            mergeInput.deleteRecursively()
         }
     }
 
@@ -272,6 +380,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { state ->
             state.copy(
                 apps = allApps.filter { (showSystem || !it.isSystem) && matches(it) },
+                splitApps = allApps.filter { it.apkPaths.size > 1 && (showSystem || !it.isSystem) && matches(it) },
                 clones = allClones.filter { matches(it.app) },
             )
         }

@@ -10,7 +10,7 @@ android {
         applicationId = "io.github.bl3xand.apkcloner"
         minSdk = 35
         targetSdk = 36
-        versionCode = 3
+        versionCode = 4
         versionName = "1.0"
     }
 
@@ -45,5 +45,6 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
+    implementation(libs.arsclib)
     implementation(libs.apksig)
 }
