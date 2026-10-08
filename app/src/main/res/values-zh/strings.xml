@@ -35,8 +35,6 @@
 
     <string name="install_success">克隆已安装</string>
     <string name="install_failed">安装失败：%1$s</string>
-
-    <string name="detail_update_available">已安装更新版本的原应用</string>
     <string name="detail_cloned_from">克隆自</string>
     <string name="detail_original_version">原应用版本</string>
     <string name="detail_clone_version">克隆版本</string>
@@ -59,6 +57,11 @@
     </string-array>
 
     <string name="channel_updates">克隆应用更新</string>
-    <string name="notification_update_title">%1$s 的更新已就绪</string>
-    <string name="notification_update_text">点按以确认安装</string>
+
+    <string name="detail_title">克隆应用</string>
+    <string name="settings_play_protect_note">Google Play 保护机制会将重新签名的应用视为未知应用，可能要求扫描或直接拦截。被拦截的更新不会安装，你会收到有可用更新的通知。关闭应用扫描可以消除这些提示，但会降低设备的安全性。</string>
+    <string name="settings_play_protect_button">Play 保护机制设置</string>
+    <string name="notification_updating">正在更新 %1$s…</string>
+    <string name="notification_available_title">克隆应用有可用更新</string>
+    <string name="notification_available_text">%1$s 无法自动更新。点按即可更新。</string>
 </resources>

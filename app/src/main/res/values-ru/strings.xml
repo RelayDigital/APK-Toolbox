@@ -35,8 +35,6 @@
 
     <string name="install_success">Клон установлен</string>
     <string name="install_failed">Ошибка установки: %1$s</string>
-
-    <string name="detail_update_available">Установлена более новая версия оригинала</string>
     <string name="detail_cloned_from">Клонировано из</string>
     <string name="detail_original_version">Версия оригинала</string>
     <string name="detail_clone_version">Версия клона</string>
@@ -59,6 +57,11 @@
     </string-array>
 
     <string name="channel_updates">Обновления клонов</string>
-    <string name="notification_update_title">Готово обновление для %1$s</string>
-    <string name="notification_update_text">Нажмите, чтобы подтвердить установку</string>
+
+    <string name="detail_title">Клон</string>
+    <string name="settings_play_protect_note">Google Play Защита считает переподписанные приложения неизвестными и может предлагать проверку или блокировать их. Обновление, которое она не пропустила, не устанавливается — вместо этого придёт уведомление о доступных обновлениях. Отключение проверки приложений убирает эти запросы, но снижает защиту устройства.</string>
+    <string name="settings_play_protect_button">Настройки Play Защиты</string>
+    <string name="notification_updating">Обновление %1$s…</string>
+    <string name="notification_available_title">Доступны обновления клонов</string>
+    <string name="notification_available_text">%1$s не удалось обновить автоматически. Нажмите, чтобы обновить.</string>
 </resources>

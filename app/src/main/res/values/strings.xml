@@ -39,8 +39,6 @@
 
     <string name="install_success">Clone installed</string>
     <string name="install_failed">Installation failed: %1$s</string>
-
-    <string name="detail_update_available">A newer version of the original is installed</string>
     <string name="detail_cloned_from">Cloned from</string>
     <string name="detail_original_version">Original version</string>
     <string name="detail_clone_version">Clone version</string>
@@ -66,6 +64,11 @@
     <string name="source_url" translatable="false">https://github.com/bl3xand/APK-Cloner</string>
 
     <string name="channel_updates">Clone updates</string>
-    <string name="notification_update_title">Update for %1$s is ready</string>
-    <string name="notification_update_text">Tap to confirm the installation</string>
+
+    <string name="detail_title">Clone</string>
+    <string name="settings_play_protect_note">Google Play Protect treats re-signed apps as unknown and may ask to scan or block them. An update it does not let through is not installed; you get a notification that updates are available instead. Turning app scanning off removes these prompts, but lowers the protection of the device.</string>
+    <string name="settings_play_protect_button">Play Protect settings</string>
+    <string name="notification_updating">Updating %1$s…</string>
+    <string name="notification_available_title">Clone updates available</string>
+    <string name="notification_available_text">%1$s could not be updated automatically. Tap to update.</string>
 </resources>

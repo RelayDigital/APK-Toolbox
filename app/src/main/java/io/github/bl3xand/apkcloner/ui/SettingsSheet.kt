@@ -66,6 +66,12 @@ class SettingsSheet : BottomSheetDialogFragment() {
             render()
         }
 
+        binding.buttonPlayProtect.setOnClickListener {
+            // Not a public entry point: fall back to the general security settings if it is missing.
+            runCatching { startActivity(Intent().setClassName("com.google.android.gms", PLAY_PROTECT_SETTINGS)) }
+                .onFailure { startActivity(Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS)) }
+        }
+
         binding.textVersion.text = getString(R.string.settings_version, BuildConfig.VERSION_NAME)
         binding.buttonSource.setOnClickListener {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.source_url))))
@@ -79,5 +85,6 @@ class SettingsSheet : BottomSheetDialogFragment() {
 
     companion object {
         const val TAG = "settings"
+        private const val PLAY_PROTECT_SETTINGS = "com.google.android.gms.security.settings.VerifyAppsSettingsActivity"
     }
 }

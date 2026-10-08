@@ -52,13 +52,10 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
         val busy = updating == clone.app.packageName
         val missing = getString(R.string.detail_not_installed)
 
-        binding.textLabel.text = clone.app.label
-        binding.textPackage.text = clone.app.packageName
-        binding.imageIcon.setImageDrawable(clone.app.appInfo.loadIcon(requireContext().packageManager))
+        binding.appCard.bind(clone.app, clone.app.packageName)
         binding.textOriginal.text = clone.original?.let { "${it.label}\n${it.packageName}" } ?: clone.originalPackage
         binding.textCloneVersion.text = clone.app.versionName.orEmpty()
         binding.textOriginalVersion.text = clone.original?.let { it.versionName.orEmpty() } ?: missing
-        binding.textUpdate.isVisible = clone.updateAvailable
 
         binding.progress.isVisible = busy
         binding.buttonUpdate.isEnabled = clone.updateAvailable && updating == null

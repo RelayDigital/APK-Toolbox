@@ -39,9 +39,9 @@ class CloneSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val source = viewModel.selected ?: return dismiss()
 
-        binding.textLabel.text = source.label
-        binding.textPackage.text = listOfNotNull(source.packageName, source.versionName).joinToString(" · ")
-        binding.imageIcon.setImageDrawable(source.appInfo.loadIcon(requireContext().packageManager))
+        // An APK picked from storage is not installed, so it has no settings page to open.
+        val installed = !source.apkPaths.first().startsWith(requireContext().cacheDir.path)
+        binding.appCard.bind(source, source.packageName.takeIf { installed })
         if (savedInstanceState == null) {
             binding.editPackage.setText(getString(R.string.default_clone_package, source.packageName))
             binding.editName.setText(getString(R.string.default_clone_name, source.label))

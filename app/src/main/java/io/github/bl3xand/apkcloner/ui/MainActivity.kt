@@ -59,6 +59,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.tabs.addTab(binding.tabs.newTab().setText(R.string.tab_apps))
         binding.tabs.addTab(binding.tabs.newTab().setText(R.string.tab_clones))
+        if (savedInstanceState == null) selectTabFrom(intent)
         binding.tabs.getTabAt(viewModel.tab)?.select()
         binding.tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
@@ -100,6 +101,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        selectTabFrom(intent)
+        binding.tabs.getTabAt(viewModel.tab)?.select()
+    }
+
+    /** The "updates available" notification asks for the Clones tab. */
+    private fun selectTabFrom(intent: Intent) {
+        if (intent.hasExtra(EXTRA_TAB)) viewModel.tab = intent.getIntExtra(EXTRA_TAB, TAB_APPS)
+    }
+
     override fun onResume() {
         super.onResume()
         // Both grants happen on system settings screens, so re-check every time we come back.
@@ -112,12 +124,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun render(state: MainUiState) {
         val ready = state.permissionsGranted
-        val appsTab = viewModel.tab == 0
+        val appsTab = viewModel.tab == TAB_APPS
         binding.permissionGroup.isVisible = !ready
         binding.cardFiles.isVisible = !state.hasFileAccess
         binding.cardInstall.isVisible = !state.canInstall
         binding.contentGroup.isVisible = ready
-        binding.searchGroup.isVisible = appsTab
+        binding.chipSystem.isVisible = appsTab
         binding.listApps.isVisible = appsTab
         binding.listClones.isVisible = !appsTab
         binding.bottomBar.isVisible = ready && appsTab
@@ -145,8 +157,12 @@ class MainActivity : AppCompatActivity() {
         startActivity(Intent(action, Uri.parse("package:$packageName")))
     }
 
-    private companion object {
+    companion object {
+        const val EXTRA_TAB = "tab"
+        const val TAB_APPS = 0
+        const val TAB_CLONES = 1
+
         // Many file managers report APKs as a generic binary.
-        val APK_MIME_TYPES = arrayOf("application/vnd.android.package-archive", "application/octet-stream")
+        private val APK_MIME_TYPES = arrayOf("application/vnd.android.package-archive", "application/octet-stream")
     }
 }

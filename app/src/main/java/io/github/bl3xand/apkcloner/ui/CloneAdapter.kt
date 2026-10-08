@@ -1,14 +1,11 @@
 package io.github.bl3xand.apkcloner.ui
 
-import android.content.res.ColorStateList
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.color.MaterialColors
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.data.CloneInfo
 import io.github.bl3xand.apkcloner.databinding.ItemCloneBinding
@@ -52,26 +49,6 @@ class CloneAdapter(
         }
         binding.progress.isVisible = updating == clone.app.packageName
         binding.root.setOnClickListener { onClick(clone) }
-
-        // Outdated clones stand out as a filled card in the accent colour.
-        val highlight = clone.updateAvailable
-        val color = { attr: Int -> MaterialColors.getColor(binding.root, attr) }
-        binding.root.setCardBackgroundColor(
-            if (highlight) color(androidx.appcompat.R.attr.colorPrimary) else Color.TRANSPARENT
-        )
-        val primaryText = color(
-            if (highlight) com.google.android.material.R.attr.colorOnPrimary
-            else com.google.android.material.R.attr.colorOnSurface
-        )
-        val secondaryText = color(
-            if (highlight) com.google.android.material.R.attr.colorOnPrimary
-            else com.google.android.material.R.attr.colorOnSurfaceVariant
-        )
-        binding.textLabel.setTextColor(primaryText)
-        binding.textPackage.setTextColor(secondaryText)
-        binding.textStatus.setTextColor(secondaryText)
-        binding.progress.setIndicatorColor(primaryText)
-        binding.root.rippleColor = ColorStateList.valueOf(primaryText).withAlpha(40)
 
         holder.iconJob?.cancel()
         holder.iconJob = icons.load(clone.app, binding.imageIcon)

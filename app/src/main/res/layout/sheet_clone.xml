@@ -22,56 +22,12 @@
             android:text="@string/sheet_title"
             android:textAppearance="?attr/textAppearanceHeadlineSmall" />
 
-        <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
+        <include
+            android:id="@+id/appCard"
+            layout="@layout/view_app_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardBackgroundColor="?attr/colorSecondaryContainer"
-            app:cardElevation="0dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:padding="16dp">
-
-                <ImageView
-                    android:id="@+id/imageIcon"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:contentDescription="@null" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/textLabel"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:ellipsize="end"
-                        android:maxLines="1"
-                        android:textAppearance="?attr/textAppearanceTitleMedium"
-                        android:textColor="?attr/colorOnSecondaryContainer"
-                        tools:text="Calculator" />
-
-                    <TextView
-                        android:id="@+id/textPackage"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:alpha="0.8"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
-                        android:textColor="?attr/colorOnSecondaryContainer"
-                        tools:text="com.google.android.calculator · 8.6" />
-
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            android:layout_marginTop="16dp" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/layoutPackage"

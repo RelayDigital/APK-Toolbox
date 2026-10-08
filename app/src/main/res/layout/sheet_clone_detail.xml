@@ -16,54 +16,18 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <ImageView
-                android:id="@+id/imageIcon"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:contentDescription="@null" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/textLabel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="?attr/textAppearanceHeadlineSmall"
-                    tools:text="AIDA64 Clone" />
-
-                <TextView
-                    android:id="@+id/textPackage"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    tools:text="com.finalwire.aida64.clone" />
-
-            </LinearLayout>
-        </LinearLayout>
-
         <TextView
-            android:id="@+id/textUpdate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/detail_title"
+            android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+
+        <include
+            android:id="@+id/appCard"
+            layout="@layout/view_app_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/bg_highlight"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="12dp"
-            android:text="@string/detail_update_available"
-            android:textAppearance="?attr/textAppearanceTitleSmall"
-            android:textColor="?attr/colorOnPrimary" />
+            android:layout_marginTop="16dp" />
 
         <com.google.android.material.card.MaterialCardView
             style="?attr/materialCardViewFilledStyle"

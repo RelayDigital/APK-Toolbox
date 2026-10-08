@@ -28,13 +28,15 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
             for (clone in AppRepository(context, cloner).installed().clones) {
                 if (!clone.updateAvailable) continue
                 val request = clone.updateRequest() ?: continue
+                UpdateNotifications.showProgress(context, clone.app.label)
                 // One broken app must not keep the rest from updating.
                 runCatching {
                     val apks = cloner.clone(request, output) { _, _, _ -> }
                     ApkInstaller.install(context, apks, background = true, label = clone.app.label)
-                }
+                }.onFailure { UpdateNotifications.showAvailable(context, clone.app.label) }
             }
         } finally {
+            UpdateNotifications.cancelProgress(context)
             output.deleteRecursively()
         }
         Result.success()

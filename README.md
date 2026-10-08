@@ -22,16 +22,19 @@ keeping its data — in one tap, or automatically in the background.
    tap **Clone**.
 4. **Install** the clone, or **Save APK** wherever you like.
 
-Installed clones are listed on the **Clones** tab, outdated ones highlighted.
-Tap a clone to see which app and version it was made from, and to **Update**
-or **Delete** it. To keep clones current without opening the app, turn on
-**Update clones automatically** in settings and choose how often to check,
-from once a day to once a year.
+Installed clones are listed on the **Clones** tab. Tap one to see which app
+and version it was made from, and to **Update** or **Delete** it. To keep
+clones current without opening the app, turn on **Update clones
+automatically** in settings and choose how often to check, from once a day
+to once a year.
 
 ## Good to know
 
 - Clones are signed with APK Cloner's own key. The original signature cannot
   be kept: it stops matching as soon as the APK is modified.
+- Google Play Protect treats re-signed apps as unknown and may ask to scan or
+  block them. A background update it does not let through is skipped, and you
+  get a notification that updates are available instead.
 - Only the manifest is changed. Apps that check their own package name or
   signature, and services bound to them (Google sign-in, Firebase, in-app
   purchases), may not work in a clone.

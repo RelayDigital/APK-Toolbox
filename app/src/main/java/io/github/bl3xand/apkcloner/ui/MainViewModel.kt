@@ -62,6 +62,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val updateOutput = File(tempDir, "update")
 
     private var allApps: List<ApkSource> = emptyList()
+    private var allClones: List<CloneInfo> = emptyList()
     private var query = ""
     private var showSystem = false
     private var loaded = false
@@ -219,7 +220,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val installed = withContext(Dispatchers.IO) { repository.installed() }
             loaded = true
             allApps = installed.apps
-            _uiState.update { it.copy(loading = false, clones = installed.clones) }
+            allClones = installed.clones
+            _uiState.update { it.copy(loading = false) }
             publishApps()
         }
     }
@@ -233,10 +235,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun publishApps() {
-        val filtered = allApps.filter { app ->
-            (showSystem || !app.isSystem) &&
-                (query.isEmpty() || app.label.contains(query, true) || app.packageName.contains(query, true))
+        fun matches(app: ApkSource) =
+            query.isEmpty() || app.label.contains(query, true) || app.packageName.contains(query, true)
+        _uiState.update { state ->
+            state.copy(
+                apps = allApps.filter { (showSystem || !it.isSystem) && matches(it) },
+                clones = allClones.filter { matches(it.app) },
+            )
         }
-        _uiState.update { it.copy(apps = filtered) }
     }
 }
