@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.ApkClonner" parent="Theme.Material3Expressive.DynamicColors.DayNight.NoActionBar" />
+</resources>
