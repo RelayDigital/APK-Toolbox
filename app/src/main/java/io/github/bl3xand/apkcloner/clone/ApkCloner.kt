@@ -51,9 +51,12 @@ class ApkCloner(private val context: Context) {
                 var source = apk
                 var marked = false
                 if (index == 0 && request.badgeIconOf != null) {
-                    marked = runCatching {
+                    // Catches Errors as well: running out of memory here must not take the app down.
+                    marked = try {
                         IconBadger(context).apply(apk, badged, request.badgeIconOf, request.newPackage)
-                    }.isSuccess
+                    } catch (_: Throwable) {
+                        false
+                    }
                     if (marked) source = badged
                 }
 

@@ -14,6 +14,7 @@ import com.reandroid.arsc.chunk.xml.ResXmlDocument
 import com.reandroid.arsc.value.ValueType
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.zip.ZipFile
 
 /**
  * Gives a clone a launcher icon that can be told apart from the original's: the same picture
@@ -24,10 +25,20 @@ import java.io.File
  */
 class IconBadger(private val context: Context) {
 
-    /** Writes [input] to [output] with the badged icon. [seed] picks the colour of the dot. */
-    fun apply(input: File, output: File, app: ApplicationInfo, seed: String) {
+    /**
+     * Writes [input] to [output] with the badged icon; [seed] picks the colour of the dot.
+     * Returns false, leaving [output] alone, when the app's resource table is too large to
+     * rewrite within this app's memory.
+     */
+    fun apply(input: File, output: File, app: ApplicationInfo, seed: String): Boolean {
+        val tableSize = ZipFile(input).use { it.getEntry(RESOURCE_TABLE)?.size ?: 0 }
+        if (tableSize == 0L || tableSize > MAX_TABLE_BYTES) return false
+
         val picture = render(app, seed)
         ApkModule.loadApkFile(input).use { module ->
+            // Only this app's own table is touched; the Android framework's would cost a lot
+            // of memory for nothing.
+            module.setLoadDefaultFramework(false)
             val manifest = module.androidManifest
             val packageBlock = module.tableBlock.pickOne() ?: error("No resource table")
 
@@ -65,6 +76,7 @@ class IconBadger(private val context: Context) {
             module.tableBlock.refresh()
             module.writeApk(output)
         }
+        return true
     }
 
     private fun render(app: ApplicationInfo, seed: String): ByteArray {
@@ -95,6 +107,12 @@ class IconBadger(private val context: Context) {
     }
 
     private companion object {
+        const val RESOURCE_TABLE = "resources.arsc"
+
+        // A table is decoded into objects several times its size on disk. Beyond this, doing so
+        // next to everything else the app holds runs the heap out.
+        const val MAX_TABLE_BYTES = 12L * 1024 * 1024
+
         const val RESOURCE_NAME = "apktoolbox_clone_icon"
         const val PICTURE_PATH = "res/apktoolbox_clone_icon_picture.png"
         const val ICON_PATH = "res/apktoolbox_clone_icon.xml"
