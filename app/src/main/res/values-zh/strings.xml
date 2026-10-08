@@ -72,7 +72,7 @@
     <string name="shizuku_granted_description">克隆应用的安装和更新无需任何确认。</string>
     <string name="play_protect_on_title">Play 保护机制已开启</string>
     <string name="play_protect_unknown_title">Play 保护机制可能会造成干扰</string>
-    <string name="play_protect_on_description">它会将重新签名的应用视为未知应用，可能要求扫描或直接拦截。无法静默完成的更新不会安装，你会收到有可用更新的通知。关闭应用扫描可以消除这些提示，但会降低设备的安全性。</string>
+    <string name="play_protect_on_description">它不认识重新签名的应用，可能会将其拦截。开启期间，此方式不会自动更新克隆应用：你会收到通知，需要手动更新。关闭应用扫描可以放行更新，但会降低设备的安全性。</string>
     <string name="play_protect_off_title">Play 保护机制已关闭</string>
     <string name="play_protect_off_description">安装克隆应用不会受到干扰。由 APK Cloner 安装、且面向较新 Android 版本的克隆应用可免确认更新。</string>
 

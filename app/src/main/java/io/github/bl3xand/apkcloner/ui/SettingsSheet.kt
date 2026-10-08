@@ -20,6 +20,7 @@ import com.google.android.material.color.MaterialColors
 import io.github.bl3xand.apkcloner.BuildConfig
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.databinding.SheetSettingsBinding
+import io.github.bl3xand.apkcloner.install.PlayProtect
 import io.github.bl3xand.apkcloner.settings.AppSettings
 import io.github.bl3xand.apkcloner.settings.AppSettings.InstallMethod
 import io.github.bl3xand.apkcloner.shizuku.ShizukuBridge
@@ -150,7 +151,7 @@ class SettingsSheet : BottomSheetDialogFragment() {
                 ) { ShizukuBridge.requestPermission(SHIZUKU_REQUEST_CODE) }
             }
         } else {
-            when (playProtectEnabled()) {
+            when (PlayProtect.isEnabled(requireContext())) {
                 false -> showStatus(ok = true, R.string.play_protect_off_title, R.string.play_protect_off_description)
                 true -> showStatus(
                     ok = false, R.string.play_protect_on_title, R.string.play_protect_on_description,
@@ -197,23 +198,9 @@ class SettingsSheet : BottomSheetDialogFragment() {
             .onFailure { startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS)) }
     }
 
-    /**
-     * Whether Play Protect scans apps on install, or null when the device does not say. There is
-     * no public API for this short of bundling Play services; the consent flag it stores in the
-     * global settings is what the system's own verifier checks.
-     */
-    private fun playProtectEnabled(): Boolean? = runCatching {
-        when (Settings.Global.getInt(requireContext().contentResolver, PLAY_PROTECT_CONSENT)) {
-            1 -> true
-            -1 -> false
-            else -> null
-        }
-    }.getOrNull()
-
     companion object {
         const val TAG = "settings"
         private const val SHIZUKU_REQUEST_CODE = 1001
-        private const val PLAY_PROTECT_CONSENT = "package_verifier_user_consent"
         private const val PLAY_PROTECT_SETTINGS = "com.google.android.gms.security.settings.VerifyAppsSettingsActivity"
     }
 }

@@ -10,6 +10,7 @@ import io.github.bl3xand.apkcloner.BuildConfig
 import java.io.File
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -36,6 +37,9 @@ object ShizukuBridge {
         .debuggable(BuildConfig.DEBUG)
         .version(BuildConfig.VERSION_CODE)
 
+    private const val BINDER_WAIT_STEPS = 25
+    private const val BINDER_WAIT_STEP_MS = 200L
+
     private val bindMutex = Mutex()
     @Volatile
     private var boundService: IPrivilegedService? = null
@@ -48,6 +52,18 @@ object ShizukuBridge {
         }
     } catch (_: Throwable) {
         State.NOT_RUNNING
+    }
+
+    /**
+     * [state] for a process that has only just started: Shizuku hands its binder over a moment
+     * after launch, and until then it looks exactly like Shizuku not running.
+     */
+    suspend fun stateAfterStartup(): State {
+        repeat(BINDER_WAIT_STEPS) {
+            if (state() != State.NOT_RUNNING) return state()
+            delay(BINDER_WAIT_STEP_MS)
+        }
+        return state()
     }
 
     fun requestPermission(requestCode: Int) {

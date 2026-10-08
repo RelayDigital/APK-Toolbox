@@ -11,7 +11,7 @@ import io.github.bl3xand.apkcloner.data.ApkSource
 import io.github.bl3xand.apkcloner.data.AppRepository
 import io.github.bl3xand.apkcloner.data.CloneInfo
 import io.github.bl3xand.apkcloner.install.InstallOutcome
-import io.github.bl3xand.apkcloner.install.Installer
+import io.github.bl3xand.apkcloner.install.StockInstaller
 import io.github.bl3xand.apkcloner.install.InstallReceiver
 import java.io.File
 import java.util.zip.ZipEntry
@@ -257,10 +257,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val finished = async(start = CoroutineStart.UNDISPATCHED) {
             withTimeoutOrNull(INSTALL_TIMEOUT_MS) { InstallReceiver.sessionFinished.first() }
         }
-        when (val outcome = Installer.current(context).install(context, apks)) {
+        when (val outcome = StockInstaller.install(context, apks)) {
             // The system installer reports its own result later, as a toast.
             InstallOutcome.Pending -> finished.await()
-            InstallOutcome.Success -> _events.tryEmit(MainEvent.Message(R.string.install_success))
+            InstallOutcome.Success -> Unit
             is InstallOutcome.Failed -> _events.tryEmit(MainEvent.Message(R.string.install_failed, outcome.reason))
         }
         finished.cancel()

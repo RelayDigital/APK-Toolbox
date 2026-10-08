@@ -24,8 +24,12 @@ interface Installer {
     suspend fun install(context: Context, apks: List<File>, background: Boolean = false, label: String = ""): InstallOutcome
 
     companion object {
-        /** The method chosen in settings, falling back to the system installer when Shizuku is not usable. */
-        fun current(context: Context): Installer =
+        /**
+         * The method chosen in settings for automatic updates, falling back to the system
+         * installer when Shizuku is not usable. Installs started by hand always go through
+         * [StockInstaller], so the user sees the system's own confirmation.
+         */
+        fun forBackground(context: Context): Installer =
             if (AppSettings(context).installMethod == AppSettings.InstallMethod.SHIZUKU &&
                 ShizukuBridge.state() == ShizukuBridge.State.READY
             ) ShizukuInstaller else StockInstaller
@@ -39,6 +43,9 @@ object StockInstaller : Installer {
         val installer = runCatching {
             context.packageManager.getInstallSourceInfo(app.packageName).installingPackageName
         }.getOrNull()
+        // With Play Protect scanning on, a re-signed app tends to be blocked - with a full-screen
+        // dialog, which a background update must never cause.
+        if (PlayProtect.isEnabled(context) == true) return false
         // The system skips the confirmation only for the installer of record, and only for apps
         // that target a recent enough SDK.
         return installer == context.packageName &&

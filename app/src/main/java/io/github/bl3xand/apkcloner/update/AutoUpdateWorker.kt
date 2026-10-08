@@ -1,6 +1,7 @@
 package io.github.bl3xand.apkcloner.update
 
 import android.content.Context
+import androidx.work.BackoffPolicy
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -11,6 +12,7 @@ import io.github.bl3xand.apkcloner.data.AppRepository
 import io.github.bl3xand.apkcloner.install.InstallOutcome
 import io.github.bl3xand.apkcloner.install.Installer
 import io.github.bl3xand.apkcloner.settings.AppSettings
+import io.github.bl3xand.apkcloner.shizuku.ShizukuBridge
 import java.io.File
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
@@ -24,9 +26,17 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val context = applicationContext
+        val settings = AppSettings(context)
+        val autoInstall = settings.autoInstall
+        if (autoInstall && settings.installMethod == AppSettings.InstallMethod.SHIZUKU &&
+            ShizukuBridge.stateAfterStartup() != ShizukuBridge.State.READY && runAttemptCount < SHIZUKU_RETRIES
+        ) {
+            // Typically right after a reboot, when this check is already due but Shizuku has not
+            // been started yet. Come back later instead of settling for the standard installer.
+            return@withContext Result.retry()
+        }
         val cloner = ApkCloner(context)
-        val autoInstall = AppSettings(context).autoInstall
-        val installer = Installer.current(context)
+        val installer = Installer.forBackground(context)
         val output = File(context.cacheDir, "auto-update")
         // Whatever the previous run reported is about to be re-evaluated.
         UpdateNotifications.cancelOutdated(context)
@@ -69,6 +79,10 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
     companion object {
         private const val WORK_NAME = "auto-update"
 
+        // Linear backoff: retries about 10, 30 and 60 minutes after the first attempt.
+        private const val SHIZUKU_RETRIES = 3
+        private const val SHIZUKU_RETRY_STEP_MINUTES = 10L
+
         /**
          * Applies the current settings. WorkManager persists the schedule itself, so it keeps
          * running across reboots without the app having to be opened again.
@@ -80,7 +94,9 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 workManager.cancelUniqueWork(WORK_NAME)
                 return
             }
-            val request = PeriodicWorkRequestBuilder<AutoUpdateWorker>(settings.checkIntervalDays, TimeUnit.DAYS).build()
+            val request = PeriodicWorkRequestBuilder<AutoUpdateWorker>(settings.checkIntervalDays, TimeUnit.DAYS)
+                .setBackoffCriteria(BackoffPolicy.LINEAR, SHIZUKU_RETRY_STEP_MINUTES, TimeUnit.MINUTES)
+                .build()
             workManager.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
         }
     }

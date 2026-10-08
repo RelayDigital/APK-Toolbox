@@ -80,7 +80,7 @@
     <string name="shizuku_granted_description">Clones are installed and updated without any prompts.</string>
     <string name="play_protect_on_title">Play Protect is on</string>
     <string name="play_protect_unknown_title">Play Protect may get in the way</string>
-    <string name="play_protect_on_description">It treats re-signed apps as unknown and may ask to scan or block them. An update that cannot go through silently is not installed; you get a notification that updates are available instead. Turning app scanning off removes these prompts, but lowers the protection of the device.</string>
+    <string name="play_protect_on_description">Re-signed apps are unknown to it, so it may block them. While it is on, clones are not updated automatically by this method: you get a notification and update them by hand. Turning app scanning off lets updates through, but lowers the protection of the device.</string>
     <string name="play_protect_off_title">Play Protect is off</string>
     <string name="play_protect_off_description">Nothing gets in the way of installing clones. Those installed by APK Cloner that target a recent Android version update without a prompt.</string>
 

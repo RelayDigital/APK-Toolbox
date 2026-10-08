@@ -33,17 +33,21 @@ once a day to once a year. By default you only get a notification. With
 methods:
 
 - **Standard** — the system installer. Updates without a prompt only clones
-  that APK Cloner installed itself and that target a recent Android version.
+  that APK Cloner installed itself and that target a recent Android version,
+  and only while Google Play Protect app scanning is off.
 - **Shizuku** — installs with shell privileges through
-  [Shizuku](https://shizuku.rikka.app/): no prompts, for any clone.
+  [Shizuku](https://shizuku.rikka.app/): no prompts, for any clone. After a
+  reboot the check waits for Shizuku to be started.
+
+Whatever cannot be updated automatically is reported in a notification.
+Installing and updating by hand always goes through the system installer.
 
 ## Good to know
 
 - Clones are signed with APK Cloner's own key. The original signature cannot
   be kept: it stops matching as soon as the APK is modified.
-- Google Play Protect treats re-signed apps as unknown and may ask to scan or
-  block them. A background update it does not let through is skipped, and you
-  get a notification that updates are available instead.
+- Google Play Protect treats re-signed apps as unknown and may block them,
+  including installs you start by hand.
 - Only the manifest is changed. Apps that check their own package name or
   signature, and services bound to them (Google sign-in, Firebase, in-app
   purchases), may not work in a clone.
