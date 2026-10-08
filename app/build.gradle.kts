@@ -21,7 +21,7 @@ android {
         applicationId = "io.github.bl3xand.apkcloner"
         minSdk = 35
         targetSdk = 36
-        versionCode = 4
+        versionCode = 5
         versionName = "1.0"
     }
 

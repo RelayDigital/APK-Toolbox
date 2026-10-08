@@ -118,6 +118,10 @@ app's private storage. **Export** it and keep the file: clones can only be
 updated with the key they were signed with, and the key is gone if the app is
 uninstalled. Clones made with the built-in key keep updating with it.
 
+<p align="center">
+  <img src="docs/screenshots/settings-key.jpg" width="30%" alt="Signing key" />
+</p>
+
 ## Good to know
 
 - A merged APK is signed with a different key than the original from a store,
