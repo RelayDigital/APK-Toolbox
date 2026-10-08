@@ -1,9 +1,11 @@
 package io.github.bl3xand.apkclonner.ui
 
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.activityViewModels
@@ -14,18 +16,20 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import io.github.bl3xand.apkclonner.R
-import io.github.bl3xand.apkclonner.clone.SignatureMode
 import io.github.bl3xand.apkclonner.databinding.SheetCloneBinding
-import io.github.bl3xand.apkclonner.install.ApkInstaller
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class CloneSheet : BottomSheetDialogFragment() {
 
     private var _binding: SheetCloneBinding? = null
     private val binding get() = _binding!!
     private val viewModel: MainViewModel by activityViewModels()
+
+    // A generic type keeps the picker from rewriting the extension, which differs between a
+    // single APK and an archive of splits.
+    private val saveAs = registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        if (uri != null) viewModel.saveResult(uri)
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = SheetCloneBinding.inflate(inflater, container, false)
@@ -40,17 +44,24 @@ class CloneSheet : BottomSheetDialogFragment() {
         binding.imageIcon.setImageDrawable(source.appInfo.loadIcon(requireContext().packageManager))
         if (savedInstanceState == null) {
             binding.editPackage.setText(getString(R.string.default_clone_package, source.packageName))
-            binding.editName.setText(source.label)
-            binding.toggleSignature.check(R.id.buttonSignDebug)
+            binding.editName.setText(getString(R.string.default_clone_name, source.label))
         }
 
         binding.editPackage.doAfterTextChanged { binding.layoutPackage.error = null }
-        binding.toggleSignature.addOnButtonCheckedListener { _, _, _ -> renderSignatureHint() }
-        renderSignatureHint()
+        binding.buttonClone.setOnClickListener { startClone() }
+        binding.buttonInstall.setOnClickListener { viewModel.installResult() }
+        binding.buttonSave.setOnClickListener { save() }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.cloneState.collect(::render)
+                launch { viewModel.cloneState.collect(::render) }
+                launch {
+                    viewModel.events.collect { event ->
+                        if (event is MainEvent.Message) {
+                            binding.textStatus.text = getString(event.text, event.argument)
+                        }
+                    }
+                }
             }
         }
     }
@@ -64,55 +75,36 @@ class CloneSheet : BottomSheetDialogFragment() {
         }
     }
 
+    override fun onDismiss(dialog: DialogInterface) {
+        super.onDismiss(dialog)
+        // Also called when the sheet is torn down for a rotation, where the result must survive.
+        if (activity?.isChangingConfigurations != true) viewModel.discardResult()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
 
-    private fun signatureMode() =
-        if (binding.toggleSignature.checkedButtonId == R.id.buttonSignKeep) SignatureMode.KEEP_ORIGINAL
-        else SignatureMode.DEBUG
-
-    private fun renderSignatureHint() {
-        binding.textSignatureHint.setText(
-            if (signatureMode() == SignatureMode.DEBUG) R.string.signature_debug_hint
-            else R.string.signature_keep_hint
-        )
-    }
-
     private fun render(state: CloneState) {
         val running = state is CloneState.Running
+        val done = state is CloneState.Done
         isCancelable = !running
-        binding.layoutPackage.isEnabled = !running
-        binding.layoutName.isEnabled = !running
-        binding.buttonSignDebug.isEnabled = !running
-        binding.buttonSignKeep.isEnabled = !running
-        binding.buttonAction.isEnabled = !running
+        binding.layoutPackage.isEnabled = !running && !done
+        binding.layoutName.isEnabled = !running && !done
+        binding.buttonClone.isEnabled = !running
+        binding.buttonClone.isVisible = !done
+        binding.resultActions.isVisible = done
         binding.progress.isVisible = running
         binding.textStatus.isVisible = state !is CloneState.Idle
 
         when (state) {
-            CloneState.Idle -> showCloneAction()
-            is CloneState.Running -> {
-                binding.textStatus.text =
-                    getString(R.string.status_running, state.file, maxOf(state.index, 1), state.total)
-                showCloneAction()
-            }
-            is CloneState.Failed -> {
-                binding.textStatus.text = getString(R.string.status_failed, state.message)
-                showCloneAction()
-            }
-            is CloneState.Done -> {
-                binding.textStatus.text = getString(R.string.status_done, state.apks.first().parent)
-                binding.buttonAction.setText(R.string.button_install)
-                binding.buttonAction.setOnClickListener { install(state) }
-            }
+            CloneState.Idle -> Unit
+            is CloneState.Running -> binding.textStatus.text =
+                getString(R.string.status_running, state.file, maxOf(state.index, 1), state.total)
+            is CloneState.Failed -> binding.textStatus.text = getString(R.string.status_failed, state.message)
+            is CloneState.Done -> binding.textStatus.setText(R.string.status_done)
         }
-    }
-
-    private fun showCloneAction() {
-        binding.buttonAction.setText(R.string.button_clone)
-        binding.buttonAction.setOnClickListener { startClone() }
     }
 
     private fun startClone() {
@@ -123,20 +115,14 @@ class CloneSheet : BottomSheetDialogFragment() {
         }
         val newName = binding.editName.text?.toString().orEmpty().trim()
             .ifEmpty { viewModel.selected?.label.orEmpty() }
-        viewModel.startClone(newPackage, newName, signatureMode())
+        viewModel.startClone(newPackage, newName)
     }
 
-    private fun install(state: CloneState.Done) {
-        val context = requireContext().applicationContext
-        binding.buttonAction.isEnabled = false
-        viewLifecycleOwner.lifecycleScope.launch {
-            val error = withContext(Dispatchers.IO) {
-                runCatching { ApkInstaller.install(context, state.apks) }.exceptionOrNull()
-            }
-            val view = _binding ?: return@launch
-            view.buttonAction.isEnabled = true
-            if (error != null) view.textStatus.text = getString(R.string.install_failed, error.message.orEmpty())
-        }
+    private fun save() {
+        val state = viewModel.cloneState.value as? CloneState.Done ?: return
+        val name = binding.editName.text?.toString().orEmpty().trim().replace(Regex("[\\\\/:*?\"<>|]"), "_")
+            .ifEmpty { "clone" }
+        saveAs.launch(if (state.apks.size == 1) "$name.apk" else "$name.apks")
     }
 
     companion object {

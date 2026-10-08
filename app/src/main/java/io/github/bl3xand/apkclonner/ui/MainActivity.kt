@@ -18,6 +18,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.tabs.TabLayout
 import io.github.bl3xand.apkclonner.R
 import io.github.bl3xand.apkclonner.databinding.ActivityMainBinding
 import kotlinx.coroutines.launch
@@ -42,16 +43,37 @@ class MainActivity : AppCompatActivity() {
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
             view.updatePadding(left = bars.left, top = bars.top, right = bars.right)
             binding.bottomBar.updatePadding(bottom = bars.bottom)
-            binding.listApps.updatePadding(bottom = listBottomPadding + bars.bottom)
+            binding.listClones.updatePadding(bottom = listBottomPadding + bars.bottom)
             insets
         }
 
-        val adapter = AppAdapter(lifecycleScope, packageManager, viewModel::select)
-        binding.listApps.adapter = adapter
+        val icons = IconLoader(lifecycleScope, packageManager)
+        val appAdapter = AppAdapter(icons, viewModel::select)
+        val cloneAdapter = CloneAdapter(icons, viewModel::updateClone)
+        binding.listApps.adapter = appAdapter
+        binding.listClones.adapter = cloneAdapter
+
+        binding.tabs.addTab(binding.tabs.newTab().setText(R.string.tab_apps))
+        binding.tabs.addTab(binding.tabs.newTab().setText(R.string.tab_clones))
+        binding.tabs.getTabAt(viewModel.tab)?.select()
+        binding.tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                viewModel.tab = tab.position
+                render(viewModel.uiState.value)
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+            override fun onTabReselected(tab: TabLayout.Tab) = Unit
+        })
 
         binding.editSearch.doAfterTextChanged { viewModel.setQuery(it?.toString().orEmpty()) }
         binding.chipSystem.setOnCheckedChangeListener { _, checked -> viewModel.setShowSystem(checked) }
-        binding.buttonGrant.setOnClickListener { requestFileAccess() }
+        binding.buttonGrantFiles.setOnClickListener {
+            openSettings(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+        }
+        binding.buttonGrantInstall.setOnClickListener {
+            openSettings(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+        }
         binding.buttonPickApk.setOnClickListener { pickApk.launch(APK_MIME_TYPES) }
 
         lifecycleScope.launch {
@@ -59,7 +81,9 @@ class MainActivity : AppCompatActivity() {
                 launch {
                     viewModel.uiState.collect { state ->
                         render(state)
-                        adapter.submitList(state.apps)
+                        appAdapter.submitList(state.apps)
+                        cloneAdapter.submitList(state.clones)
+                        cloneAdapter.updating = state.updatingClone
                     }
                 }
                 launch { viewModel.events.collect(::handle) }
@@ -69,33 +93,47 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // The grant happens on a system settings screen, so re-check every time we come back.
-        viewModel.setFileAccess(Environment.isExternalStorageManager())
+        // Both grants happen on system settings screens, so re-check every time we come back.
+        // This also picks up apps installed, updated or removed in the meantime.
+        viewModel.setPermissions(
+            fileAccess = Environment.isExternalStorageManager(),
+            canInstall = packageManager.canRequestPackageInstalls(),
+        )
     }
 
     private fun render(state: MainUiState) {
-        binding.accessGroup.isVisible = !state.hasFileAccess
-        binding.contentGroup.isVisible = state.hasFileAccess
-        binding.bottomBar.isVisible = state.hasFileAccess
+        val ready = state.permissionsGranted
+        val appsTab = viewModel.tab == 0
+        binding.permissionGroup.isVisible = !ready
+        binding.cardFiles.isVisible = !state.hasFileAccess
+        binding.cardInstall.isVisible = !state.canInstall
+        binding.contentGroup.isVisible = ready
+        binding.searchGroup.isVisible = appsTab
+        binding.listApps.isVisible = appsTab
+        binding.listClones.isVisible = !appsTab
+        binding.bottomBar.isVisible = ready && appsTab
         binding.progress.isVisible = state.loading
-        binding.textEmpty.isVisible = state.hasFileAccess && !state.loading && state.apps.isEmpty()
+
+        val empty = if (appsTab) state.apps.isEmpty() else state.clones.isEmpty()
+        binding.textEmpty.isVisible = ready && !state.loading && empty
+        binding.textEmpty.setText(if (appsTab) R.string.empty_list else R.string.empty_clones)
     }
 
     private fun handle(event: MainEvent) {
+        val sheetShown = supportFragmentManager.findFragmentByTag(CloneSheet.TAG) != null
         when (event) {
-            is MainEvent.SourceReady ->
-                if (supportFragmentManager.findFragmentByTag(CloneSheet.TAG) == null) {
-                    CloneSheet().show(supportFragmentManager, CloneSheet.TAG)
-                }
-            MainEvent.InvalidApk -> Snackbar.make(binding.root, R.string.error_invalid_apk, Snackbar.LENGTH_LONG)
-                .setAnchorView(binding.bottomBar).show()
+            is MainEvent.SourceReady -> if (!sheetShown) CloneSheet().show(supportFragmentManager, CloneSheet.TAG)
+            // While the sheet is up it covers this window and reports messages itself.
+            is MainEvent.Message -> if (!sheetShown) {
+                Snackbar.make(binding.root, getString(event.text, event.argument), Snackbar.LENGTH_LONG)
+                    .apply { if (binding.bottomBar.isVisible) anchorView = binding.bottomBar }
+                    .show()
+            }
         }
     }
 
-    private fun requestFileAccess() {
-        startActivity(
-            Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName"))
-        )
+    private fun openSettings(action: String) {
+        startActivity(Intent(action, Uri.parse("package:$packageName")))
     }
 
     private companion object {

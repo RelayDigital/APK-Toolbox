@@ -1,31 +1,41 @@
 <resources>
-    <string name="app_name">ApkClonner</string>
+    <string name="app_name" translatable="false">ApkClonner</string>
 
     <string name="access_title">File access required</string>
-    <string name="access_description">ApkClonner saves cloned APKs to the ApkClonner folder in shared storage. Allow access to all files to continue.</string>
+    <string name="access_description">Allow access to all files so ApkClonner can work with APK files in shared storage.</string>
+    <string name="install_access_title">Install permission required</string>
+    <string name="install_access_description">Allow ApkClonner to install apps so clones can be installed and updated right from here.</string>
     <string name="button_grant_access">Grant access</string>
 
+    <string name="tab_apps">Apps</string>
+    <string name="tab_clones">Clones</string>
     <string name="search_hint">Search apps</string>
     <string name="chip_system_apps">System apps</string>
     <string name="empty_list">No apps found</string>
+    <string name="empty_clones">No clones yet. Installed clones will show up here.</string>
     <string name="button_pick_apk">Choose APK file</string>
     <string name="error_invalid_apk">This file is not a valid APK</string>
+
+    <string name="clone_up_to_date">Version %1$s · up to date</string>
+    <string name="clone_update_available">%1$s → %2$s</string>
+    <string name="clone_original_missing">%1$s is not installed</string>
+    <string name="button_update">Update</string>
 
     <string name="sheet_title">Clone app</string>
     <string name="field_package">Package name</string>
     <string name="field_app_name">App name</string>
     <string name="default_clone_package" translatable="false">%1$s.clone</string>
+    <string name="default_clone_name" translatable="false">%1$s Clone</string>
     <string name="error_invalid_package">Use at least two dot-separated parts made of letters, digits and underscores</string>
-    <string name="signature_title">Signature</string>
-    <string name="signature_debug">Debug</string>
-    <string name="signature_keep">Keep original</string>
-    <string name="signature_debug_hint">Re-signed with the built-in debug key. Installs on any device.</string>
-    <string name="signature_keep_hint">The original signature is left in place. It no longer matches the modified APK, so it installs only where signature verification is disabled.</string>
+    <string name="signature_hint">The clone is signed with ApkClonner\'s own key: the original signature cannot be reused once the app is modified.</string>
     <string name="button_clone">Clone</string>
     <string name="button_install">Install</string>
+    <string name="button_save">Save APK</string>
     <string name="status_running">Processing %1$s (%2$d of %3$d)…</string>
-    <string name="status_done">Saved to %1$s</string>
+    <string name="status_done">The clone is ready</string>
+    <string name="status_saved">Saved</string>
     <string name="status_failed">Cloning failed: %1$s</string>
+    <string name="save_failed">Could not save: %1$s</string>
 
     <string name="install_success">Clone installed</string>
     <string name="install_failed">Installation failed: %1$s</string>

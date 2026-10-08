@@ -1,35 +1,39 @@
 # ApkClonner
 
-Clones an Android app on-device under a new package name, so it can be installed next to the
-original.
+Clone any Android app under a new package name, right on the phone.
 
-1. Grant "All files access" (clones are saved to `/sdcard/ApkClonner/<package>/`).
-2. Pick an installed app from the list, or choose an APK file with the button at the bottom.
-3. Set the new package name (defaults to `<original>.clone`), the app name and the signature:
-   - **Debug** - re-signed with the bundled debug key (v1/v2/v3). Installs on any device.
-   - **Keep original** - the original signature files and signing block are left in place. They
-     no longer match the modified APK, so this installs only where signature verification is
-     disabled.
-4. Clone, then install straight from the app (split APKs are installed as one session).
+Need a second copy of an app next to the original — another account, a
+sandbox to experiment in? ApkClonner rewrites the package name and app name
+inside the APK, re-signs it and installs it side by side with the original.
+When the original gets updated, the clone can be brought up to the same
+version in one tap, keeping its data.
 
-## How it works
+## Requirements
 
-Only the binary `AndroidManifest.xml` is patched: package name, app label, provider authorities,
-custom permissions and `sharedUserId` are renamed, and relative class names are pinned to the
-original package. Code and resources are untouched.
+- Android 15 or newer
+- No root needed
 
-## Limitations
+## Setup
 
-- Apps that hardcode their package name or provider authorities in code, or verify their own
-  signature, may misbehave or refuse to start.
-- Services tied to the original package and signature (Google sign-in, Firebase, in-app
-  purchases, Play Integrity) will not work in a clone.
-- `.apks` / `.xapk` bundles are not supported as input; pick a single `.apk`.
+1. Install ApkClonner and open it — grant file access and the permission to
+   install apps when asked.
+2. Pick an installed app, or tap **Choose APK file**.
+3. Adjust the package name (`<original>.clone` by default) and the app name,
+   tap **Clone**.
+4. **Install** the clone, or **Save APK** wherever you like.
 
-## Build
+Installed clones are listed on the **Clones** tab; **Update** appears there
+once the original app is newer than its clone.
 
-```
-./gradlew assembleDebug
-```
+## Good to know
 
-Requires Android 15+ (minSdk 35).
+- Clones are signed with ApkClonner's own key. The original signature cannot
+  be kept: it stops matching as soon as the APK is modified.
+- Only the manifest is changed. Apps that check their own package name or
+  signature, and services bound to them (Google sign-in, Firebase, in-app
+  purchases), may not work in a clone.
+- Apps made of split APKs are saved as a single `.apks` archive.
+
+## License
+
+[MIT](LICENSE)

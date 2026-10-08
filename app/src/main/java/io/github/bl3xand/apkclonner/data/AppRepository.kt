@@ -2,46 +2,57 @@ package io.github.bl3xand.apkclonner.data
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.net.Uri
+import io.github.bl3xand.apkclonner.clone.ApkCloner
 import java.io.File
 
-class AppRepository(private val context: Context) {
+class AppRepository(private val context: Context, private val cloner: ApkCloner) {
 
     private val packageManager: PackageManager = context.packageManager
 
-    fun installedApps(): List<ApkSource> =
-        packageManager.getInstalledPackages(0).mapNotNull { info ->
-            val app = info.applicationInfo ?: return@mapNotNull null
-            if (app.packageName == context.packageName) return@mapNotNull null
-            ApkSource(
-                packageName = app.packageName,
-                label = app.loadLabel(packageManager).toString(),
-                versionName = info.versionName,
-                apkPaths = listOf(app.sourceDir) + app.splitSourceDirs.orEmpty(),
-                isSystem = app.flags and ApplicationInfo.FLAG_SYSTEM != 0,
-                appInfo = app,
-            )
-        }.sortedBy { it.label.lowercase() }
+    fun installed(): InstalledApps {
+        val packages = packageManager.getInstalledPackages(PackageManager.GET_SIGNING_CERTIFICATES)
+            .filter { it.packageName != context.packageName && it.applicationInfo != null }
+        val sources = packages.associate { it.packageName to toSource(it, it.applicationInfo!!) }
 
-    /** Copies the picked document into the cache (it may not be a real file) and parses it. */
-    fun fromUri(uri: Uri): ApkSource? {
-        val file = File(context.cacheDir, "picked.apk")
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            file.outputStream().use { input.copyTo(it, 1 shl 16) }
-        } ?: return null
-        val info = packageManager.getPackageArchiveInfo(file.path, 0) ?: return null
-        val app = info.applicationInfo ?: return null
-        // Not filled in for archives; without them the label and icon cannot be resolved.
-        app.sourceDir = file.path
-        app.publicSourceDir = file.path
-        return ApkSource(
-            packageName = app.packageName,
-            label = app.loadLabel(packageManager).toString(),
-            versionName = info.versionName,
-            apkPaths = listOf(file.path),
-            isSystem = false,
-            appInfo = app,
+        // Clones are recognised by the key they are signed with rather than by a local database,
+        // so the list survives this app's data being cleared.
+        val ownCertificate = cloner.certificate.encoded
+        val clones = packages.mapNotNull { info ->
+            val signers = info.signingInfo?.apkContentsSigners ?: return@mapNotNull null
+            if (signers.none { it.toByteArray().contentEquals(ownCertificate) }) return@mapNotNull null
+            val source = sources.getValue(info.packageName)
+            val original = ApkCloner.readOriginalPackage(source.apkPaths.first()) ?: return@mapNotNull null
+            CloneInfo(source, original, sources[original])
+        }
+        return InstalledApps(
+            apps = sources.values.sortedBy { it.label.lowercase() },
+            clones = clones.sortedBy { it.app.label.lowercase() },
         )
     }
+
+    /** Copies the picked document to [target] (it may not be a real file) and parses it. */
+    fun fromUri(uri: Uri, target: File): ApkSource? {
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            target.outputStream().use { input.copyTo(it, 1 shl 16) }
+        } ?: return null
+        val info = packageManager.getPackageArchiveInfo(target.path, 0) ?: return null
+        val app = info.applicationInfo ?: return null
+        // Not filled in for archives; without them the label and icon cannot be resolved.
+        app.sourceDir = target.path
+        app.publicSourceDir = target.path
+        return toSource(info, app)
+    }
+
+    private fun toSource(info: PackageInfo, app: ApplicationInfo) = ApkSource(
+        packageName = app.packageName,
+        label = app.loadLabel(packageManager).toString(),
+        versionName = info.versionName,
+        versionCode = info.longVersionCode,
+        apkPaths = listOf(app.sourceDir) + app.splitSourceDirs.orEmpty(),
+        isSystem = app.flags and ApplicationInfo.FLAG_SYSTEM != 0,
+        appInfo = app,
+    )
 }

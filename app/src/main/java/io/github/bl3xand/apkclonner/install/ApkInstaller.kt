@@ -11,9 +11,11 @@ object ApkInstaller {
     /** Hands the APKs (base plus splits) to the system installer as a single session. */
     fun install(context: Context, apks: List<File>) {
         val installer = context.packageManager.packageInstaller
-        val sessionId = installer.createSession(
-            PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
-        )
+        val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
+        // Lets the system skip the confirmation when updating a clone this app installed itself.
+        // Anything else still gets the usual prompt.
+        params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+        val sessionId = installer.createSession(params)
         installer.openSession(sessionId).use { session ->
             for (apk in apks) {
                 session.openWrite(apk.name, 0, apk.length()).use { out ->

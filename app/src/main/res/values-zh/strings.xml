@@ -1,0 +1,38 @@
+<resources>
+    <string name="access_title">需要文件访问权限</string>
+    <string name="access_description">请允许访问所有文件，以便 ApkClonner 处理共享存储中的 APK 文件。</string>
+    <string name="install_access_title">需要安装权限</string>
+    <string name="install_access_description">请允许 ApkClonner 安装应用，以便直接在此安装和更新克隆应用。</string>
+    <string name="button_grant_access">授予权限</string>
+
+    <string name="tab_apps">应用</string>
+    <string name="tab_clones">克隆</string>
+    <string name="search_hint">搜索应用</string>
+    <string name="chip_system_apps">系统应用</string>
+    <string name="empty_list">未找到应用</string>
+    <string name="empty_clones">暂无克隆。已安装的克隆应用会显示在这里。</string>
+    <string name="button_pick_apk">选择 APK 文件</string>
+    <string name="error_invalid_apk">该文件不是有效的 APK</string>
+
+    <string name="clone_up_to_date">版本 %1$s · 已是最新</string>
+    <string name="clone_update_available">%1$s → %2$s</string>
+    <string name="clone_original_missing">未安装 %1$s</string>
+    <string name="button_update">更新</string>
+
+    <string name="sheet_title">克隆应用</string>
+    <string name="field_package">包名</string>
+    <string name="field_app_name">应用名称</string>
+    <string name="error_invalid_package">至少需要两个以点分隔的部分，由字母、数字和下划线组成</string>
+    <string name="signature_hint">克隆应用使用 ApkClonner 自己的密钥签名：应用被修改后无法再使用原始签名。</string>
+    <string name="button_clone">克隆</string>
+    <string name="button_install">安装</string>
+    <string name="button_save">保存 APK</string>
+    <string name="status_running">正在处理 %1$s（%2$d/%3$d）…</string>
+    <string name="status_done">克隆已完成</string>
+    <string name="status_saved">已保存</string>
+    <string name="status_failed">克隆失败：%1$s</string>
+    <string name="save_failed">无法保存：%1$s</string>
+
+    <string name="install_success">克隆已安装</string>
+    <string name="install_failed">安装失败：%1$s</string>
+</resources>

@@ -1,28 +1,37 @@
 <resources>
     <string name="access_title">Нужен доступ к файлам</string>
-    <string name="access_description">ApkClonner сохраняет клонированные APK в папку ApkClonner в общем хранилище. Разрешите доступ ко всем файлам, чтобы продолжить.</string>
-    <string name="button_grant_access">Разрешить доступ</string>
+    <string name="access_description">Разрешите доступ ко всем файлам, чтобы ApkClonner мог работать с APK-файлами в общем хранилище.</string>
+    <string name="install_access_title">Нужно разрешение на установку</string>
+    <string name="install_access_description">Разрешите ApkClonner устанавливать приложения, чтобы ставить и обновлять клоны прямо отсюда.</string>
+    <string name="button_grant_access">Разрешить</string>
 
+    <string name="tab_apps">Приложения</string>
+    <string name="tab_clones">Клоны</string>
     <string name="search_hint">Поиск приложений</string>
     <string name="chip_system_apps">Системные</string>
     <string name="empty_list">Приложения не найдены</string>
+    <string name="empty_clones">Клонов пока нет. Установленные клоны появятся здесь.</string>
     <string name="button_pick_apk">Выбрать APK-файл</string>
     <string name="error_invalid_apk">Этот файл не является корректным APK</string>
+
+    <string name="clone_up_to_date">Версия %1$s · актуальная</string>
+    <string name="clone_update_available">%1$s → %2$s</string>
+    <string name="clone_original_missing">%1$s не установлено</string>
+    <string name="button_update">Обновить</string>
 
     <string name="sheet_title">Клонирование</string>
     <string name="field_package">Имя пакета</string>
     <string name="field_app_name">Имя приложения</string>
     <string name="error_invalid_package">Нужно минимум две части через точку: буквы, цифры и подчёркивания</string>
-    <string name="signature_title">Подпись</string>
-    <string name="signature_debug">Debug</string>
-    <string name="signature_keep">Оригинальная</string>
-    <string name="signature_debug_hint">Переподписывается встроенным debug-ключом. Устанавливается на любое устройство.</string>
-    <string name="signature_keep_hint">Оригинальная подпись остаётся на месте. Она больше не соответствует изменённому APK, поэтому установка возможна только при отключённой проверке подписи.</string>
+    <string name="signature_hint">Клон подписывается собственным ключом ApkClonner: оригинальную подпись нельзя использовать после изменения приложения.</string>
     <string name="button_clone">Клонировать</string>
     <string name="button_install">Установить</string>
+    <string name="button_save">Сохранить APK</string>
     <string name="status_running">Обработка %1$s (%2$d из %3$d)…</string>
-    <string name="status_done">Сохранено в %1$s</string>
+    <string name="status_done">Клон готов</string>
+    <string name="status_saved">Сохранено</string>
     <string name="status_failed">Ошибка клонирования: %1$s</string>
+    <string name="save_failed">Не удалось сохранить: %1$s</string>
 
     <string name="install_success">Клон установлен</string>
     <string name="install_failed">Ошибка установки: %1$s</string>
