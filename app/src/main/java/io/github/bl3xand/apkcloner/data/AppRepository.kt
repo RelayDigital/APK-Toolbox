@@ -24,7 +24,7 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
             val key = signers.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) } ?: return@mapNotNull null
             val source = sources.getValue(info.packageName)
             val metadata = ApkCloner.readMetadata(source.apkPaths.first()) ?: return@mapNotNull null
-            CloneInfo(source, metadata.originalPackage, sources[metadata.originalPackage], key, metadata.badged)
+            CloneInfo(source, metadata.originalPackage, sources[metadata.originalPackage], key, metadata.badged, metadata.removedPermissions)
         }
         return InstalledApps(
             apps = sources.values.sortedBy { it.label.lowercase() },

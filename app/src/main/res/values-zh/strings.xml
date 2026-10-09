@@ -187,4 +187,9 @@
         <item quantity="other">%d 天</item>
     </plurals>
     <string name="search_clear">清除搜索</string>
+    <string name="clone_permissions">克隆的权限</string>
+    <string name="clone_permissions_removed">克隆的权限：已移除 %1$d 项</string>
+    <string name="clone_permissions_hint">原应用请求的全部权限。关闭克隆不应拥有的权限；缺少所依赖的权限时应用可能无法运行。</string>
+    <string name="clone_permissions_none">该应用未请求任何权限。</string>
+    <string name="button_done">完成</string>
 </resources>

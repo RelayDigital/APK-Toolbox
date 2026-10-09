@@ -150,6 +150,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var selected: ApkSource? = null
         private set
 
+    /** Permissions unticked for the clone being made; forgotten when another app is picked. */
+    var cloneRemovedPermissions: Set<String> = emptySet()
+
     init {
         // Leftovers from a run that was killed mid-clone.
         tempDir.deleteRecursively()
@@ -192,6 +195,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun select(source: ApkSource) {
         if (_cloneState.value is CloneState.Running) return
         selected = source
+        cloneRemovedPermissions = emptySet()
         _cloneState.value = CloneState.Idle
         _events.tryEmit(MainEvent.SourceReady(source))
     }
@@ -221,7 +225,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _cloneState.value = withContext(Dispatchers.IO) {
                 try {
                     AppLog.info("Cloning ${source.packageName} ${source.versionName.orEmpty()} as $newPackage (${source.apkPaths.size} files)")
-                    CloneState.Done(cloner.clone(source.cloneRequest(newPackage, newLabel, badgeIcon), sheetOutput) { file, index, total ->
+                    if (cloneRemovedPermissions.isNotEmpty()) AppLog.info("Clone is made without: ${cloneRemovedPermissions.joinToString()}")
+                    CloneState.Done(cloner.clone(source.cloneRequest(newPackage, newLabel, badgeIcon, removedPermissions = cloneRemovedPermissions), sheetOutput) { file, index, total ->
                         _cloneState.value = CloneState.Running(file, index, total)
                     }).also { AppLog.info("Cloned $newPackage: ${it.apks.sumOf(File::length) / BYTES_IN_MB} MB") }
                 } catch (e: Exception) {
@@ -332,6 +337,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _splitState.value = SplitState.Running(SplitStep.EXTRACTING)
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                AppLog.debug("Preparing ${selected.size} file(s) of ${source.packageName} for install")
                 var files = source.materialize(selected, File(mergeWork, "splits")).map { it.second }
                 if (sign) {
                     _splitState.value = SplitState.Running(SplitStep.SIGNING)
@@ -392,6 +398,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 try {
                     AppLog.info("Merging ${source.packageName}: ${selected.size} splits" + if (force) ", mismatches allowed" else "")
                     SplitState.Done(merger.merge(source, selected, sign, force, mergeWork) { step ->
+                        AppLog.debug("Merging ${source.packageName}: $step")
                         _splitState.value = SplitState.Running(step)
                     }).also { AppLog.info("Merged ${source.packageName}: ${it.result.apk.length() / BYTES_IN_MB} MB") }
                 } catch (e: SplitMismatchException) {

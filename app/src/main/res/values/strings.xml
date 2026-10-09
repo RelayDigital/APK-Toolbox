@@ -195,4 +195,9 @@
         <item quantity="other">%d days</item>
     </plurals>
     <string name="search_clear">Clear the search</string>
+    <string name="clone_permissions">Permissions of the clone</string>
+    <string name="clone_permissions_removed">Permissions of the clone: %1$d removed</string>
+    <string name="clone_permissions_hint">Everything the original asks for. Switch off what the clone should not have; the app may stop working without a permission it relies on.</string>
+    <string name="clone_permissions_none">The app asks for no permissions.</string>
+    <string name="button_done">Done</string>
 </resources>

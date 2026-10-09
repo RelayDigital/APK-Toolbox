@@ -3,6 +3,7 @@ package io.github.bl3xand.apkcloner.sources.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.RepositoryRenamedError
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
@@ -276,6 +277,7 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
             try {
                 block()
             } catch (e: Exception) {
+                AppLog.error("Sources", e)
                 _events.tryEmit(SourcesEvent.Error(if (e is CheckUpdatesException) e.errors else e))
             }
         }
@@ -317,7 +319,7 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         launchReporting {
             val installed = installer.downloadAndInstallLatestApps(ids, prompts)
             if (installed.isNotEmpty()) {
-                _events.tryEmit(SourcesEvent.Message(Tr.get("appsUpdated")))
+                _events.tryEmit(SourcesEvent.Message(Tr.get(if (installed.size == 1) "msgInstalledOne" else "appsUpdated")))
                 SourcesNotifications.cancel(getApplication(), SourcesNotifications.ID_UPDATES)
             }
         }
@@ -355,6 +357,7 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
                         }
                     }
                 }
+                AppLog.info("Remove ${ids.joinToString()}: uninstall=$uninstall, from the list=$removeEntry")
                 if (removeEntry) repo.removeApps(ids)
                 selected.value = selected.value - ids.toSet()
             } catch (e: Exception) {

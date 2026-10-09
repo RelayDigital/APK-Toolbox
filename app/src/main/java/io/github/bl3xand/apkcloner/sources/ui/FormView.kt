@@ -110,17 +110,11 @@ class FormView(
 
     private fun addText(item: TextItem) {
         val layout = TextInputLayout(context, null, com.google.android.material.R.attr.textInputOutlinedStyle).apply {
-            // A hidden value gets the eye at the end; the link to the help then moves to the start.
+            // The link to the help is always at the start; the end is for the eye of a hidden value.
             if (item.password) endIconMode = TextInputLayout.END_ICON_PASSWORD_TOGGLE
             if (item.helpUrl != null) {
-                if (item.password) {
-                    setStartIconDrawable(R.drawable.ic_info_outline)
-                    setStartIconOnClickListener { context.openUrl(item.helpUrl) }
-                } else {
-                    endIconMode = TextInputLayout.END_ICON_CUSTOM
-                    setEndIconDrawable(R.drawable.ic_info_outline)
-                    setEndIconOnClickListener { context.openUrl(item.helpUrl) }
-                }
+                setStartIconDrawable(R.drawable.ic_info_outline)
+                setStartIconOnClickListener { context.openUrl(item.helpUrl) }
             }
             // Every field says what goes into it, in a word or two.
             hint = hint(item)

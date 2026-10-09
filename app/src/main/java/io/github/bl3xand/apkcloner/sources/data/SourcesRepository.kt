@@ -329,9 +329,20 @@ class SourcesRepository private constructor(private val context: Context) {
     /** Checks one app and saves it; returns it only when its latest version changed. */
     fun checkUpdate(id: String): TrackedApp? {
         val current = entry(id)?.app ?: return null
-        val fresh = fetchUpdate(id) ?: return null
+        AppLog.debug("Checking $id at ${current.url}")
+        val fresh = try {
+            fetchUpdate(id)
+        } catch (e: Exception) {
+            AppLog.warn("Check of $id failed: ${e.message ?: e}")
+            throw e
+        } ?: return null
         saveApps(listOf(fresh))
-        return if (fresh.latestVersion != current.latestVersion) fresh else null
+        if (fresh.latestVersion != current.latestVersion) {
+            AppLog.info("$id: new version ${fresh.latestVersion} (was ${current.latestVersion})")
+            return fresh
+        }
+        AppLog.debug("$id: no change, latest is ${fresh.latestVersion}")
+        return null
     }
 
     /** The interval of the app's background check, which the Sources tab shares. */
