@@ -100,6 +100,9 @@ class ManifestPatcher(
                     name == "label" && (tag == "activity" || tag == "activity-alias") -> componentLabel = attr
                     value == null -> Unit
                     tag == "manifest" && name == "package" -> setString(attr, newPackage)
+                    // A split base APK (android:requiredSplitTypes="base__abi") refuses to install
+                    // as a single file. Drop the split requirement so the clone is one self-contained APK.
+                    tag == "manifest" && (name == "splitTypes" || name == "requiredSplitTypes") -> setString(attr, "")
                     tag == "manifest" && name == "sharedUserId" -> setString(attr, rename(value))
                     tag == "category" && name == "name" && value in LAUNCHER_CATEGORIES ->
                         if (componentLabel >= 0) launcherLabels += componentLabel
