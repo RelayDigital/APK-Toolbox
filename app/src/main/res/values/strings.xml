@@ -38,6 +38,7 @@
     <string name="detail_cloned_from">Cloned from</string>
     <string name="detail_original_version">Original version</string>
     <string name="detail_clone_version">Clone version</string>
+    <string name="detail_removed_permissions">Removed permissions</string>
     <string name="detail_not_installed">Not installed</string>
     <string name="button_delete">Delete</string>
 
@@ -199,5 +200,6 @@
     <string name="clone_permissions_removed">Permissions of the clone: %1$d removed</string>
     <string name="clone_permissions_hint">Everything the original asks for. Switch off what the clone should not have; the app may stop working without a permission it relies on.</string>
     <string name="clone_permissions_none">The app asks for no permissions.</string>
+    <string name="clone_permissions_reset">Reset changes</string>
     <string name="button_done">Done</string>
 </resources>

@@ -24,6 +24,7 @@ import io.github.bl3xand.apkcloner.sources.ui.Spacing
 import io.github.bl3xand.apkcloner.sources.ui.add
 import io.github.bl3xand.apkcloner.sources.ui.column
 import io.github.bl3xand.apkcloner.sources.ui.label
+import io.github.bl3xand.apkcloner.sources.ui.outlinedButton
 import io.github.bl3xand.apkcloner.sources.ui.showSheet
 import io.github.bl3xand.apkcloner.sources.ui.switchRow
 import kotlinx.coroutines.flow.combine
@@ -158,6 +159,18 @@ class CloneSheet : BottomSheetDialogFragment() {
         val removed = viewModel.cloneRemovedPermissions.toMutableSet()
         val list = context.column(Spacing.SHEET)
         list.add(context.label(getString(R.string.clone_permissions_hint), colorAttr = com.google.android.material.R.attr.colorOnSurfaceVariant))
+        var dialog: com.google.android.material.bottomsheet.BottomSheetDialog? = null
+        if (requested.isNotEmpty()) {
+            // One tap to drop every manifest change and keep all permissions.
+            list.add(
+                context.outlinedButton(getString(R.string.clone_permissions_reset)) {
+                    viewModel.cloneRemovedPermissions = emptySet()
+                    renderPermissions()
+                    dialog?.dismiss()
+                },
+                topMargin = Spacing.BLOCK,
+            )
+        }
         if (requested.isEmpty()) list.add(context.label(getString(R.string.clone_permissions_none)), topMargin = Spacing.BLOCK)
         for (permission in requested) {
             // The last part is what tells permissions apart; the full name goes underneath.
@@ -167,7 +180,7 @@ class CloneSheet : BottomSheetDialogFragment() {
                 },
             )
         }
-        context.showSheet(
+        dialog = context.showSheet(
             getString(R.string.clone_permissions), content = list,
             positive = getString(R.string.button_done), negative = getString(android.R.string.cancel),
         ) {

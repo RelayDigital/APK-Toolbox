@@ -215,6 +215,13 @@ fun Context.textButton(text: CharSequence, onClick: () -> Unit): MaterialButton 
         setOnClickListener { onClick() }
     }
 
+/** An outlined button, the same look as the secondary actions on the settings screen. */
+fun Context.outlinedButton(text: CharSequence, onClick: () -> Unit): MaterialButton =
+    MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+        this.text = text
+        setOnClickListener { onClick() }
+    }
+
 fun View.scrollable(): NestedScrollView = NestedScrollView(context).also { it.addView(this) }
 
 fun Context.openUrl(url: String) {

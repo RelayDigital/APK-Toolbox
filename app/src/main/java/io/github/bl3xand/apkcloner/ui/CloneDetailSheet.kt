@@ -35,7 +35,7 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
                     // Looked up on every change so the versions refresh right after an update,
                     // and the sheet goes away once the clone has been uninstalled.
                     val clone = state.clones.firstOrNull { it.app.packageName == packageName }
-                    if (clone == null) dismiss() else render(clone, state.updatingClone)
+                    if (clone == null) dismiss() else render(clone, state.updatingClone, state.uninstallingClone)
                 }
             }
         }
@@ -46,8 +46,8 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
         _binding = null
     }
 
-    private fun render(clone: CloneInfo, updating: String?) {
-        val busy = updating == clone.app.packageName
+    private fun render(clone: CloneInfo, updating: String?, uninstalling: String?) {
+        val busy = updating == clone.app.packageName || uninstalling == clone.app.packageName
         val missing = getString(R.string.detail_not_installed)
 
         binding.appCard.bind(clone.app, clone.app.packageName)
@@ -55,8 +55,16 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
         binding.textCloneVersion.text = clone.app.versionName.orEmpty()
         binding.textOriginalVersion.text = clone.original?.let { it.versionName.orEmpty() } ?: missing
 
+        // Shows what the clone was built without, so it is not a mystery later why something is off.
+        val removed = clone.removedPermissions
+        binding.dividerPermissions.isVisible = removed.isNotEmpty()
+        binding.rowPermissions.isVisible = removed.isNotEmpty()
+        if (removed.isNotEmpty()) {
+            binding.textPermissions.text = removed.sorted().joinToString("\n") { it.substringAfterLast('.') }
+        }
+
         binding.progress.isVisible = busy
-        binding.buttonUpdate.isEnabled = clone.updateAvailable && updating == null
+        binding.buttonUpdate.isEnabled = clone.updateAvailable && !busy
         binding.buttonDelete.isEnabled = !busy
         binding.buttonUpdate.setOnClickListener { viewModel.updateClone(clone) }
         // The system asks for confirmation; progress shows for the whole wait and the card closes

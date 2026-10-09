@@ -53,6 +53,8 @@ data class MainUiState(
     val splitApps: List<ApkSource> = emptyList(),
     /** Package of the clone currently being rebuilt for an update. */
     val updatingClone: String? = null,
+    /** Package of the clone currently being uninstalled (its card shows its own progress). */
+    val uninstallingClone: String? = null,
     /** How many installed clones are behind their original, whatever the search shows. */
     val outdatedClones: Int = 0,
 ) {
@@ -457,9 +459,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      * wait (like an install) and reloading the list afterwards so the card closes once it is gone.
      */
     fun uninstallClone(clone: CloneInfo) {
-        if (_uiState.value.updatingClone != null) return
+        if (_uiState.value.updatingClone != null || _uiState.value.uninstallingClone != null) return
         viewModelScope.launch {
-            _uiState.update { it.copy(updatingClone = clone.app.packageName) }
+            _uiState.update { it.copy(uninstallingClone = clone.app.packageName) }
             try {
                 AppLog.info("Uninstalling clone ${clone.app.packageName}")
                 Installer.uninstall(getApplication(), clone.app.packageName)
@@ -467,7 +469,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val installed = withContext(Dispatchers.IO) { repository.installed() }
                 allApps = installed.apps
                 allClones = installed.clones
-                _uiState.update { it.copy(updatingClone = null) }
+                _uiState.update { it.copy(uninstallingClone = null) }
                 publishApps()
             }
         }

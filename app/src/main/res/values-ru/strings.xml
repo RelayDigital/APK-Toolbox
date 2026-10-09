@@ -36,6 +36,7 @@
     <string name="detail_cloned_from">Клонировано из</string>
     <string name="detail_original_version">Версия оригинала</string>
     <string name="detail_clone_version">Версия клона</string>
+    <string name="detail_removed_permissions">Удалённые разрешения</string>
     <string name="detail_not_installed">Не установлено</string>
     <string name="button_delete">Удалить</string>
 
@@ -194,5 +195,6 @@
     <string name="clone_permissions_removed">Разрешения клона: убрано %1$d</string>
     <string name="clone_permissions_hint">Всё, что запрашивает оригинал. Выключите то, чего у клона быть не должно; без нужного разрешения приложение может перестать работать.</string>
     <string name="clone_permissions_none">Приложение не запрашивает разрешений.</string>
+    <string name="clone_permissions_reset">Сбросить изменения</string>
     <string name="button_done">Готово</string>
 </resources>
