@@ -112,12 +112,12 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
 
     /** Returns (uninstall, removeFromList), or null when cancelled. */
     /**
-     * [keepEntry] is how the app's own page asks: there "Remove" means uninstalling, and the app
-     * stays in the list unless the user says otherwise. Everywhere else both are offered.
+     * Both "Uninstall from device" and "Remove from list" are ticked by default; the user unticks
+     * whichever they want to keep.
      */
-    suspend fun askRemove(apps: List<TrackedApp>, keepEntry: Boolean = false): Pair<Boolean, Boolean>? {
+    suspend fun askRemove(apps: List<TrackedApp>): Pair<Boolean, Boolean>? {
         val canUninstall = apps.any { it.installedVersion != null && !it.settings.getBool(SettingKeys.TRACK_ONLY) }
-        var removeEntry = !(keepEntry && canUninstall)
+        var removeEntry = true
         var uninstall = true
         val view = if (!canUninstall) null else body().apply {
             add(context.switchRow(Tr.get("uninstallFromDevice"), uninstall) { uninstall = it })

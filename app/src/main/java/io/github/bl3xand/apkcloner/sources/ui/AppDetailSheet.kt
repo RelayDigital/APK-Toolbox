@@ -253,7 +253,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         if (binding.buttonDelete.isEnabled == busy) binding.buttonDelete.isEnabled = !busy
         binding.buttonDelete.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launch {
-                val (uninstall, removeEntry) = dialogs.askRemove(listOf(app), keepEntry = true) ?: return@launch
+                val (uninstall, removeEntry) = dialogs.askRemove(listOf(app)) ?: return@launch
                 viewModel.remove(listOf(appId), uninstall, removeEntry)
             }
         }
