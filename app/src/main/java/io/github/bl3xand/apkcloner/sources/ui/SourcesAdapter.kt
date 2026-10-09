@@ -173,13 +173,15 @@ class SourcesAdapter(
         binding.imageIcon.alpha = if (row.entry.installedInfo != null) 1f else 0.4f
         binding.imageIcon.setOnClickListener { listener.onIconClick(row) }
         holder.iconJob?.cancel()
-        val cached = icons[app.id]
-        binding.imageIcon.setImageDrawable(cached ?: context.getDrawable(R.drawable.ic_install))
         val info = row.entry.installedInfo?.applicationInfo
+        // An update replaces the files the old icon came from, so the key names the build.
+        val iconKey = "${app.id}@${info?.sourceDir}"
+        val cached = icons[iconKey]
+        binding.imageIcon.setImageDrawable(cached ?: context.getDrawable(R.drawable.ic_install))
         if (cached == null && info != null) {
             holder.iconJob = scope.launch {
                 val icon = withContext(Dispatchers.IO) { AppIcons.load(packageManager, info) }
-                icons.put(app.id, icon)
+                icons.put(iconKey, icon)
                 binding.imageIcon.setImageDrawable(icon)
             }
         }

@@ -24,13 +24,15 @@ class IconLoader(private val scope: CoroutineScope, private val packageManager: 
 
     /** Returns the job to cancel if [view] is recycled before the icon arrives. */
     fun load(app: ApkSource, view: ImageView): Job? {
-        val cached = cache[app.packageName]
-        view.setImageDrawable(cached)
+        // An update replaces the files the old icon came from, so the key names the build.
+        val key = "${app.packageName}@${app.appInfo.sourceDir}"
+        val cached = cache[key]
+        view.setImageDrawable(cached?.constantState?.newDrawable() ?: cached)
         if (cached != null) return null
         return scope.launch {
             val icon = withContext(Dispatchers.IO) { AppIcons.load(packageManager, app.appInfo) }
-            cache.put(app.packageName, icon)
-            view.setImageDrawable(icon)
+            cache.put(key, icon)
+            view.setImageDrawable(icon.constantState?.newDrawable() ?: icon)
         }
     }
 }

@@ -117,11 +117,13 @@ class CloneSheet : BottomSheetDialogFragment() {
         binding.buttonClone.isEnabled = !running
         binding.buttonClone.isVisible = !done
         binding.resultActions.isVisible = done
-        binding.buttonInstall.isEnabled = !installing
-        // Over a clone that is already there this is an update.
+        // Over a clone that is already there this is an update - and nothing at all to do when
+        // that clone already has the version just built.
         val target = binding.editPackage.text?.toString().orEmpty().trim()
-        val exists = runCatching { requireContext().packageManager.getPackageInfo(target, 0) }.isSuccess
-        binding.buttonInstall.setText(if (exists) R.string.button_update else R.string.button_install)
+        val installed = runCatching { requireContext().packageManager.getPackageInfo(target, 0) }.getOrNull()
+        val sameVersion = installed != null && installed.longVersionCode == viewModel.selected?.versionCode
+        binding.buttonInstall.setText(if (installed != null) R.string.button_update else R.string.button_install)
+        binding.buttonInstall.isEnabled = !installing && !sameVersion
         binding.buttonSave.isEnabled = !installing
         binding.progress.isVisible = running || installing
         binding.textStatus.isVisible = state !is CloneState.Idle
