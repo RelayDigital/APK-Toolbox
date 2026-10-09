@@ -69,6 +69,16 @@
                     tools:text="ImranR98 · dev.imranr.obtainium" />
 
                 <TextView
+                    android:id="@+id/textNote"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="?attr/colorPrimary"
+                    android:visibility="gone" />
+
+                <TextView
                     android:id="@+id/textVersion"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -76,16 +86,6 @@
                     android:singleLine="true"
                     android:textAppearance="?attr/textAppearanceBodyMedium"
                     tools:text="1.0 → 1.1" />
-
-                <TextView
-                    android:id="@+id/textNote"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textAppearance="?attr/textAppearanceBodySmall"
-                    android:textColor="?attr/colorPrimary"
-                    android:visibility="gone" />
 
             </LinearLayout>
 

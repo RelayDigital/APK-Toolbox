@@ -15,6 +15,11 @@ class ApkSource(
     val apkPaths: List<String>,
     val isSystem: Boolean,
     val appInfo: ApplicationInfo,
+    /**
+     * Where the installed app came from, in a word or two: the source it is tracked from, or the
+     * store or app that installed it. Null for a file that is not installed.
+     */
+    val origin: String? = null,
 ) {
     fun cloneRequest(
         newPackage: String,

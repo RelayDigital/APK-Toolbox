@@ -37,7 +37,9 @@
     <string name="detail_from_nothing">Nothing: the original is not installed</string>
     <string name="detail_latest_version">Latest version</string>
     <string name="clone_from_original">From the original</string>
-    <string name="clone_from_source">From a source: %1$s</string>
+    <string name="clone_from_source">From a source (%1$s)</string>
+    <string name="origin_system">System</string>
+    <string name="origin_file">From a file</string>
     <string name="clone_no_updates">Not updated: the original is not installed</string>
     <string name="clone_track">Update from a source</string>
     <string name="clone_track_message">A clone is rebuilt from the installed original, so it stops being updated when the original is removed - and Google Play hands its files to nobody else. APK Toolbox can look the app up by its package in stores that carry the same builds (APKPure, APKCombo, RuStore and others, one after another) and keep the clone up to date from there, in the Sources tab. The original can then be removed. An update signed by someone else than the original is refused.</string>

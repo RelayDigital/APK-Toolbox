@@ -219,5 +219,7 @@
   "cloneReinstallMessage": "The app is installed as it is. A clone is a separate app that starts empty: the data, the sign-ins and the settings of the installed app do not move over. The installed app stays until you remove it. A clone is signed with APK Toolbox's key, so sign-in with Google, payments and checks of the kind may not work in it.",
   "cloneBackToApp": "Back to the original",
   "cloneBackToAppMessage": "The app will be installed as its publisher made it, with every permission, as a separate app that starts empty: the clone's data does not move over. The clone stays until you remove it.",
-  "cloneDeleteOriginal": "Delete the original app"
+  "cloneDeleteOriginal": "Delete the original app",
+  "rowOriginal": "{} (original)",
+  "rowClone": "{} (clone)"
 }

@@ -218,5 +218,7 @@
   "cloneReinstallMessage": "应用目前按原样安装。克隆是一个从零开始的独立应用:已安装应用的数据、登录状态和设置不会转移。已安装的应用会保留,直到你将其移除。克隆使用 APK Toolbox 的密钥签名,因此 Google 登录、支付及类似校验可能无法使用。",
   "cloneBackToApp": "恢复原应用",
   "cloneBackToAppMessage": "应用将按发布者的原样安装,包含全部权限,作为从零开始的独立应用:克隆的数据不会转移。克隆会保留,直到你将其移除。",
-  "cloneDeleteOriginal": "删除原应用"
+  "cloneDeleteOriginal": "删除原应用",
+  "rowOriginal": "{}(原版)",
+  "rowClone": "{}(克隆)"
 }

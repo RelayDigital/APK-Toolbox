@@ -117,11 +117,21 @@ class SourcesAdapter(
         // What stands in the way of the app, most pressing first. A repository that moved is a
         // thing to know; the rest are things that are wrong, and are said in the colour of an error.
         val trouble = row.signInNote ?: row.checkError?.let { Tr.get("srcCheckFailedShort") }
+        // Otherwise the fourth line says where the app comes from and what it is installed as:
+        // itself, or a clone of itself.
+        val asClone = app.clonePackage != null || (app.cloneTarget != null && row.entry.installedInfo == null)
+        val origin = Tr.get(if (asClone) "rowClone" else "rowOriginal", row.entry.sourceName())
         val note = if (app.hasPendingRepoRename) Tr.get("repoRenamed") else trouble
-        binding.textNote.isVisible = note != null
-        binding.textNote.text = note
+        binding.textNote.isVisible = true
+        binding.textNote.text = note ?: origin
         binding.textNote.setTextColor(
-            context.themeColor(if (app.hasPendingRepoRename) AppCompatR.attr.colorPrimary else AppCompatR.attr.colorError),
+            context.themeColor(
+                when {
+                    app.hasPendingRepoRename -> AppCompatR.attr.colorPrimary
+                    note != null -> AppCompatR.attr.colorError
+                    else -> MaterialR.attr.colorOnSurfaceVariant
+                },
+            ),
         )
 
         // Selected, pinned, or neither.

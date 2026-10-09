@@ -28,7 +28,9 @@ class AppAdapter(
         holder.binding.textPackage.text = app.packageName
         // The same third line every list of apps has: the version, with nothing around it.
         holder.binding.textStatus.text = app.versionName ?: app.versionCode.toString()
-        holder.binding.textNote.visibility = View.GONE
+        // The fourth line every list has: where the app comes from.
+        holder.binding.textNote.visibility = if (app.origin != null) View.VISIBLE else View.GONE
+        holder.binding.textNote.text = app.origin
         holder.binding.root.setOnClickListener { onClick(app) }
         holder.iconJob?.cancel()
         holder.iconJob = icons.load(app, holder.binding.imageIcon)
@@ -37,6 +39,6 @@ class AppAdapter(
     private object Diff : DiffUtil.ItemCallback<ApkSource>() {
         override fun areItemsTheSame(old: ApkSource, new: ApkSource) = old.packageName == new.packageName
         override fun areContentsTheSame(old: ApkSource, new: ApkSource) =
-            old.label == new.label && old.versionCode == new.versionCode && old.versionName == new.versionName
+            old.label == new.label && old.versionCode == new.versionCode && old.versionName == new.versionName && old.origin == new.origin
     }
 }

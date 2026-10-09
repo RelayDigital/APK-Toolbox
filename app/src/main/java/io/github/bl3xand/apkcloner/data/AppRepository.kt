@@ -7,6 +7,9 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import io.github.bl3xand.apkcloner.clone.ApkCloner
 import io.github.bl3xand.apkcloner.clone.CloneMetadata
+import io.github.bl3xand.apkcloner.R
+import io.github.bl3xand.apkcloner.install.Installer
+import io.github.bl3xand.apkcloner.sources.data.AppEntry
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import java.io.File
 
@@ -17,11 +20,18 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
     fun installed(): InstalledApps {
         val packages = packageManager.getInstalledPackages(PackageManager.GET_SIGNING_CERTIFICATES)
             .filter { it.packageName != context.packageName && it.applicationInfo != null }
-        val sources = packages.associate { it.packageName to toSource(it, it.applicationInfo!!) }
+        // Asked first: it also sees to it that the tracked apps have been read.
+        val asClones = runCatching { SourcesRepository.get(context).installedAsClones() }.getOrDefault(emptyMap())
+        val trackedByPackage = runCatching { SourcesRepository.get(context).all() }.getOrDefault(emptyList())
+            .filter { it.installedInfo != null }.associateBy { it.app.devicePackage }
+        val sources = packages.associate { info ->
+            val app = info.applicationInfo!!
+            info.packageName to toSource(info, app, originOf(app, trackedByPackage[info.packageName]))
+        }
 
         // Clones are recognised by the key they are signed with rather than by a local database,
         // so the list survives this app's data being cleared.
-        val tracked = runCatching { SourcesRepository.get(context).installedAsClones() }.getOrDefault(emptyMap())
+        val tracked = asClones
         val clones = packages.mapNotNull { info ->
             val signers = info.signingInfo?.apkContentsSigners ?: return@mapNotNull null
             val key = signers.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) } ?: return@mapNotNull null
@@ -60,7 +70,22 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
         return toSource(info, app)
     }
 
-    private fun toSource(info: PackageInfo, app: ApplicationInfo) = ApkSource(
+    /** A tracked app is from its source; anything else, from whatever installed it. */
+    private fun originOf(app: ApplicationInfo, tracked: AppEntry?): String {
+        if (tracked != null) return tracked.sourceName()
+        val installer = runCatching { packageManager.getInstallSourceInfo(app.packageName).installingPackageName }.getOrNull()
+        return when {
+            installer == Installer.PLAY_STORE_PACKAGE -> "Google Play"
+            installer == context.packageName -> context.getString(R.string.app_name)
+            installer != null -> runCatching {
+                packageManager.getApplicationInfo(installer, 0).loadLabel(packageManager).toString()
+            }.getOrDefault(installer)
+            app.flags and ApplicationInfo.FLAG_SYSTEM != 0 -> context.getString(R.string.origin_system)
+            else -> context.getString(R.string.origin_file)
+        }
+    }
+
+    private fun toSource(info: PackageInfo, app: ApplicationInfo, origin: String? = null) = ApkSource(
         packageName = app.packageName,
         label = app.loadLabel(packageManager).toString(),
         versionName = info.versionName,
@@ -68,5 +93,6 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
         apkPaths = listOf(app.sourceDir) + app.splitSourceDirs.orEmpty(),
         isSystem = app.flags and ApplicationInfo.FLAG_SYSTEM != 0,
         appInfo = app,
+        origin = origin,
     )
 }

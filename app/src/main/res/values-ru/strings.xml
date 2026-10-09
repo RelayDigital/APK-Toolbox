@@ -35,7 +35,9 @@
     <string name="detail_from_nothing">Ниоткуда: оригинал не установлен</string>
     <string name="detail_latest_version">Последняя версия</string>
     <string name="clone_from_original">Из оригинала</string>
-    <string name="clone_from_source">Из источника: %1$s</string>
+    <string name="clone_from_source">Из источника (%1$s)</string>
+    <string name="origin_system">Система</string>
+    <string name="origin_file">Из файла</string>
     <string name="clone_no_updates">Не обновляется: оригинал не установлен</string>
     <string name="clone_track">Обновлять из источника</string>
     <string name="clone_track_message">Клон пересобирается из установленного оригинала, поэтому без него перестаёт обновляться, а Google Play свои файлы никому не отдаёт. APK Toolbox может найти приложение по пакету в магазинах с теми же сборками (APKPure, APKCombo, RuStore и другие, по очереди) и обновлять клон оттуда, через вкладку «Источники». Оригинал после этого можно удалить. Обновление, подписанное не тем, кем оригинал, не установится.</string>
