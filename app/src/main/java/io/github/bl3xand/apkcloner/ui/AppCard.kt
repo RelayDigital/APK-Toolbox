@@ -15,7 +15,7 @@ import io.github.bl3xand.apkcloner.databinding.ViewAppCardBinding
 fun ViewAppCardBinding.bind(app: ApkSource, settingsPackage: String?) = bind(
     label = app.label,
     subtitle = listOfNotNull(app.packageName, app.versionName).joinToString(" · "),
-    icon = app.appInfo.loadIcon(root.context.packageManager),
+    icon = AppIcons.load(root.context.packageManager, app.appInfo),
     settingsPackage = settingsPackage,
 )
 

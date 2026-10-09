@@ -374,15 +374,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 { AppLog.info("Exported ${source.packageName} as APKS (${selected.size} files)") },
                 { AppLog.error("Exporting ${source.packageName} as APKS failed", it) },
             )
-            if (result.isSuccess) {
-                // The sheet is still open and hides the main screen's messages, so say it here.
-                withContext(Dispatchers.Main) {
-                    android.widget.Toast.makeText(getApplication(), R.string.export_done, android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
             _events.tryEmit(
                 result.fold(
-                    { MainEvent.Message(R.string.status_saved) },
+                    { MainEvent.Message(R.string.export_done) },
                     { MainEvent.Message(R.string.save_failed, it.message.orEmpty()) },
                 )
             )

@@ -28,7 +28,7 @@ class IconLoader(private val scope: CoroutineScope, private val packageManager: 
         view.setImageDrawable(cached)
         if (cached != null) return null
         return scope.launch {
-            val icon = withContext(Dispatchers.IO) { app.appInfo.loadIcon(packageManager) }
+            val icon = withContext(Dispatchers.IO) { AppIcons.load(packageManager, app.appInfo) }
             cache.put(app.packageName, icon)
             view.setImageDrawable(icon)
         }

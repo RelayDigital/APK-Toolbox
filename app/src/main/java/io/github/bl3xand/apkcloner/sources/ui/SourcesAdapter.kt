@@ -21,6 +21,7 @@ import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.capitalizeFirst
 import io.github.bl3xand.apkcloner.sources.data.SourcesSettings
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
+import io.github.bl3xand.apkcloner.ui.AppIcons
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -177,7 +178,7 @@ class SourcesAdapter(
         val info = row.entry.installedInfo?.applicationInfo
         if (cached == null && info != null) {
             holder.iconJob = scope.launch {
-                val icon = withContext(Dispatchers.IO) { info.loadIcon(packageManager) }
+                val icon = withContext(Dispatchers.IO) { AppIcons.load(packageManager, info) }
                 icons.put(app.id, icon)
                 binding.imageIcon.setImageDrawable(icon)
             }

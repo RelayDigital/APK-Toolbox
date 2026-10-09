@@ -88,33 +88,38 @@ class IconBadger(private val context: Context) {
         root.newElement("background").reference(background)
         val stack = root.newElement("foreground").newElement("layer-list")
         stack.newElement("item").reference(foreground)
-        val dot = stack.newElement("item").dot()
-        dot.newElement("solid").value("color", android.R.attr.color, ValueType.COLOR_ARGB8, color)
-        dot.newElement("stroke").apply {
-            value("width", android.R.attr.width, ValueType.DIMENSION, complex(RING_DP, TypedValue.COMPLEX_UNIT_DIP))
-            value("color", android.R.attr.color, ValueType.COLOR_ARGB8, Color.WHITE)
-        }
+        // A white disc with a coloured one on top. A stroke would do for the ring, but its width
+        // is a fixed length while everything else here is a share of the icon.
+        stack.newElement("item").disc(DOT_SHARE + 2 * RING_SHARE, Color.WHITE)
+        stack.newElement("item").disc(DOT_SHARE, color)
         // Themed icons are drawn from this layer alone, in one colour: the dot goes here too,
         // or a clone on a themed home screen would look exactly like the original.
         layers["monochrome"]?.takeIf { it != 0 }?.let { monochrome ->
             val themed = root.newElement("monochrome").newElement("layer-list")
             themed.newElement("item").reference(monochrome)
-            themed.newElement("item").dot().newElement("solid").value("color", android.R.attr.color, ValueType.COLOR_ARGB8, Color.WHITE)
+            themed.newElement("item").disc(DOT_SHARE + 2 * RING_SHARE, Color.WHITE)
         }
         document.refreshFull()
         return document.bytes
     }
 
     /**
-     * An oval inside an inset that puts it where the dot belongs. Insets are fractions of the
-     * layer, so the dot keeps its place and size at any icon size.
+     * A filled circle, [share] of the visible icon across, centred where the dot belongs. It is
+     * placed with insets, which are fractions of the layer, so it keeps its place and size at
+     * any icon size.
      */
-    private fun ResXmlElement.dot(): ResXmlElement = newElement("inset").apply {
-        fraction("insetLeft", android.R.attr.insetLeft, LAYER_DOT_START)
-        fraction("insetTop", android.R.attr.insetTop, LAYER_DOT_START)
-        fraction("insetRight", android.R.attr.insetRight, LAYER_DOT_END)
-        fraction("insetBottom", android.R.attr.insetBottom, LAYER_DOT_END)
-    }.newElement("shape").also { it.value("shape", android.R.attr.shape, ValueType.DEC, SHAPE_OVAL) }
+    private fun ResXmlElement.disc(share: Float, color: Int) {
+        val start = (LAYER_MARGIN + VISIBLE_DP * (DOT_CENTER - share / 2)) / LAYER_DP
+        val end = 1f - (LAYER_MARGIN + VISIBLE_DP * (DOT_CENTER + share / 2)) / LAYER_DP
+        val shape = newElement("inset").apply {
+            fraction("insetLeft", android.R.attr.insetLeft, start)
+            fraction("insetTop", android.R.attr.insetTop, start)
+            fraction("insetRight", android.R.attr.insetRight, end)
+            fraction("insetBottom", android.R.attr.insetBottom, end)
+        }.newElement("shape")
+        shape.value("shape", android.R.attr.shape, ValueType.DEC, SHAPE_OVAL)
+        shape.newElement("solid").value("color", android.R.attr.color, ValueType.COLOR_ARGB8, color)
+    }
 
     /** A plain bitmap icon: the same picture, redrawn with the dot on it. */
     private fun bitmapIcon(resources: Resources, icon: Int, density: Int, color: Int): ByteArray {
@@ -125,10 +130,18 @@ class IconBadger(private val context: Context) {
         drawable.setBounds(0, 0, size, size)
         drawable.draw(canvas)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        // A launcher sizes a plain picture by how much of it is filled, so the dot would come
+        // out differently on every app. A frame too faint to see makes every picture count as
+        // filled edge to edge: all of them are then shrunk alike, and so are their dots.
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1f
+        paint.color = Color.argb(FRAME_ALPHA, 255, 255, 255)
+        canvas.drawRect(0.5f, 0.5f, size - 0.5f, size - 0.5f, paint)
+        paint.style = Paint.Style.FILL
+
         val ring = size * RING_SHARE / LEGACY_SCALE
-        val radius = size * BITMAP_DOT_SHARE / 2
-        // As far down and to the right as the picture allows.
-        val center = size - radius - ring
+        val radius = size * DOT_SHARE / LEGACY_SCALE / 2
+        val center = size * (0.5f + (DOT_CENTER - 0.5f) / LEGACY_SCALE)
         paint.color = Color.WHITE
         canvas.drawCircle(center, center, radius + ring, paint)
         paint.color = color
@@ -178,24 +191,24 @@ class IconBadger(private val context: Context) {
         const val LAYER_DP = 108f
         const val VISIBLE_DP = 72f
 
-        // One dot for every kind of icon, measured against the part of the icon that is seen:
-        // a little under a quarter of it across, centred three quarters of the way down and
-        // to the right, with a thin white ring.
-        const val DOT_SHARE = 0.236f
-        const val DOT_CENTER = 0.75f
-        const val RING_DP = 1.5f
-        const val RING_SHARE = RING_DP / VISIBLE_DP
+        // One dot for every kind of icon, given as shares of the part of the icon that is
+        // seen: how far across the coloured disc is, how wide the white ring around it, and
+        // where the centre is, counted from the top left. The place is as far out as a plain
+        // picture still has room for once it is shrunk (see LEGACY_SCALE).
+        const val DOT_SHARE = 0.2f
+        const val RING_SHARE = 0.02f
+        const val DOT_CENTER = 0.675f
 
-        // The same dot expressed as insets from the edges of the whole adaptive layer.
         private const val LAYER_MARGIN = (LAYER_DP - VISIBLE_DP) / 2
-        const val LAYER_DOT_START = (LAYER_MARGIN + VISIBLE_DP * (DOT_CENTER - DOT_SHARE / 2)) / LAYER_DP
-        const val LAYER_DOT_END = 1f - (LAYER_MARGIN + VISIBLE_DP * (DOT_CENTER + DOT_SHARE / 2)) / LAYER_DP
 
-        // A plain picture is shown smaller than an adaptive icon: launchers and the settings
-        // shrink it to about this share to fit it inside their mask. The dot is drawn larger
-        // by as much, so that on screen it comes out the size of every other clone's.
+        // A plain picture is shown smaller than an adaptive icon: a launcher shrinks one that
+        // is filled edge to edge to about this share to fit it inside its mask. The dot is
+        // drawn larger and further out by as much, so that on screen it lands where the dot
+        // of an adaptive icon does, at the same size.
         const val LEGACY_SCALE = 0.62f
-        const val BITMAP_DOT_SHARE = DOT_SHARE / LEGACY_SCALE
+
+        /** Just above what a launcher still counts as a visible pixel. */
+        const val FRAME_ALPHA = 48
 
         const val MIN_BITMAP = 48
         const val MAX_BITMAP = 512

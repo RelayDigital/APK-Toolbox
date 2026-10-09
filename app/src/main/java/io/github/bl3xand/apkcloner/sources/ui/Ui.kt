@@ -13,7 +13,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.core.widget.NestedScrollView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -25,6 +24,7 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.materialswitch.MaterialSwitch
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.errorText
+import io.github.bl3xand.apkcloner.ui.Messages
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 
@@ -220,16 +220,17 @@ fun Context.openUrl(url: String) {
     try {
         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     } catch (e: Exception) {
-        Toast.makeText(this, errorText(e), Toast.LENGTH_SHORT).show()
+        Messages.show(errorText(e))
     }
 }
 
 fun Context.copyToClipboard(text: String) {
     getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText(text, text))
-    Toast.makeText(this, Tr.get("copiedToClipboard"), Toast.LENGTH_SHORT).show()
+    Messages.show(Tr.get("copiedToClipboard"))
 }
 
-fun Context.toast(text: CharSequence) = Toast.makeText(this, text, Toast.LENGTH_LONG).show()
+/** A passing message, shown the way the whole app shows them. */
+fun Context.toast(text: CharSequence) = Messages.show(text)
 
 /**
  * The one sheet every menu, question and dialog of this tab is shown in: a title, an optional
@@ -248,6 +249,7 @@ fun Context.showSheet(
     onPositive: () -> Boolean = { true },
 ): BottomSheetDialog {
     val dialog = BottomSheetDialog(this)
+    Messages.track(dialog)
     val side = dp(Spacing.SHEET)
     // Everything between the handle and the buttons scrolls as one piece, the app card included.
     val scrolling = column().apply {

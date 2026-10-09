@@ -113,8 +113,8 @@ class AddAppSheet : BottomSheetDialogFragment() {
         searchContainer.addHeading(Tr.get("addBySearch"))
         val searchLayout = TextInputLayout(context, null, com.google.android.material.R.attr.textInputOutlinedStyle).apply {
             hint = Tr.get("addSearchField")
-            endIconMode = TextInputLayout.END_ICON_CUSTOM
-            setEndIconDrawable(R.drawable.ic_search)
+            setStartIconDrawable(R.drawable.ic_search)
+            endIconMode = TextInputLayout.END_ICON_CLEAR_TEXT
         }
         val searchEdit = TextInputEditText(searchLayout.context).apply {
             setSingleLine()
@@ -125,7 +125,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
             }
         }
         searchLayout.addView(searchEdit)
-        searchLayout.setEndIconOnClickListener { runSearch(searchEdit.text?.toString() ?: "") }
+        searchLayout.setStartIconOnClickListener { runSearch(searchEdit.text?.toString() ?: "") }
         searchContainer.add(searchLayout, topMargin = Spacing.UNDER_HEADING - 4)
         searchContainer.add(
             context.label(Tr.get("addWhere"), colorAttr = com.google.android.material.R.attr.colorOnSurfaceVariant), topMargin = Spacing.UNDER_HEADING,

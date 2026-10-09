@@ -186,4 +186,5 @@
     <plurals name="log_days">
         <item quantity="other">%d 天</item>
     </plurals>
+    <string name="search_clear">清除搜索</string>
 </resources>

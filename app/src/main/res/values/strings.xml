@@ -194,4 +194,5 @@
         <item quantity="one">%d day</item>
         <item quantity="other">%d days</item>
     </plurals>
+    <string name="search_clear">Clear the search</string>
 </resources>

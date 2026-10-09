@@ -10,7 +10,6 @@ import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.core.view.isVisible
@@ -109,7 +108,7 @@ class SettingsSheet : BottomSheetDialogFragment() {
         }
         binding.buttonCheckNow.setOnClickListener {
             AutoUpdateWorker.runNow(requireContext())
-            Toast.makeText(requireContext(), R.string.check_now_started, Toast.LENGTH_SHORT).show()
+            Messages.show(getString(R.string.check_now_started))
         }
         binding.rowAutoInstall.setOnClickListener { binding.switchAutoInstall.toggle() }
         binding.switchAutoInstall.setOnCheckedChangeListener { _, checked ->
@@ -161,7 +160,7 @@ class SettingsSheet : BottomSheetDialogFragment() {
                     val granted = withContext(Dispatchers.IO) { Root.isAvailable() }
                     if (!granted) {
                         // Without root the switch would only pretend; say so and turn it back off.
-                        Toast.makeText(requireContext(), R.string.root_not_granted, Toast.LENGTH_LONG).show()
+                        Messages.show(getString(R.string.root_not_granted))
                         _binding?.switchRoot?.isChecked = false
                     }
                 }
@@ -297,12 +296,11 @@ class SettingsSheet : BottomSheetDialogFragment() {
 
     /** Key operations touch the keystore and the disk; keep them off the main thread. */
     private fun keyAction(success: Int, action: () -> Unit) {
-        val context = requireContext().applicationContext
         lifecycleScope.launch {
             val error = withContext(Dispatchers.IO) { runCatching(action).exceptionOrNull() }
             val message = if (error == null) getString(success)
             else getString(R.string.key_failed, error.message ?: error.javaClass.simpleName)
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            Messages.show(message)
             renderKey()
         }
     }

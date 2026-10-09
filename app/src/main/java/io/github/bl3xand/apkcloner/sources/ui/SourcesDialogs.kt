@@ -18,6 +18,8 @@ import com.google.android.material.textfield.TextInputLayout
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
+import io.github.bl3xand.apkcloner.ui.AppIcons
+import io.github.bl3xand.apkcloner.ui.Messages
 import io.github.bl3xand.apkcloner.ui.bind
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
 import io.github.bl3xand.apkcloner.log.AppLog
@@ -526,6 +528,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
     ): List<String>? =
         suspendCancellableCoroutine { continuation ->
             val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(context)
+            Messages.track(dialog)
             val chosen = LinkedHashSet<String>()
             var answered = false
             fun finish(result: List<String>?) {
@@ -610,6 +613,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 if (filterable && items.size > 6) {
                     val layout = TextInputLayout(context, null, com.google.android.material.R.attr.textInputOutlinedStyle).apply {
                         hint = Tr.get("filter")
+                        endIconMode = TextInputLayout.END_ICON_CLEAR_TEXT
                     }
                     layout.addView(TextInputEditText(layout.context).apply {
                         setSingleLine()
@@ -650,6 +654,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
     /** A sheet of actions, each with an icon, in the manner of a context menu. */
     fun showActions(title: String?, actions: List<SheetAction>, entry: AppEntry? = null) {
         val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(context)
+        Messages.track(dialog)
         val root = context.column().apply {
             addView(com.google.android.material.bottomsheet.BottomSheetDragHandleView(context))
             if (entry != null) {
@@ -731,7 +736,7 @@ fun io.github.bl3xand.apkcloner.databinding.ViewAppCardBinding.bindTracked(entry
     bind(
         label = entry.name,
         subtitle = listOfNotNull(app.id.takeIf { !app.hasTempId }, app.installedVersion ?: app.latestVersion).joinToString(" · "),
-        icon = info?.loadIcon(context.packageManager) ?: context.getDrawable(io.github.bl3xand.apkcloner.R.drawable.ic_install),
+        icon = info?.let { AppIcons.load(context.packageManager, it) } ?: context.getDrawable(io.github.bl3xand.apkcloner.R.drawable.ic_install),
         settingsPackage = app.id.takeIf { info != null },
     )
     imageIcon.alpha = if (info != null) 1f else 0.4f

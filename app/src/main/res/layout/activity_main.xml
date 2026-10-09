@@ -175,7 +175,8 @@
                     android:layout_height="match_parent"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="16dp">
+                    android:paddingStart="16dp"
+                    android:paddingEnd="8dp">
 
                     <ImageView
                         android:layout_width="24dp"
@@ -196,6 +197,18 @@
                         android:importantForAutofill="no"
                         android:inputType="text"
                         android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+                    <!-- Clears the search in one tap. -->
+                    <ImageView
+                        android:id="@+id/buttonClearSearch"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/search_clear"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_close"
+                        android:visibility="gone"
+                        app:tint="?attr/colorOnSurfaceVariant" />
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

@@ -4,8 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
-import android.widget.Toast
 import io.github.bl3xand.apkcloner.R
+import io.github.bl3xand.apkcloner.ui.Messages
 import io.github.bl3xand.apkcloner.update.UpdateNotifications
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -24,13 +24,13 @@ class InstallReceiver : BroadcastReceiver() {
                 context.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
             PackageInstaller.STATUS_SUCCESS -> {
-                Toast.makeText(context, R.string.install_success, Toast.LENGTH_SHORT).show()
+                Messages.toast(context, context.getString(R.string.install_success))
                 finished.tryEmit(Unit)
             }
             PackageInstaller.STATUS_FAILURE_ABORTED -> finished.tryEmit(Unit)
             else -> {
                 val reason = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE).orEmpty()
-                Toast.makeText(context, context.getString(R.string.install_failed, reason), Toast.LENGTH_LONG).show()
+                Messages.toast(context, context.getString(R.string.install_failed, reason))
                 finished.tryEmit(Unit)
             }
         }

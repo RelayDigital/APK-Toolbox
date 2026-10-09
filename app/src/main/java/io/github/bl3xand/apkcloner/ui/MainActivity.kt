@@ -18,7 +18,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.databinding.ActivityMainBinding
@@ -110,7 +109,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        binding.buttonClearSearch.setOnClickListener { binding.editSearch.text?.clear() }
         binding.editSearch.doAfterTextChanged {
+            binding.buttonClearSearch.isVisible = !it.isNullOrEmpty()
             // Each side filters its own lists by the same box.
             viewModel.setQuery(it?.toString().orEmpty())
             sourcesTab.onQuery(it?.toString().orEmpty())
@@ -221,6 +222,16 @@ class MainActivity : AppCompatActivity() {
         sourcesTab.onPause()
     }
 
+    override fun onStart() {
+        super.onStart()
+        Messages.attach(this)
+    }
+
+    override fun onStop() {
+        Messages.detach(this)
+        super.onStop()
+    }
+
     override fun onDestroy() {
         sourcesTab.onDestroy()
         super.onDestroy()
@@ -279,12 +290,7 @@ class MainActivity : AppCompatActivity() {
             is MainEvent.SourceReady -> if (!sheetShown) CloneSheet().show(supportFragmentManager, CloneSheet.TAG)
             MainEvent.SplitSourceReady -> if (!sheetShown) SplitSheet().show(supportFragmentManager, SplitSheet.TAG)
             MainEvent.FilesReceived -> askWhatToDoWithFiles()
-            // While the sheet is up it covers this window and reports messages itself.
-            is MainEvent.Message -> if (!sheetShown) {
-                Snackbar.make(binding.root, getString(event.text, event.argument), Snackbar.LENGTH_LONG)
-                    .apply { if (binding.bottomBar.isVisible) anchorView = binding.bottomBar }
-                    .show()
-            }
+            is MainEvent.Message -> Messages.show(getString(event.text, event.argument))
         }
     }
 

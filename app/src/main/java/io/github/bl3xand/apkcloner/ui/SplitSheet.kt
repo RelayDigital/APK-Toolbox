@@ -58,7 +58,7 @@ class SplitSheet : BottomSheetDialogFragment() {
         // Only an installed app has a settings page to open.
         val installed = source.bundle == null && source.entries.firstOrNull()?.file?.path?.startsWith("/data/app") == true
         binding.appCard.bind(
-            source.label, subtitle, source.appInfo?.loadIcon(requireContext().packageManager),
+            source.label, subtitle, source.appInfo?.let { AppIcons.load(requireContext().packageManager, it) },
             source.packageName.takeIf { installed },
         )
 
