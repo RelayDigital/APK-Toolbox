@@ -61,6 +61,11 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
         binding.rowPermissions.isVisible = removed.isNotEmpty()
         if (removed.isNotEmpty()) {
             binding.textPermissions.text = removed.sorted().joinToString("\n") { it.substringAfterLast('.') }
+            // The reset is the same move as in the permission editor: put every permission back and
+            // re-clone as an in-place update, so the data is kept. Blocked while a build is running.
+            binding.buttonResetPermissions.isVisible = true
+            binding.buttonResetPermissions.isEnabled = !busy
+            binding.buttonResetPermissions.setOnClickListener { viewModel.resetClone(clone) }
         }
 
         binding.progress.isVisible = busy

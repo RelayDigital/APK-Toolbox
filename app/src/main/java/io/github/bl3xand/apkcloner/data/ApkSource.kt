@@ -52,6 +52,13 @@ class CloneInfo(
      * same key, so installing the result is an ordinary in-place update that keeps the data.
      */
     fun updateRequest(): CloneRequest? = original?.cloneRequest(app.packageName, app.label, badged, key, removedPermissions)
+
+    /**
+     * Re-cloning the original under this clone's package name with every permission back in, so the
+     * removed-permission choice is undone. Both builds are signed with the same key, so installing
+     * the result is an ordinary in-place update that keeps the data.
+     */
+    fun resetRequest(): CloneRequest? = original?.cloneRequest(app.packageName, app.label, badged, key, emptySet<String>())
 }
 
 class InstalledApps(val apps: List<ApkSource>, val clones: List<CloneInfo>)

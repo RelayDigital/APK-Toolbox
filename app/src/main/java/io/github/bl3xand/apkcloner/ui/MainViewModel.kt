@@ -455,6 +455,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun updateClone(clone: CloneInfo) = updateClones(listOf(clone))
 
     /**
+     * Re-builds a clone without the permissions it was left out of, so it keeps all the original's.
+     * Installs as an in-place update over the same package, so the data is kept. Shows progress for
+     * the whole wait, the same as an update.
+     */
+    fun resetClone(clone: CloneInfo) = resetClones(listOf(clone))
+
+    private fun resetClones(clones: List<CloneInfo>) {
+        if (clones.isEmpty() || _uiState.value.updatingClone != null) return
+        viewModelScope.launch(Dispatchers.IO) {
+            for (clone in clones) {
+                val request = clone.resetRequest() ?: continue
+                _uiState.update { it.copy(updatingClone = clone.app.packageName) }
+                try {
+                    AppLog.info("Resetting clone ${clone.app.packageName} permissions")
+                    install(cloner.clone(request, updateOutput) { _, _, _ -> })
+                } catch (e: Exception) {
+                    AppLog.error("Resetting clone ${clone.app.packageName} failed", e)
+                    _events.tryEmit(MainEvent.Message(R.string.status_failed, e.message ?: e.javaClass.simpleName))
+                } finally {
+                    updateOutput.deleteRecursively()
+                }
+            }
+            _uiState.update { it.copy(updatingClone = null) }
+        }
+    }
+
+    /**
      * Uninstalls a clone through the system prompt, showing progress on its card for the whole
      * wait (like an install) and reloading the list afterwards so the card closes once it is gone.
      */

@@ -39,6 +39,7 @@
     <string name="detail_original_version">Original version</string>
     <string name="detail_clone_version">Clone version</string>
     <string name="detail_removed_permissions">Removed permissions</string>
+    <string name="detail_reset_permissions">Keep all permissions</string>
     <string name="detail_not_installed">Not installed</string>
     <string name="button_delete">Delete</string>
 
