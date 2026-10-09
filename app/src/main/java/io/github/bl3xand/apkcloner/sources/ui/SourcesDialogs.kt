@@ -206,13 +206,17 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                     isChipIconVisible = true
                 }
             }
+        // Chips of a filter wrap, like the categories under them: all of a filter is in sight at once.
         val view = body().apply {
             add(context.sectionTitle(Tr.get("fltState")))
             add(
                 ChipGroup(context).apply {
                     addView(chip(Tr.get("fltUpToDate"), filter.includeUpToDate) { filter = filter.copy(includeUpToDate = it) })
                     addView(chip(Tr.get("fltNotInstalled"), filter.includeNonInstalled) { filter = filter.copy(includeNonInstalled = it) })
-                }.inScrollingRow(),
+                    addView(chip(Tr.get("fltNoUpdates"), filter.includeNoUpdates) { filter = filter.copy(includeNoUpdates = it) })
+                    addView(chip(Tr.get("fltOriginals"), filter.includeOriginals) { filter = filter.copy(includeOriginals = it) })
+                    addView(chip(Tr.get("fltClones"), filter.includeClones) { filter = filter.copy(includeClones = it) })
+                },
                 topMargin = Spacing.UNDER_HEADING,
             )
             // Only the sources that are actually in use.
@@ -226,7 +230,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 for (id in used) {
                     group.addView(chip(names[id] ?: id, filter.source == id) { if (it) filter = filter.copy(source = id) })
                 }
-                add(group.inScrollingRow(), topMargin = Spacing.UNDER_HEADING)
+                add(group, topMargin = Spacing.UNDER_HEADING)
             }
             // The same chips as everywhere categories are picked: one can be made right here, and
             // held down to be removed. They wrap, and the sheet scrolls when there are many.

@@ -204,6 +204,19 @@
             android:text="@string/clone_track"
             app:icon="@drawable/ic_search" />
 
+        <!-- Keeps the app at the version it has. The switch brings 8dp of its own on each side;
+             the bottom margin takes it back, as far as it goes without cutting into the switch. -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchNoUpdates"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="-8dp"
+            android:text="@string/switch_no_updates"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:visibility="gone" />
+
+
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 

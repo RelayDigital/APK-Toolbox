@@ -46,6 +46,9 @@ data class TrackedApp(
         get() = settings.getBool(SettingKeys.TRACK_ONLY) ||
             (installedVersion != null && !settings.getBool(SettingKeys.VERSION_DETECTION))
 
+    /** Kept at the version that is installed: new releases are neither offered nor installed. */
+    val updatesOff: Boolean get() = settings.getBool(SettingKeys.NO_UPDATES)
+
     /**
      * The package of the clone this app is set up to be installed as - rebuilt under another
      * name, without the permissions the user took away - whether or not that has happened yet.

@@ -15,6 +15,7 @@ import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.install.InstallReceiver
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import io.github.bl3xand.apkcloner.settings.AppSettings
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -40,7 +41,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var allClones: List<CloneInfo> = emptyList()
     private var query = ""
     private var showSystem = false
+
     private var loaded = false
+
+    /** What the list of clones is narrowed to. */
+    var clonesFilter = ClonesFilter()
+        set(value) {
+            field = value
+            publishApps()
+        }
 
     /** Which tab is showing; kept here so it survives rotation. */
     var tab = MainTabs.SOURCES
@@ -126,6 +135,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         rebuildClones(listOf(clone), "Changing the permissions (${removed.size} removed) of") { it.permissionsRequest(removed) }
     }
 
+    /** Files a clone under [categories]; a clone that a source keeps current is filed there instead. */
+    fun setCloneCategories(clone: CloneInfo, categories: Set<String>) {
+        val settings = AppSettings(getApplication())
+        settings.cloneCategories = settings.cloneCategories + (clone.app.packageName to categories)
+        allClones = allClones.map { if (it.app.packageName == clone.app.packageName) it.withCategories(categories) else it }
+        publishApps()
+    }
+
+    /** Keeps a clone at the version it has, or lets it follow its original again. */
+    fun setCloneFrozen(clone: CloneInfo, frozen: Boolean) {
+        val settings = AppSettings(getApplication())
+        settings.frozenClones = if (frozen) settings.frozenClones + clone.app.packageName else settings.frozenClones - clone.app.packageName
+        allClones = allClones.map { if (it.app.packageName == clone.app.packageName) it.withFrozen(frozen) else it }
+        publishApps()
+    }
+
     /**
      * Uninstalls a clone through the system prompt, showing progress on its card for the whole
      * wait (like an install) and reloading the list afterwards so the card closes once it is gone.
@@ -163,7 +188,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             allClones = installed.clones
             publishApps()
             // A clone that a source keeps current is updated from there, with the rest of the tracked apps.
-            val outdated = allClones.filter { it.updateAvailable && it.tracked == null }
+            val outdated = allClones.filter { it.wantsUpdate && it.tracked == null }
             AppLog.info("Clones checked: ${allClones.size}, behind: ${outdated.size}")
             if (outdated.isEmpty()) _events.tryEmit(MainEvent.Message(R.string.clones_up_to_date)) else updateClones(outdated)
         }
@@ -229,7 +254,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             state.copy(
                 apps = allApps.filter { (showSystem || !it.isSystem) && matches(it) },
                 splitApps = allApps.filter { it.apkPaths.size > 1 && (showSystem || !it.isSystem) && matches(it) },
-                clones = allClones.filter { matches(it.app) },
+                clones = allClones.filter { clone ->
+                    matches(clone.app) && (clonesFilter.notUpdated || !clone.frozen) &&
+                        (clonesFilter.categories.isEmpty() || clonesFilter.categories.intersect(clone.categories).isNotEmpty()) && when {
+                        clone.tracked != null -> clonesFilter.fromSource
+                        clone.original != null -> clonesFilter.fromOriginal
+                        // One that has neither is always worth seeing.
+                        else -> true
+                    }
+                },
                 outdatedClones = allClones.count { it.updateAvailable },
             )
         }

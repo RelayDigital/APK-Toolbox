@@ -2,6 +2,7 @@ package io.github.bl3xand.apkcloner.sources.install
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Environment
@@ -21,6 +22,7 @@ import io.github.bl3xand.apkcloner.sources.core.IdChangedError
 import io.github.bl3xand.apkcloner.sources.core.MultiAppMultiError
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
+import io.github.bl3xand.apkcloner.sources.core.RemoteApk
 import io.github.bl3xand.apkcloner.sources.core.SigningCertMismatchError
 import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.Tr
@@ -40,7 +42,7 @@ import java.io.InputStream
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.GZIPInputStream
-import java.util.zip.ZipInputStream
+import java.util.zip.ZipFile
 import kotlin.math.ceil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -78,10 +80,35 @@ class SourcesInstaller private constructor(private val context: Context) {
 
     // ---- download ----------------------------------------------------------------------------
 
-    private fun archiveInfo(file: File): PackageInfo? = try {
-        packageManager.getPackageArchiveInfo(file.path, PackageManager.PackageInfoFlags.of(0))
-    } catch (e: Exception) {
-        null
+    /** What an APK file says about itself, whoever was able to read it. */
+    private class ApkFacts(
+        val packageName: String,
+        val versionName: String?,
+        val versionCode: Long,
+        val permissions: Set<String>,
+        /** Only when the system read the file: what its name and icon are loaded with. */
+        val appInfo: ApplicationInfo?,
+    )
+
+    /**
+     * Reads an APK file. The system is asked first; what it will not read by itself - the base of
+     * a set of splits, which it refuses because it could not be installed alone - is read here.
+     */
+    private fun facts(file: File): ApkFacts? {
+        val info = try {
+            packageManager.getPackageArchiveInfo(
+                file.path, PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong()),
+            )
+        } catch (e: Exception) {
+            null
+        }
+        if (info != null) {
+            return ApkFacts(
+                info.packageName, info.versionName, info.longVersionCode, info.requestedPermissions.orEmpty().toSet(), info.applicationInfo,
+            )
+        }
+        val peek = RemoteApk.peek(file) ?: return null
+        return ApkFacts(peek.packageName, peek.versionName, peek.versionCode ?: 0, peek.permissions, null)
     }
 
     private fun apkCertHashes(files: List<File>): Set<String> = files.flatMap { file ->
@@ -92,23 +119,27 @@ class SourcesInstaller private constructor(private val context: Context) {
         } catch (e: Exception) {
             null
         }
-        certHashesOf(info)
+        certHashesOf(info).ifEmpty { if (info == null) RemoteApk.peek(file)?.certHashes.orEmpty() else emptySet() }
     }.toSet()
 
-    /** Extracts a zip, refusing entries that would land outside [destination]. */
+    /**
+     * Extracts a zip, refusing entries that would land outside [destination]. The archive is read
+     * by its directory, not as a stream: an APK stored in it uncompressed is a zip itself, and a
+     * reader that goes through the bytes in order takes the files of that APK for files of the
+     * archive.
+     */
     private fun unzip(file: File, destination: File) {
         destination.mkdirs()
         val root = destination.canonicalPath
-        ZipInputStream(file.inputStream().buffered()).use { zip ->
-            while (true) {
-                val entry = zip.nextEntry ?: break
+        ZipFile(file).use { zip ->
+            for (entry in zip.entries()) {
                 val out = File(destination, entry.name)
                 if (!out.canonicalPath.startsWith("$root/")) throw SourceError(Tr.get("invalidArchive"))
                 if (entry.isDirectory) {
                     out.mkdirs()
                 } else {
                     out.parentFile?.mkdirs()
-                    out.outputStream().use { zip.copyTo(it) }
+                    zip.getInputStream(entry).use { input -> out.outputStream().use { input.copyTo(it, 1 shl 16) } }
                 }
             }
         }
@@ -145,10 +176,9 @@ class SourcesInstaller private constructor(private val context: Context) {
      * Gives an app its real package name once the APK is at hand. A changed name on an app that
      * already had a real one is refused: it would be a different app.
      */
-    private fun handleApkIdChange(appIn: TrackedApp, info: PackageInfo, file: File, downloadUrl: String): Pair<File, TrackedApp> {
+    private fun handleApkIdChange(appIn: TrackedApp, actual: String, file: File, downloadUrl: String): Pair<File, TrackedApp> {
         var app = appIn
         var result = file
-        val actual = info.packageName
         if (app.id != actual) {
             val tracked = repo.entry(app.id) != null
             if (tracked && !app.hasTempId && !app.allowIdChange) throw IdChangedError(actual).also { it.url = app.url }
@@ -217,9 +247,9 @@ class SourcesInstaller private constructor(private val context: Context) {
             val isApk = file.path.lowercase().endsWith(".apk")
             val isTarball = isTarballName(originalAssetName)
             var dir: File? = null
-            var info: PackageInfo? = null
+            var info: ApkFacts? = null
             if (isApk && !multipleApks) {
-                info = archiveInfo(file)
+                info = facts(file)
             } else {
                 dir = File("${file.path}-dir").also { it.deleteRecursively() }
                 when {
@@ -258,14 +288,18 @@ class SourcesInstaller private constructor(private val context: Context) {
                     }
                 }
                 if (apks.isEmpty()) throw NoApkError()
-                info = apks.firstNotNullOfOrNull(::archiveInfo)
+                info = apks.firstNotNullOfOrNull(::facts)
             }
             if (info == null) {
+                // What came instead of an APK says most about why: a page, a part of a file, an archive.
+                val head = runCatching { file.inputStream().use { it.readNBytes(4) }.joinToString("") { "%02x".format(it) } }.getOrNull()
+                AppLog.warn("${app.id}: ${file.name} (${file.length()} bytes, starts with $head) is not an APK that can be read" +
+                    (dir?.let { d -> "; unpacked: ${d.walkTopDown().filter(File::isFile).joinToString { "${it.name} ${it.length()}" }}" } ?: ""))
                 file.delete()
                 dir?.deleteRecursively()
                 throw SourceError(Tr.get("couldNotGetIdFromApk")).also { it.url = app.url }
             }
-            val (renamed, resolved) = handleApkIdChange(app, info, file, downloadUrl)
+            val (renamed, resolved) = handleApkIdChange(app, info.packageName, file, downloadUrl)
             // Older downloads of this app are of no use any more.
             repo.apkDir.listFiles()?.forEach {
                 if (it.isFile && it.name.startsWith("${resolved.id}-") && it.path != renamed.path) it.delete()
@@ -407,21 +441,21 @@ class SourcesInstaller private constructor(private val context: Context) {
      */
     private suspend fun installFiles(id: String, appId: String, apks: List<File>, background: Boolean, pretendPlay: Boolean): Boolean {
         val entry = repo.entry(id) ?: throw SourceError(Tr.get("appNotFound"))
-        val newInfo = archiveInfo(apks.first())
+        val newInfo = facts(apks.first())
         if (newInfo == null) {
             apks.forEach { it.delete() }
             throw SourceError(Tr.get("badDownload")).also { it.url = entry.app.url }
         }
         val installed = repo.installedInfo(appId)
         AppLog.info(
-            "Installing \"${newInfo.packageName}\" version \"${newInfo.versionName}\" (${newInfo.longVersionCode})" +
+            "Installing \"${newInfo.packageName}\" version \"${newInfo.versionName}\" (${newInfo.versionCode})" +
                 (installed?.let { " over \"${it.versionName}\" (${it.longVersionCode})" } ?: ""),
         )
-        if (installed != null && newInfo.longVersionCode < installed.longVersionCode &&
+        if (installed != null && newInfo.versionCode < installed.longVersionCode &&
             repo.installedInfo("com.berdik.letmedowngrade") == null && settings.showAppDowngradeError
         ) {
             apks.first().delete()
-            throw DowngradeError(installed.longVersionCode, newInfo.longVersionCode)
+            throw DowngradeError(installed.longVersionCode, newInfo.versionCode)
         }
         val before = baseline(appId)
         AppLog.debug("Installing $appId with ${installer(background).javaClass.simpleName}, ${apks.size} file(s), background=$background")
@@ -555,9 +589,7 @@ class SourcesInstaller private constructor(private val context: Context) {
             orderApks(dir.walkTopDown().filter { it.isFile && it.name.lowercase().endsWith(".apk") }.toMutableList(), downloaded.appId, downloaded.splitSet)
                 .firstOrNull()
         } ?: downloaded.file
-        val requested = packageManager.getPackageArchiveInfo(
-            base.path, PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong()),
-        )?.requestedPermissions.orEmpty().toSet()
+        val requested = facts(base)?.permissions.orEmpty()
         repo.entry(downloaded.appId)?.let {
             repo.saveApps(listOf(it.app.withSetting(SettingKeys.CLONE_REQUESTED_PERMISSIONS, requested.sorted().joinToString(","))))
         }
@@ -589,12 +621,10 @@ class SourcesInstaller private constructor(private val context: Context) {
             installed.signingInfo?.apkContentsSigners?.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) }
                 ?: throw SourceError(Tr.get("cloneInstallTaken", target))
         }
-        val info = packageManager.getPackageArchiveInfo(
-            apks.first().path, PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong()),
-        )
+        val info = facts(apks.first())
         // Nothing is asked here: what the clone goes without is set on the app's page, before or
         // after. What this release asks for is kept, so that the page can show what is new.
-        val requested = info?.requestedPermissions.orEmpty().toSet()
+        val requested = info?.permissions.orEmpty()
         val removed = app.cloneRemovedPermissions
         if (requested != app.cloneRequestedPermissions) {
             app = (repo.entry(app.id)?.app ?: app)
@@ -605,7 +635,7 @@ class SourcesInstaller private constructor(private val context: Context) {
             }
         }
         // The icon is drawn from the APK itself: nothing is installed to take it from.
-        val icon = info?.applicationInfo?.takeIf { app.settings.getBool(SettingKeys.CLONE_BADGE) }?.apply {
+        val icon = info?.appInfo?.takeIf { app.settings.getBool(SettingKeys.CLONE_BADGE) }?.apply {
             sourceDir = apks.first().path
             publicSourceDir = apks.first().path
         }

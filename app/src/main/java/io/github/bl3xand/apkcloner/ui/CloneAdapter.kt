@@ -16,6 +16,7 @@ import kotlinx.coroutines.Job
 class CloneAdapter(
     private val icons: IconLoader,
     private val onClick: (CloneInfo) -> Unit,
+    private val onLongClick: (CloneInfo) -> Unit,
 ) : ListAdapter<CloneInfo, CloneAdapter.Holder>(Diff) {
 
     /** Package of the clone being updated right now, if any. */
@@ -44,9 +45,13 @@ class CloneAdapter(
         binding.textPackage.text = clone.app.packageName
         val version = clone.app.versionName.orEmpty()
         val newer = clone.tracked?.app?.latestVersion ?: clone.original?.versionName.orEmpty()
-        binding.textStatus.text = if (clone.updateAvailable) "$version → $newer" else version
+        binding.textStatus.text = when {
+            clone.frozen -> context.getString(R.string.version_no_updates, version)
+            clone.updateAvailable -> "$version → $newer"
+            else -> version
+        }
         binding.textStatus.setTextColor(
-            context.themeColor(if (clone.updateAvailable) AppCompatR.attr.colorPrimary else MaterialR.attr.colorOnSurfaceVariant),
+            context.themeColor(if (clone.wantsUpdate) AppCompatR.attr.colorPrimary else MaterialR.attr.colorOnSurfaceVariant),
         )
         binding.textNote.isVisible = true
         binding.textNote.text = when {
@@ -60,6 +65,10 @@ class CloneAdapter(
         )
         binding.progress.isVisible = updating == clone.app.packageName
         binding.root.setOnClickListener { onClick(clone) }
+        binding.root.setOnLongClickListener {
+            onLongClick(clone)
+            true
+        }
 
         holder.iconJob?.cancel()
         holder.iconJob = icons.load(clone.app, binding.imageIcon)
@@ -69,6 +78,6 @@ class CloneAdapter(
         override fun areItemsTheSame(old: CloneInfo, new: CloneInfo) = old.app.packageName == new.app.packageName
         override fun areContentsTheSame(old: CloneInfo, new: CloneInfo) =
             old.app.label == new.app.label && old.app.versionCode == new.app.versionCode &&
-                old.original?.versionCode == new.original?.versionCode && old.tracked?.app == new.tracked?.app
+                old.original?.versionCode == new.original?.versionCode && old.tracked?.app == new.tracked?.app && old.frozen == new.frozen && old.categories == new.categories
     }
 }

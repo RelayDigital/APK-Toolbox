@@ -346,7 +346,7 @@ class SourcesRepository private constructor(private val context: Context) {
      * whose version is read from a file name or was set by hand: there "older" means nothing.
      */
     fun isAppUpdateable(app: TrackedApp): Boolean =
-        isUpdateable(app.installedVersion, app.latestVersion, settings.hideDowngrades && !app.isVersionPseudo)
+        !(app.updatesOff && app.installedVersion != null) && isUpdateable(app.installedVersion, app.latestVersion, settings.hideDowngrades && !app.isVersionPseudo)
 
     /**
      * Apps that are not installed, or whose installed version is behind the latest one. An app

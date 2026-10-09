@@ -22,13 +22,29 @@ class CloneInfo(
      * installed as well, and everything that rebuilds the clone goes through the source.
      */
     val tracked: AppEntry? = null,
+    /** Set for this clone in the Clones tab; a clone that a source keeps current has it there. */
+    private val keptAsIs: Boolean = false,
+    private val ownCategories: Set<String> = emptySet(),
 ) {
+    /** The categories it is filed under: the tracked app's, when a source keeps it current. */
+    val categories: Set<String> get() = tracked?.app?.categories?.toSet() ?: ownCategories
+
+    /** Kept at the version it has: nothing updates it by itself, and nothing offers to. */
+    val frozen: Boolean get() = tracked?.app?.updatesOff ?: keptAsIs
+
+    /** Behind what it is made from, and meant to follow it. */
+    val wantsUpdate: Boolean get() = updateAvailable && !frozen
+
     val updateAvailable: Boolean
         get() = if (tracked != null) tracked.app.installedVersion != null && tracked.app.installedVersion != tracked.app.latestVersion
         else original != null && original.versionCode > app.versionCode
 
     /** The same clone as [entry] now has it: tracked by it, or by nothing. */
-    fun withTracked(entry: AppEntry?) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, entry)
+    fun withTracked(entry: AppEntry?) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, entry, keptAsIs, ownCategories)
+
+    fun withFrozen(value: Boolean) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, tracked, value, ownCategories)
+
+    fun withCategories(value: Set<String>) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, tracked, keptAsIs, value)
 
     /** Whether the clone can be built again: from its source, or from the installed original. */
     val canRebuild: Boolean get() = tracked != null || original != null

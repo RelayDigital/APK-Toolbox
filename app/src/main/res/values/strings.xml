@@ -11,6 +11,9 @@
     <string name="tab_clones">Clones</string>
     <string name="search_hint">Search apps</string>
     <string name="chip_system_apps">System apps</string>
+    <string name="chip_clones_original">From the original</string>
+    <string name="chip_clones_source">From a source</string>
+    <string name="chip_no_updates">Not updated</string>
     <string name="empty_list">No apps found</string>
     <string name="empty_clones">No clones yet. Installed clones will show up here.</string>
     <string name="button_pick_apk">Choose APK</string>
@@ -40,7 +43,9 @@
     <string name="clone_from_source">From a source (%1$s)</string>
     <string name="origin_system">System</string>
     <string name="origin_file">From a file</string>
-    <string name="clone_no_updates">Not updated: the original is not installed</string>
+    <string name="clone_no_updates">No original</string>
+    <string name="version_no_updates">%1$s (not updated)</string>
+    <string name="switch_no_updates">Do not update</string>
     <string name="clone_track">Update from a source</string>
     <string name="clone_track_message">A clone is rebuilt from the installed original, so it stops being updated when the original is removed - and Google Play hands its files to nobody else. APK Toolbox can look the app up by its package in stores that carry the same builds (APKPure, APKCombo, RuStore and others, one after another) and keep the clone up to date from there, in the Sources tab. The original can then be removed. An update signed by someone else than the original is refused.</string>
     <string name="detail_original_version">Original version</string>

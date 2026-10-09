@@ -127,6 +127,8 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
             return false
         }
         if (app.installedVersion == null && !filter.includeNonInstalled) return false
+        if (!(if (app.clonePackage != null) filter.includeClones else filter.includeOriginals)) return false
+        if (app.updatesOff && app.installedVersion != null && !filter.includeNoUpdates) return false
         for (token in filter.name.split(' ').filter { it.isNotBlank() }) {
             if (!entry.name.lowercase().contains(token.lowercase())) return false
         }

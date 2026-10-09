@@ -33,6 +33,9 @@ class APKPure : AppSource("APKPure") {
         showReleaseDateAsVersionToggle = true
         inferAppIdFromUrlPath = true
         changeLogIfAnyIsMarkDown = false
+        canSearch = true
+        // Where the store keeps its files.
+        trustedApkHosts = listOf("winudf.com")
     }
 
     override val additionalSourceAppSpecificSettingFormItems: List<List<SettingItem>>
@@ -145,7 +148,26 @@ class APKPure : AppSource("APKPure") {
         }
     }
 
+    /** The store's own search, by name: what its app shows for the same words. */
+    override fun search(query: String, querySettings: Map<String, Any?>): Map<String, List<String>> {
+        val url = Url.parse(SEARCH_URL).withQueryParameters(mapOf("hl" to "en", "key" to query, "limit" to "20")).toString()
+        val response = sourceRequest(url, querySettings)
+        Http.ensureSuccess(response)
+        val results = LinkedHashMap<String, List<String>>()
+        // Results come in blocks of several kinds; the apps are the entries that carry "app_info".
+        for (block in JsonValues.parse(response.body).dig("data", "data").asList() ?: emptyList()) {
+            for (item in block.asMap()?.get("data").asList() ?: emptyList()) {
+                val app = item.asMap()?.get("app_info").asMap() ?: continue
+                val packageName = app["package_name"]?.toString()?.takeIf { it.isNotEmpty() } ?: continue
+                val title = app["title"]?.toString()?.takeIf { it.isNotEmpty() } ?: continue
+                results["https://${hosts[0]}/app/$packageName"] = listOf(title, packageName)
+            }
+        }
+        return results
+    }
+
     companion object {
+        private const val SEARCH_URL = "https://tapi.pureapk.com/v3/search_query_new"
         private const val API_BASE_URL = "https://tapi.pureapk.com/v3/get_app_his_version?package_name"
     }
 }

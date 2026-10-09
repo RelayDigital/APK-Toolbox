@@ -159,7 +159,10 @@ class SourcesAdapter(
             // What is on the device is another build under the same package, not this app: it
             // is neither installed nor behind.
             row.conflict -> "${Tr.get("notInstalled")} · ${Tr.get("detSignerConflictMark")}"
-            differs -> "$installed → ${app.latestVersion}"
+            // Kept where it is: the newer version is not what the line is about.
+            installed != null && app.updatesOff -> context.getString(R.string.version_no_updates, installed)
+            // Only a version that is on offer: a release older than what is installed is not one.
+            differs && row.updatable -> "$installed → ${app.latestVersion}"
             else -> installed ?: Tr.get("notInstalled")
         }
         binding.textVersion.setTypeface(null, if (app.isVersionPseudo) Typeface.ITALIC else Typeface.NORMAL)

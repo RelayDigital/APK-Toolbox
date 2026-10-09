@@ -7,6 +7,11 @@ data class AppsFilter(
     val id: String = "",
     val includeUpToDate: Boolean = true,
     val includeNonInstalled: Boolean = true,
+    /** Apps installed as themselves, and apps installed as clones of themselves. */
+    val includeOriginals: Boolean = true,
+    val includeClones: Boolean = true,
+    /** Apps that are kept at the version they have. */
+    val includeNoUpdates: Boolean = true,
     val categories: Set<String> = emptySet(),
     val source: String = "",
 ) {

@@ -451,6 +451,13 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         // what was tapped.
         val busy = download != null || removing
         renderClone(entry, offered = !candidate && !trackOnly, busy = busy)
+        // Only an app that is there has a version to stay at.
+        binding.switchNoUpdates.isVisible = !candidate && !trackOnly && installed != null && !conflict
+        binding.switchNoUpdates.setOnCheckedChangeListener(null)
+        binding.switchNoUpdates.isChecked = app.updatesOff
+        binding.switchNoUpdates.setOnCheckedChangeListener { _, on ->
+            viewModel.update(listOf(appId)) { it.withSetting(SettingKeys.NO_UPDATES, on) }
+        }
         binding.actions.progress.show(busy, download?.progress.takeUnless { removing })
 
         // A clone that is set up is installed next to whatever is there, so neither the version

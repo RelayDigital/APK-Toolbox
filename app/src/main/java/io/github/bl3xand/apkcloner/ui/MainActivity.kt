@@ -24,6 +24,7 @@ import com.google.android.material.tabs.TabLayout
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.databinding.ActivityMainBinding
 import io.github.bl3xand.apkcloner.sources.ui.SourcesTab
+import io.github.bl3xand.apkcloner.sources.ui.SourcesViewModel
 import io.github.bl3xand.apkcloner.update.UpdateNotifications
 import kotlinx.coroutines.launch
 
@@ -31,6 +32,9 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val viewModel: MainViewModel by viewModels()
+
+    /** The tracked apps; a clone that a source keeps current is changed through them. */
+    private val sourcesViewModel: SourcesViewModel by viewModels()
     private lateinit var sourcesTab: SourcesTab
 
     private val pickApk = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -61,11 +65,23 @@ class MainActivity : AppCompatActivity() {
 
         val icons = IconLoader(lifecycleScope, packageManager)
         val appAdapter = AppAdapter(icons, viewModel.cloning::select)
-        val cloneAdapter = CloneAdapter(icons) { clone ->
-            if (supportFragmentManager.findFragmentByTag(CloneDetailSheet.TAG) == null) {
-                CloneDetailSheet.newInstance(clone).show(supportFragmentManager, CloneDetailSheet.TAG)
-            }
-        }
+        val cloneAdapter = CloneAdapter(
+            icons,
+            onClick = { clone ->
+                if (supportFragmentManager.findFragmentByTag(CloneDetailSheet.TAG) == null) {
+                    CloneDetailSheet.newInstance(clone).show(supportFragmentManager, CloneDetailSheet.TAG)
+                }
+            },
+            // Held down, a clone is filed under categories, as a tracked app is from its menu.
+            onLongClick = { clone ->
+                lifecycleScope.launch {
+                    val chosen = askCloneCategories(clone.categories) ?: return@launch
+                    val tracked = clone.tracked
+                    if (tracked != null) sourcesViewModel.update(listOf(tracked.app.id)) { it.copy(categories = chosen.toList()) }
+                    else viewModel.setCloneCategories(clone, chosen)
+                }
+            },
+        )
         val installAdapter = AppAdapter(icons) { viewModel.splits.selectApp(it, SplitMode.EXPORT) }
         val splitAdapter = AppAdapter(icons) { viewModel.splits.selectApp(it, SplitMode.MERGE) }
         binding.listApps.adapter = appAdapter
@@ -119,6 +135,10 @@ class MainActivity : AppCompatActivity() {
         }
         binding.chipClonesRefresh.setOnClickListener { viewModel.refreshClones() }
         binding.chipSystem.setOnCheckedChangeListener { _, checked -> viewModel.setShowSystem(checked) }
+        binding.chipClonesFilter.setOnClickListener {
+            lifecycleScope.launch { askClonesFilter(viewModel.clonesFilter)?.let(::applyClonesFilter) }
+        }
+        binding.chipClonesClearFilter.setOnClickListener { applyClonesFilter(ClonesFilter()) }
         // Every tab has a button that says what the tab is for.
         val showTabInfo = { _: View ->
             val (title, text) = TAB_INFO.getValue(viewModel.tab)
@@ -238,6 +258,12 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    private fun applyClonesFilter(filter: ClonesFilter) {
+        viewModel.clonesFilter = filter
+        // The list may look the same with another filter; the chip that clears it must not.
+        binding.chipClonesClearFilter.isVisible = !filter.isNeutral
+    }
+
     private fun render(state: MainUiState) {
         val ready = state.permissionsGranted
         val tab = viewModel.tab
@@ -251,6 +277,8 @@ class MainActivity : AppCompatActivity() {
         binding.chipSystem.isVisible = tab != MainTabs.CLONES
         // The Clones side has the same Refresh as Sources: check everything, update what is behind.
         binding.chipClonesRefresh.isVisible = tab == MainTabs.CLONES
+        binding.chipClonesFilter.isVisible = tab == MainTabs.CLONES
+        binding.chipClonesClearFilter.isVisible = tab == MainTabs.CLONES && !viewModel.clonesFilter.isNeutral
         binding.chipClonesRefresh.isEnabled = state.updatingClone == null
         binding.listApps.isVisible = appsTab
         binding.listClones.isVisible = tab == MainTabs.CLONES

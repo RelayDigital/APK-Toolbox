@@ -221,5 +221,8 @@
   "cloneBackToAppMessage": "The app will be installed as its publisher made it, with every permission, as a separate app that starts empty: the clone's data does not move over. The clone stays until you remove it.",
   "cloneDeleteOriginal": "Delete the original app",
   "rowOriginal": "{} (original)",
-  "rowClone": "{} (clone)"
+  "rowClone": "{} (clone)",
+  "fltOriginals": "Originals",
+  "fltClones": "Clones",
+  "fltNoUpdates": "Not updated"
 }

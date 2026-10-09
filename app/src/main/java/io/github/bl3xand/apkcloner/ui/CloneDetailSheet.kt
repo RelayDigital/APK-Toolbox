@@ -15,6 +15,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.data.CloneInfo
 import io.github.bl3xand.apkcloner.databinding.SheetCloneDetailBinding
+import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.ui.SourcesViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -110,6 +111,16 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
                     sources.trackClone(clone.originalPackage, clone.app.packageName)
                 }
             }
+        }
+
+        binding.switchNoUpdates.isVisible = true
+        binding.switchNoUpdates.setOnCheckedChangeListener(null)
+        binding.switchNoUpdates.isChecked = clone.frozen
+        binding.switchNoUpdates.isEnabled = !busy
+        binding.switchNoUpdates.setOnCheckedChangeListener { _, on ->
+            // A clone that a source keeps current has the setting there, with the tracked app.
+            if (tracked != null) sources.update(listOf(tracked.app.id)) { it.withSetting(SettingKeys.NO_UPDATES, on) }
+            else viewModel.setCloneFrozen(clone, on)
         }
 
         binding.actions.progress.isInvisible = !busy

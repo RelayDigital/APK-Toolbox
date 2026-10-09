@@ -87,17 +87,19 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:layout_marginBottom="-8dp"
             android:textAppearance="?attr/textAppearanceBodyLarge"
             android:visibility="gone" />
 
-        <!-- The included blocks bring the margins they have under a card. Under the switch, which
-             has space of its own around it, less is needed for the same 16dp. -->
+        <!-- A switch is 8dp taller on each side than it looks; its margins take that back, so
+             that it stands 16dp from what is above and below it, as everything else does. The
+             fields bring the margin they have under a card, which is more than is needed here. -->
         <include
             android:id="@+id/cloneOptions"
             layout="@layout/view_clone_options"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="-14dp"
+            android:layout_marginTop="-6dp"
             android:visibility="gone" />
 
         <include
@@ -177,6 +179,19 @@
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
+        <!-- Keeps the app at the version it has. The switch brings 8dp of its own on each side;
+             the bottom margin takes it back, as far as it goes without cutting into the switch. -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchNoUpdates"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="-8dp"
+            android:text="@string/switch_no_updates"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:visibility="gone" />
+
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

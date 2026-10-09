@@ -63,7 +63,7 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
             val mayInstall = autoInstall && restrictionsMet(context, settings)
             val clones = if (settings.checkClones) AppRepository(context, cloner).installed().clones else emptyList()
             for (clone in clones) {
-                if (!clone.updateAvailable) continue
+                if (!clone.wantsUpdate) continue
                 val request = clone.updateRequest() ?: continue
                 if (!mayInstall) {
                     available += clone.app.label

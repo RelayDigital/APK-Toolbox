@@ -16,6 +16,9 @@ object SettingKeys {
     const val INCLUDE_PRERELEASES = "includePrereleases"
     const val APP_ID = "appId"
 
+    /** The installed version is the one to stay at: nothing offers or installs a newer one by itself. */
+    const val NO_UPDATES = "doNotUpdate"
+
     // Installing an app as a clone of itself. These are this app's own: the reference app ignores them.
     const val CLONE_PACKAGE = "clonePackage"
     const val CLONE_ACTIVE = "cloneActive"

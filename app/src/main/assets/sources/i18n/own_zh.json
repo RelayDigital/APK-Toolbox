@@ -220,5 +220,8 @@
   "cloneBackToAppMessage": "应用将按发布者的原样安装,包含全部权限,作为从零开始的独立应用:克隆的数据不会转移。克隆会保留,直到你将其移除。",
   "cloneDeleteOriginal": "删除原应用",
   "rowOriginal": "{}(原版)",
-  "rowClone": "{}(克隆)"
+  "rowClone": "{}(克隆)",
+  "fltOriginals": "原版",
+  "fltClones": "克隆",
+  "fltNoUpdates": "不更新"
 }
