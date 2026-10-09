@@ -21,6 +21,7 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import io.github.bl3xand.apkcloner.R
+import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.Url
@@ -379,17 +380,22 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     val downloaded = withContext(Dispatchers.IO) { installer.downloadApp(app, background = false) }
                     app = app.copy(id = downloaded.appId)
                 }
-                repo.entry(app.id)?.let {
-                    throw SourceError("${Tr.get("appAlreadyAdded")}: ${it.app.name} (${app.id})")
+                // Already in the list: no error, its page is what was looked for.
+                if (repo.entry(app.id) != null) {
+                    viewModel.emit(SourcesEvent.OpenApp(app.id))
+                    dismissAllowingStateLoss()
+                    return@launch
                 }
                 if (app.settings.getBool(SettingKeys.TRACK_ONLY) || !app.settings.getBool(SettingKeys.VERSION_DETECTION)) {
                     app = app.copy(installedVersion = app.latestVersion)
                 }
                 app = app.copy(categories = categories.toList())
                 withContext(Dispatchers.IO) { repo.saveApps(listOf(app), onlyIfExists = false) }
+                AppLog.info("Added ${app.id} from ${app.url}, latest ${app.latestVersion}")
                 viewModel.emit(SourcesEvent.OpenApp(app.id))
                 dismissAllowingStateLoss()
             } catch (e: Exception) {
+                AppLog.error("Adding $userInput failed", e)
                 context.showError(e)
             } finally {
                 setBusy(false)

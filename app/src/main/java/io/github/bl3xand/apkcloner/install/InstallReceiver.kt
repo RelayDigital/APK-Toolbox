@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
 import io.github.bl3xand.apkcloner.R
+import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.ui.Messages
 import io.github.bl3xand.apkcloner.update.UpdateNotifications
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -18,18 +19,25 @@ class InstallReceiver : BroadcastReceiver() {
             onBackgroundResult(context, intent, status)
             return
         }
+        val packageName = intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME) ?: "?"
         when (status) {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
+                AppLog.debug("System installer: asking the user to confirm $packageName")
                 val confirm = intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java) ?: return
                 context.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
             PackageInstaller.STATUS_SUCCESS -> {
-                Messages.show(context, context.getString(R.string.install_success))
+                AppLog.info("System installer: installed $packageName")
+                if (!reportedByCaller) Messages.show(context, context.getString(R.string.install_success))
                 finished.tryEmit(Unit)
             }
-            PackageInstaller.STATUS_FAILURE_ABORTED -> finished.tryEmit(Unit)
+            PackageInstaller.STATUS_FAILURE_ABORTED -> {
+                AppLog.info("System installer: cancelled by the user ($packageName)")
+                finished.tryEmit(Unit)
+            }
             else -> {
                 val reason = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE).orEmpty()
+                AppLog.error("System installer: failed for $packageName, status $status: $reason")
                 Messages.show(context, context.getString(R.string.install_failed, reason))
                 finished.tryEmit(Unit)
             }
@@ -52,6 +60,13 @@ class InstallReceiver : BroadcastReceiver() {
     }
 
     companion object {
+        /**
+         * Set while a caller that reports the outcome itself waits for the installer, so that a
+         * successful install is announced once and not twice.
+         */
+        @Volatile
+        var reportedByCaller = false
+
         const val EXTRA_BACKGROUND = "background"
         const val EXTRA_LABEL = "label"
 

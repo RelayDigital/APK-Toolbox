@@ -150,5 +150,7 @@
   "actDownloadMany": "下载发布文件",
   "actSelectedCount": {
     "other": "已选择 {} 个应用"
-  }
+  },
+  "msgInstalledOne": "已安装",
+  "detSignerConflict": "设备上安装的是此应用的另一个构建版本——签名密钥不同，无法覆盖安装。请先卸载已安装的应用。"
 }

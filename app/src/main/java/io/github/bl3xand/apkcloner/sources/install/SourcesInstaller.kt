@@ -185,6 +185,7 @@ class SourcesInstaller private constructor(private val context: Context) {
         try {
             repo.setDownload(app.id, DownloadState(0.0))
             if (app.apkUrls.isEmpty()) throw NoApkError()
+            AppLog.info("Downloading ${app.id} ${app.latestVersion} from ${app.url}")
             app = app.copy(preferredApkIndex = app.preferredApkIndex.coerceIn(0, app.apkUrls.size - 1))
             val source = repo.sourceOf(app)
             val merged = source.buildMergedSettings(app.additionalSettings, settings)
@@ -355,8 +356,28 @@ class SourcesInstaller private constructor(private val context: Context) {
             throw SigningCertMismatchError(true, userHashes, apkHashes)
         }
         if (!settings.verifySigningCertHashes || installedHashes.isEmpty() || installedHashes.containsAll(apkHashes)) return
-        val proceed = prompts?.signingMismatch(entry.name, installedHashes, apkHashes, hardBlock = false) ?: false
-        if (!proceed) throw SigningCertMismatchError(false, installedHashes, apkHashes)
+        // What is installed under this package was signed by someone else - another build of the
+        // app. The system will not put this one over it, so there is nothing to ask: the app's
+        // page says so until the installed one is removed.
+        AppLog.warn("${entry.app.id}: the installed app is signed differently from ${entry.app.latestVersion} of this source")
+        settings.setString(SIGNER_CONFLICT_PREFIX + entry.app.id, entry.app.latestVersion)
+        throw SigningCertMismatchError(false, installedHashes, apkHashes)
+    }
+
+    /**
+     * Whether the release on offer is known not to install over what is on the device, because
+     * the two are signed differently. Found out by trying once; forgotten when the installed
+     * app goes or a new release appears.
+     */
+    fun hasSignerConflict(entry: AppEntry): Boolean {
+        val key = SIGNER_CONFLICT_PREFIX + entry.app.id
+        val known = settings.getString(key).orEmpty()
+        if (known.isEmpty()) return false
+        if (entry.installedInfo == null || known != entry.app.latestVersion) {
+            settings.setString(key, "")
+            return false
+        }
+        return true
     }
 
     private fun moveObbFiles(dir: File, appId: String) {
@@ -408,11 +429,23 @@ class SourcesInstaller private constructor(private val context: Context) {
             throw DowngradeError(installed.longVersionCode, newInfo.longVersionCode)
         }
         val before = baseline(appId)
-        val outcome = installer(background).install(
-            context, apks, background, entry.name, if (pretendPlay) Installer.PLAY_STORE_PACKAGE else null,
-        )
+        AppLog.debug("Installing $appId with ${installer(background).javaClass.simpleName}, ${apks.size} file(s), background=$background")
+        // The outcome is reported by whoever asked for the install.
+        InstallReceiver.reportedByCaller = true
+        val outcome = try {
+            installer(background).install(
+                context, apks, background, entry.name, if (pretendPlay) Installer.PLAY_STORE_PACKAGE else null,
+            )
+        } catch (e: Exception) {
+            InstallReceiver.reportedByCaller = false
+            throw e
+        }
         val succeeded = when (outcome) {
-            is InstallOutcome.Failed -> throw SourceError(outcome.reason)
+            is InstallOutcome.Failed -> {
+                InstallReceiver.reportedByCaller = false
+                AppLog.error("Install of $appId failed: ${outcome.reason}")
+                throw SourceError(outcome.reason)
+            }
             InstallOutcome.Success -> true
             InstallOutcome.Pending -> {
                 if (background) {
@@ -436,6 +469,8 @@ class SourcesInstaller private constructor(private val context: Context) {
                 }
             }
         }
+        InstallReceiver.reportedByCaller = false
+        AppLog.info(if (succeeded) "Installed $appId ${newInfo.versionName}" else "Install of $appId was not confirmed")
         if (succeeded) {
             repo.entry(appId)?.let { repo.saveApps(listOf(it.app.copy(installedVersion = it.app.latestVersion))) }
             apks.forEach { it.delete() }
@@ -677,6 +712,8 @@ class SourcesInstaller private constructor(private val context: Context) {
     }
 
     companion object {
+        private const val SIGNER_CONFLICT_PREFIX = "signerConflict:"
+
         private const val BACKGROUND_CONFIRM_ATTEMPTS = 20
         private const val INSTALL_CONFIRM_POLLS = 300
         private const val INSTALL_CONFIRM_TIMEOUT_MS = 10 * 60_000L

@@ -190,4 +190,9 @@
         <item quantity="other">%d дня</item>
     </plurals>
     <string name="search_clear">Очистить поиск</string>
+    <string name="clone_permissions">Разрешения клона</string>
+    <string name="clone_permissions_removed">Разрешения клона: убрано %1$d</string>
+    <string name="clone_permissions_hint">Всё, что запрашивает оригинал. Выключите то, чего у клона быть не должно; без нужного разрешения приложение может перестать работать.</string>
+    <string name="clone_permissions_none">Приложение не запрашивает разрешений.</string>
+    <string name="button_done">Готово</string>
 </resources>

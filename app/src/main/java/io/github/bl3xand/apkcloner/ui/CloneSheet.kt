@@ -1,6 +1,7 @@
 package io.github.bl3xand.apkcloner.ui
 
 import android.content.DialogInterface
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -16,8 +17,15 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import io.github.bl3xand.apkcloner.R
+import io.github.bl3xand.apkcloner.data.ApkSource
 import io.github.bl3xand.apkcloner.databinding.SheetCloneBinding
 import io.github.bl3xand.apkcloner.settings.AppSettings
+import io.github.bl3xand.apkcloner.sources.ui.Spacing
+import io.github.bl3xand.apkcloner.sources.ui.add
+import io.github.bl3xand.apkcloner.sources.ui.column
+import io.github.bl3xand.apkcloner.sources.ui.label
+import io.github.bl3xand.apkcloner.sources.ui.showSheet
+import io.github.bl3xand.apkcloner.sources.ui.switchRow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
@@ -56,6 +64,8 @@ class CloneSheet : BottomSheetDialogFragment() {
         binding.editPackage.doAfterTextChanged { binding.layoutPackage.error = null }
         binding.buttonClone.setOnClickListener { startClone() }
         binding.buttonInstall.setOnClickListener { viewModel.installResult() }
+        binding.buttonPermissions.setOnClickListener { pickPermissions(source) }
+        renderPermissions()
         binding.buttonSave.setOnClickListener { save() }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -103,10 +113,15 @@ class CloneSheet : BottomSheetDialogFragment() {
         binding.layoutPackage.isEnabled = !running && !done
         binding.layoutName.isEnabled = !running && !done
         binding.switchBadge.isEnabled = !running && !done
+        binding.buttonPermissions.isEnabled = !running && !done
         binding.buttonClone.isEnabled = !running
         binding.buttonClone.isVisible = !done
         binding.resultActions.isVisible = done
         binding.buttonInstall.isEnabled = !installing
+        // Over a clone that is already there this is an update.
+        val target = binding.editPackage.text?.toString().orEmpty().trim()
+        val exists = runCatching { requireContext().packageManager.getPackageInfo(target, 0) }.isSuccess
+        binding.buttonInstall.setText(if (exists) R.string.button_update else R.string.button_install)
         binding.buttonSave.isEnabled = !installing
         binding.progress.isVisible = running || installing
         binding.textStatus.isVisible = state !is CloneState.Idle
@@ -124,6 +139,40 @@ class CloneSheet : BottomSheetDialogFragment() {
             }
         }
         lastRunning = running
+    }
+
+    private fun renderPermissions() {
+        val removed = viewModel.cloneRemovedPermissions.size
+        binding.buttonPermissions.text =
+            if (removed == 0) getString(R.string.clone_permissions) else getString(R.string.clone_permissions_removed, removed)
+    }
+
+    /** Every permission the original asks for, ticked; an unticked one is left out of the clone. */
+    private fun pickPermissions(source: ApkSource) {
+        val context = requireContext()
+        val requested = runCatching {
+            context.packageManager.getPackageArchiveInfo(source.apkPaths.first(), PackageManager.GET_PERMISSIONS)?.requestedPermissions
+        }.getOrNull().orEmpty().distinct().sorted()
+        val removed = viewModel.cloneRemovedPermissions.toMutableSet()
+        val list = context.column(Spacing.SHEET)
+        list.add(context.label(getString(R.string.clone_permissions_hint), colorAttr = com.google.android.material.R.attr.colorOnSurfaceVariant))
+        if (requested.isEmpty()) list.add(context.label(getString(R.string.clone_permissions_none)), topMargin = Spacing.BLOCK)
+        for (permission in requested) {
+            // The last part is what tells permissions apart; the full name goes underneath.
+            list.add(
+                context.switchRow(permission.substringAfterLast('.'), permission !in removed, permission) { keep ->
+                    if (keep) removed.remove(permission) else removed.add(permission)
+                },
+            )
+        }
+        context.showSheet(
+            getString(R.string.clone_permissions), content = list,
+            positive = getString(R.string.button_done), negative = getString(android.R.string.cancel),
+        ) {
+            viewModel.cloneRemovedPermissions = removed
+            renderPermissions()
+            true
+        }
     }
 
     /** Whether the previous render was still cloning, i.e. "Done" is news. */

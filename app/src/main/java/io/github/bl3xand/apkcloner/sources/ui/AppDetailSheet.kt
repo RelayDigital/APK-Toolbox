@@ -181,8 +181,12 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         // The same card as everywhere else; a tap opens the app's page in the system settings.
         binding.appCard.bindTracked(entry)
 
-        binding.cardNotice.isVisible = app.hasPendingRepoRename
-        if (app.hasPendingRepoRename) {
+        val conflict = viewModel.installer.hasSignerConflict(entry)
+        binding.cardNotice.isVisible = app.hasPendingRepoRename || conflict
+        binding.buttonNotice.isVisible = app.hasPendingRepoRename
+        if (conflict) {
+            binding.textNotice.text = Tr.get("detSignerConflict")
+        } else if (app.hasPendingRepoRename) {
             binding.textNotice.text = "${Tr.get("repoRenamedExplanation")}\n\n${app.pendingRepoRenameUrl}"
             binding.buttonNotice.text = Tr.get("updateUrl")
             binding.buttonNotice.setOnClickListener {
@@ -225,7 +229,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
             else "${download.progress.toInt()}%  ${formatDownloadSize(download.receivedBytes, download.totalBytes) ?: ""}"
         }
 
-        val canAct = !busy && (installed == null || installed != app.latestVersion) && !repo.areDownloadsRunning()
+        val canAct = !busy && !conflict && (installed == null || installed != app.latestVersion) && !repo.areDownloadsRunning()
         val label = when {
             installed == null -> Tr.get(if (trackOnly) "markInstalled" else "install")
             else -> Tr.get(if (trackOnly) "markUpdated" else "update")
@@ -249,7 +253,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         if (binding.buttonDelete.isEnabled == busy) binding.buttonDelete.isEnabled = !busy
         binding.buttonDelete.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launch {
-                val (uninstall, removeEntry) = dialogs.askRemove(listOf(app)) ?: return@launch
+                val (uninstall, removeEntry) = dialogs.askRemove(listOf(app), keepEntry = true) ?: return@launch
                 viewModel.remove(listOf(appId), uninstall, removeEntry)
             }
         }

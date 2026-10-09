@@ -11,7 +11,12 @@ import java.nio.ByteOrder
  * values at strings appended to the end of the pool. Existing pool entries are never changed, so
  * the resource-id map (which is indexed by pool position) stays valid.
  */
-class ManifestPatcher(val newPackage: String, private val newLabel: String?) {
+class ManifestPatcher(
+    val newPackage: String,
+    private val newLabel: String?,
+    /** Permissions, by their name in the original, that the result must not ask for. */
+    private val removedPermissions: Set<String> = emptySet(),
+) {
 
     var oldPackage: String = ""
         private set
@@ -30,10 +35,33 @@ class ManifestPatcher(val newPackage: String, private val newLabel: String?) {
         strings = readPool(POOL_START)
 
         val elements = ArrayList<Int>()
+        // Byte ranges of the chunks that are left out of the result.
+        val dropped = ArrayList<IntRange>()
+        var dropNextEnd = false
         var pos = POOL_START + poolSize
         while (pos + 8 <= end) {
             val size = buf.getInt(pos + 4)
             require(size >= 8 && pos + size <= end) { "Corrupt manifest chunk" }
+            val start = pos
+            when (ushort(pos)) {
+                RES_XML_START_ELEMENT -> if (removedPermissions.isNotEmpty() && tagOf(pos) in PERMISSION_USES) {
+                    var name: String? = null
+                    forEachAttr(pos) { attr -> if (attrName(attr) == "name") name = stringValue(attr) }
+                    if (name in removedPermissions) {
+                        // The element and the end tag right after it: a permission has no children.
+                        dropped += start until start + size
+                        dropNextEnd = true
+                        pos += size
+                        continue
+                    }
+                }
+                RES_XML_END_ELEMENT -> if (dropNextEnd) {
+                    dropped += start until start + size
+                    dropNextEnd = false
+                    pos += size
+                    continue
+                }
+            }
             when (ushort(pos)) {
                 RES_XML_RESOURCE_MAP -> {
                     val header = ushort(pos + 2)
@@ -96,10 +124,16 @@ class ManifestPatcher(val newPackage: String, private val newLabel: String?) {
 
         val pool = writePool()
         val tailStart = POOL_START + poolSize
-        val out = ByteBuffer.allocate(POOL_START + pool.size + end - tailStart).order(ByteOrder.LITTLE_ENDIAN)
+        val out = ByteBuffer.allocate(POOL_START + pool.size + end - tailStart - dropped.sumOf { it.count() })
+            .order(ByteOrder.LITTLE_ENDIAN)
         out.put(buf.array(), 0, POOL_START)
         out.put(pool)
-        out.put(buf.array(), tailStart, end - tailStart)
+        var from = tailStart
+        for (range in dropped) {
+            out.put(buf.array(), from, range.first - from)
+            from = range.last + 1
+        }
+        out.put(buf.array(), from, end - from)
         out.putInt(4, out.capacity())
         return out.array()
     }
@@ -198,6 +232,7 @@ class ManifestPatcher(val newPackage: String, private val newLabel: String?) {
         const val RES_STRING_POOL = 0x0001
         const val RES_XML = 0x0003
         const val RES_XML_START_ELEMENT = 0x0102
+        const val RES_XML_END_ELEMENT = 0x0103
         const val RES_XML_RESOURCE_MAP = 0x0180
         const val POOL_START = 8
         const val POOL_HEADER_SIZE = 28
