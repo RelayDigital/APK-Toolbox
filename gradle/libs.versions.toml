@@ -15,6 +15,8 @@ jsoup = "1.21.2"
 junit = "4.13.2"
 orgJson = "20250517"
 jbcrypt = "0.4"
+dexlib2 = "2.5.2"
+dexlib2group = "org.smali"
 commonsCompress = "1.27.1"
 xz = "1.10"
 
@@ -36,6 +38,7 @@ apksig = { group = "com.android.tools.build", name = "apksig", version.ref = "ap
 jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 jbcrypt = { group = "org.mindrot", name = "jbcrypt", version.ref = "jbcrypt" }
+dexlib2 = { group = "org.smali", name = "dexlib2", version.ref = "dexlib2" }
 commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commonsCompress" }
 xz = { group = "org.tukaani", name = "xz", version.ref = "xz" }
 org-json = { group = "org.json", name = "json", version.ref = "orgJson" }

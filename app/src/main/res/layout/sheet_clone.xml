@@ -65,6 +65,14 @@
             android:text="@string/clone_badge"
             android:textAppearance="?attr/textAppearanceBodyLarge" />
 
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchBypass"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/clone_bypass"
+            android:textAppearance="?attr/textAppearanceBodyLarge" />
+
         <!-- Which of the original's permissions the clone keeps. -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonPermissions"

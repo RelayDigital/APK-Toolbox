@@ -217,7 +217,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun startClone(newPackage: String, newLabel: String, badgeIcon: Boolean) {
+    fun startClone(newPackage: String, newLabel: String, badgeIcon: Boolean, bypassSignatureCheck: Boolean = false) {
         val source = selected ?: return
         if (_cloneState.value is CloneState.Running) return
         _cloneState.value = CloneState.Running(source.label, 0, source.apkPaths.size)
@@ -226,7 +226,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 try {
                     AppLog.info("Cloning ${source.packageName} ${source.versionName.orEmpty()} as $newPackage (${source.apkPaths.size} files)")
                     if (cloneRemovedPermissions.isNotEmpty()) AppLog.info("Clone is made without: ${cloneRemovedPermissions.joinToString()}")
-                    CloneState.Done(cloner.clone(source.cloneRequest(newPackage, newLabel, badgeIcon, removedPermissions = cloneRemovedPermissions), sheetOutput) { file, index, total ->
+                    if (bypassSignatureCheck) AppLog.info("Clone has the integrity/signature check bypassed")
+                    CloneState.Done(cloner.clone(source.cloneRequest(newPackage, newLabel, badgeIcon, removedPermissions = cloneRemovedPermissions, bypassSignatureCheck = bypassSignatureCheck), sheetOutput) { file, index, total ->
                         _cloneState.value = CloneState.Running(file, index, total)
                     }).also { AppLog.info("Cloned $newPackage: ${it.apks.sumOf(File::length) / BYTES_IN_MB} MB") }
                 } catch (e: Exception) {

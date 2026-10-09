@@ -58,6 +58,10 @@ class AppSettings(context: Context) {
         get() = prefs.getBoolean(KEY_CLONE_BADGE, true)
         set(value) = prefs.edit().putBoolean(KEY_CLONE_BADGE, value).apply()
 
+    var cloneBypass: Boolean
+        get() = prefs.getBoolean(KEY_CLONE_BYPASS, false)
+        set(value) = prefs.edit().putBoolean(KEY_CLONE_BYPASS, value).apply()
+
     var installSign: Boolean
         get() = prefs.getBoolean(KEY_INSTALL_SIGN, false)
         set(value) = prefs.edit().putBoolean(KEY_INSTALL_SIGN, value).apply()
@@ -80,6 +84,7 @@ class AppSettings(context: Context) {
         private const val KEY_MERGE_SIGN = "merge_sign"
         private const val KEY_INSTALL_SIGN = "install_sign"
         private const val KEY_CLONE_BADGE = "clone_badge"
+        private const val KEY_CLONE_BYPASS = "clone_bypass"
         private const val KEY_MERGE_FORCE = "merge_force"
         private const val KEY_CHECK_UPDATES = "check_updates"
         private const val KEY_AUTO_INSTALL = "auto_install"

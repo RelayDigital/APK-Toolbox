@@ -26,6 +26,7 @@ object ApkRebuilder {
     private const val NATIVE_LIBRARY_ALIGNMENT = 16384
     private const val DEFAULT_ALIGNMENT = 4
     private val SIGNATURE_FILE = Regex("META-INF/([^/]+\\.(SF|RSA|DSA|EC)|MANIFEST\\.MF)", RegexOption.IGNORE_CASE)
+    private val DEX_FILE = Regex("^classes\\d*\\.dex$", RegexOption.IGNORE_CASE)
 
     /**
      * [replacements] swaps whole entries by name. [extraEntry] is evaluated after the manifest
@@ -37,6 +38,7 @@ object ApkRebuilder {
         patcher: ManifestPatcher,
         replacements: Map<String, ByteArray>,
         extraEntry: (() -> Pair<String, ByteArray>)?,
+        dexPatcher: ((name: String, data: ByteArray) -> ByteArray)? = null,
     ) {
         val counter = CountingOutputStream(BufferedOutputStream(target.outputStream(), 1 shl 16))
         ZipFile(source).use { zip ->
@@ -77,6 +79,11 @@ object ApkRebuilder {
                         copy.storedAt(counter.count, entry, entry.crc)
                         out.putNextEntry(copy)
                         zip.getInputStream(entry).use { it.copyTo(out, 1 shl 16) }
+                    } else if (dexPatcher != null && DEX_FILE.matches(entry.name)) {
+                        // Opt-in: neutralize the app's own integrity/signature check in the dex.
+                        val patched = dexPatcher(entry.name, zip.getInputStream(entry).use { it.readBytes() })
+                        out.putNextEntry(copy)
+                        out.write(patched)
                     } else {
                         out.putNextEntry(copy)
                         zip.getInputStream(entry).use { it.copyTo(out, 1 shl 16) }

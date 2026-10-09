@@ -22,6 +22,11 @@ class CloneRequest(
     val badgeIconOf: ApplicationInfo? = null,
     /** Permissions of the original, by name, that the clone is made without. */
     val removedPermissions: Set<String> = emptySet(),
+    /**
+     * Opt-in: rewrite the dex to neutralize the app's own integrity/signature check, so an app
+     * that self-exits on a signature mismatch stays alive as a clone.
+     */
+    val bypassSignatureCheck: Boolean = false,
 )
 
 class ApkCloner(private val context: Context) {
@@ -72,7 +77,9 @@ class ApkCloner(private val context: Context) {
                             "$METADATA_REMOVED_PERMISSIONS=${request.removedPermissions.joinToString(",")}\n"
                         ).toByteArray()
                 }
-                ApkRebuilder.rebuild(apk, unsigned, patcher, iconFiles, metadata.takeIf { index == 0 })
+                val dexPatcher = if (request.bypassSignatureCheck) { name: String, data: ByteArray -> SignatureBypass.patchDex(data) } else null
+                ApkRebuilder.rebuild(apk, unsigned, patcher, iconFiles, metadata.takeIf { index == 0 }, dexPatcher)
+                if (dexPatcher != null) AppLog.debug("$name: signature-check bypass enabled in dex")
                 AppLog.debug("$name: ${patcher.oldPackage} renamed to ${request.newPackage}, ${unsigned.length()} bytes; signing")
                 sign(unsigned, output, request.key ?: keys.active)
                 output

@@ -97,6 +97,9 @@ dependencies {
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
     implementation(files(strippedArsclib))
+    // dexlib2 is not bundled inside the stripped ARSCLib jar (thin, isTransitive=false), so it is
+    // added directly. Used by SignatureBypass to rewrite dex bytecode without a new toolchain.
+    implementation(libs.dexlib2)
     implementation(libs.apksig)
     implementation(libs.jsoup)
     implementation(libs.jbcrypt)
