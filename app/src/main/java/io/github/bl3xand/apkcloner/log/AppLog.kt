@@ -5,30 +5,22 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /**
  * The app's log: what was checked, downloaded, cloned, merged and installed, and what failed.
  * Every tool writes here, so one place tells what happened and when.
  */
 object AppLog {
-    enum class Level { DEBUG, INFO, WARNING, ERROR }
-
-    class Entry(val level: Level, val message: String, val timestamp: Long) {
-        override fun toString(): String =
-            "${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT).format(Date(timestamp))}: " +
-                "${level.name.lowercase()}: $message"
-    }
-
     private const val TAG = "ApkToolbox"
     private const val TABLE = "logs"
-    private const val MAX_AGE_MS = 7L * 24 * 60 * 60 * 1000
+    /** How long an entry is kept. */
+    const val KEPT_DAYS = 30
+    private const val MAX_AGE_MS = KEPT_DAYS * 24L * 60 * 60 * 1000
 
     @Volatile
     private var helper: SQLiteOpenHelper? = null
 
+    @Synchronized
     fun init(context: Context) {
         if (helper != null) return
         helper = object : SQLiteOpenHelper(context.applicationContext, "sources_logs.db", null, 1) {
@@ -45,19 +37,19 @@ object AppLog {
         runCatching { clear(before = System.currentTimeMillis() - MAX_AGE_MS) }
     }
 
-    fun debug(message: String) = log(Level.DEBUG, message)
-    fun info(message: String) = log(Level.INFO, message)
-    fun warn(message: String) = log(Level.WARNING, message)
+    fun debug(message: String) = log(LogLevel.DEBUG, message)
+    fun info(message: String) = log(LogLevel.INFO, message)
+    fun warn(message: String) = log(LogLevel.WARNING, message)
     fun error(message: String, error: Throwable? = null) =
-        log(Level.ERROR, if (error != null) "$message: ${error.message ?: error}" else message)
+        log(LogLevel.ERROR, if (error != null) "$message: ${error.message ?: error}" else message)
 
-    private fun log(level: Level, message: String) {
+    private fun log(level: LogLevel, message: String) {
         Log.println(
             when (level) {
-                Level.DEBUG -> Log.DEBUG
-                Level.INFO -> Log.INFO
-                Level.WARNING -> Log.WARN
-                Level.ERROR -> Log.ERROR
+                LogLevel.DEBUG -> Log.DEBUG
+                LogLevel.INFO -> Log.INFO
+                LogLevel.WARNING -> Log.WARN
+                LogLevel.ERROR -> Log.ERROR
             },
             TAG, message,
         )
@@ -74,9 +66,9 @@ object AppLog {
         }
     }
 
-    fun query(after: Long? = null): List<Entry> {
+    fun query(after: Long? = null): List<LogEntry> {
         val db = helper?.readableDatabase ?: return emptyList()
-        val entries = ArrayList<Entry>()
+        val entries = ArrayList<LogEntry>()
         db.query(
             TABLE, arrayOf("level", "message", "timestamp"),
             if (after != null) "timestamp > ?" else null,
@@ -85,8 +77,8 @@ object AppLog {
         ).use { cursor ->
             while (cursor.moveToNext()) {
                 entries.add(
-                    Entry(
-                        Level.entries.getOrElse(cursor.getInt(0)) { Level.INFO }, cursor.getString(1), cursor.getLong(2),
+                    LogEntry(
+                        LogLevel.entries.getOrElse(cursor.getInt(0)) { LogLevel.INFO }, cursor.getString(1), cursor.getLong(2),
                     ),
                 )
             }

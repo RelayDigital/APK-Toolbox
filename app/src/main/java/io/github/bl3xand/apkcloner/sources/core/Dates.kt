@@ -6,6 +6,7 @@ import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -56,7 +57,7 @@ object Dates {
             } catch (_: Exception) {
             }
             try {
-                return java.time.ZonedDateTime.parse(trimmed, DateTimeFormatter.ofPattern(pattern, Locale.ENGLISH)).toInstant()
+                return ZonedDateTime.parse(trimmed, DateTimeFormatter.ofPattern(pattern, Locale.ENGLISH)).toInstant()
             } catch (_: Exception) {
             }
         }

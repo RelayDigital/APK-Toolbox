@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
+import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
@@ -24,6 +25,8 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = SheetCloneDetailBinding.inflate(inflater, container, false)
+        // A clone is rebuilt or removed in one go: there are no steps to count.
+        binding.actions.progress.isIndeterminate = true
         return binding.root
     }
 
@@ -59,22 +62,29 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
         val removed = clone.removedPermissions
         binding.dividerPermissions.isVisible = removed.isNotEmpty()
         binding.rowPermissions.isVisible = removed.isNotEmpty()
-        if (removed.isNotEmpty()) {
-            binding.textPermissions.text = removed.sorted().joinToString("\n") { it.substringAfterLast('.') }
-            // The reset is the same move as in the permission editor: put every permission back and
-            // re-clone as an in-place update, so the data is kept. Blocked while a build is running.
-            binding.buttonResetPermissions.isVisible = true
-            binding.buttonResetPermissions.isEnabled = !busy
-            binding.buttonResetPermissions.setOnClickListener { viewModel.resetClone(clone) }
-        }
+        if (removed.isNotEmpty()) binding.textPermissions.text = removed.sorted().joinToString("\n") { it.substringAfterLast('.') }
 
-        binding.progress.isVisible = busy
-        binding.buttonUpdate.isEnabled = clone.updateAvailable && !busy
-        binding.buttonDelete.isEnabled = !busy
-        binding.buttonUpdate.setOnClickListener { viewModel.updateClone(clone) }
+        // The same editor as when the clone was made. A change is applied by building the clone
+        // again and installing it over itself, so the data is kept. Needs the original to build from.
+        val original = clone.original
+        binding.buttonPermissions.text = requireContext().clonePermissionsLabel(removed.size)
+        binding.buttonPermissions.isEnabled = original != null && !busy
+        binding.buttonPermissions.setOnClickListener {
+            if (original != null) {
+                requireContext().pickClonePermissions(original.apkPaths.first(), removed) { viewModel.setClonePermissions(clone, it) }
+            }
+        }
+        binding.buttonResetPermissions.isVisible = removed.isNotEmpty()
+        binding.buttonResetPermissions.isEnabled = original != null && !busy
+        binding.buttonResetPermissions.setOnClickListener { viewModel.setClonePermissions(clone, emptySet()) }
+
+        binding.actions.progress.isInvisible = !busy
+        binding.actions.buttonUpdate.isEnabled = clone.updateAvailable && !busy
+        binding.actions.buttonDelete.isEnabled = !busy
+        binding.actions.buttonUpdate.setOnClickListener { viewModel.updateClone(clone) }
         // The system asks for confirmation; progress shows for the whole wait and the card closes
         // once the clone is gone.
-        binding.buttonDelete.setOnClickListener { viewModel.uninstallClone(clone) }
+        binding.actions.buttonDelete.setOnClickListener { viewModel.uninstallClone(clone) }
     }
 
     companion object {

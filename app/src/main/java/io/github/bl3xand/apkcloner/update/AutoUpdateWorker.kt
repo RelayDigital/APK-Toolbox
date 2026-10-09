@@ -1,12 +1,15 @@
 package io.github.bl3xand.apkcloner.update
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.BatteryManager
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
-import androidx.work.NetworkType
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -16,9 +19,11 @@ import io.github.bl3xand.apkcloner.clone.ApkCloner
 import io.github.bl3xand.apkcloner.data.AppRepository
 import io.github.bl3xand.apkcloner.install.InstallOutcome
 import io.github.bl3xand.apkcloner.install.Installer
-import io.github.bl3xand.apkcloner.settings.AppSettings
-import io.github.bl3xand.apkcloner.shizuku.ShizukuBridge
 import io.github.bl3xand.apkcloner.log.AppLog
+import io.github.bl3xand.apkcloner.settings.AppSettings
+import io.github.bl3xand.apkcloner.settings.InstallMethod
+import io.github.bl3xand.apkcloner.shizuku.ShizukuBridge
+import io.github.bl3xand.apkcloner.shizuku.ShizukuState
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import io.github.bl3xand.apkcloner.sources.work.SourcesBackground
 import java.io.File
@@ -36,8 +41,8 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
         val context = applicationContext
         val settings = AppSettings(context)
         val autoInstall = settings.autoInstall
-        if (autoInstall && settings.installMethod == AppSettings.InstallMethod.SHIZUKU &&
-            ShizukuBridge.stateAfterStartup() != ShizukuBridge.State.READY && runAttemptCount < SHIZUKU_RETRIES &&
+        if (autoInstall && settings.installMethod == InstallMethod.SHIZUKU &&
+            ShizukuBridge.stateAfterStartup() != ShizukuState.READY && runAttemptCount < SHIZUKU_RETRIES &&
             !inputData.getBoolean(KEY_MANUAL, false)
         ) {
             // Typically right after a reboot, when this check is already due but Shizuku has not
@@ -124,16 +129,16 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
         /** Whether the "Wi-Fi only" and "while charging" conditions hold right now. */
         fun restrictionsMet(context: Context, settings: AppSettings): Boolean {
             if (settings.wifiOnly) {
-                val manager = context.getSystemService(android.net.ConnectivityManager::class.java)
+                val manager = context.getSystemService(ConnectivityManager::class.java)
                 val capabilities = manager.getNetworkCapabilities(manager.activeNetwork)
                 val unmetered = capabilities != null && (
-                    capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) ||
-                        capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET)
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
                     )
                 if (!unmetered) return false
             }
             if (settings.chargingOnly &&
-                !context.getSystemService(android.os.BatteryManager::class.java).isCharging
+                !context.getSystemService(BatteryManager::class.java).isCharging
             ) {
                 return false
             }

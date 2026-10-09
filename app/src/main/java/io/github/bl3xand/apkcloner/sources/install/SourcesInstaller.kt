@@ -4,12 +4,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Environment
+import androidx.core.content.FileProvider
 import io.github.bl3xand.apkcloner.install.InstallOutcome
 import io.github.bl3xand.apkcloner.install.InstallReceiver
 import io.github.bl3xand.apkcloner.install.Installer
 import io.github.bl3xand.apkcloner.install.StockInstaller
+import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
 import io.github.bl3xand.apkcloner.sources.core.CancellationSignal
 import io.github.bl3xand.apkcloner.sources.core.CertHashes
@@ -24,7 +25,6 @@ import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.Url
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
 import io.github.bl3xand.apkcloner.sources.data.DownloadState
-import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import io.github.bl3xand.apkcloner.sources.data.certHashesOf
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
@@ -34,6 +34,7 @@ import io.github.bl3xand.apkcloner.sources.net.Downloader
 import io.github.bl3xand.apkcloner.sources.work.SourcesNotifications
 import java.io.File
 import java.io.InputStream
+import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.GZIPInputStream
 import java.util.zip.ZipInputStream
@@ -44,26 +45,12 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 import org.apache.commons.compress.compressors.xz.XZCompressorInputStream
-
-/** Questions an install may need answered. Absent in the background, where nothing can be asked. */
-interface InstallPrompts {
-    /** Lets the user choose among [choices]; null cancels. */
-    suspend fun pickFile(app: TrackedApp, choices: List<NamedUrl>, preselected: NamedUrl?, anyAsset: Boolean): NamedUrl?
-
-    /** The file comes from another site than the app's source. */
-    suspend fun confirmOrigin(sourceUrl: String, apkUrl: String): Boolean
-
-    /** Shows a certificate mismatch; the result only matters when [hardBlock] is false. */
-    suspend fun signingMismatch(appName: String, expected: Set<String>, actual: Set<String>, hardBlock: Boolean): Boolean
-}
-
-/** What a download produced: a single APK, or a folder of APKs unpacked from a bundle. */
-class Downloaded(val appId: String, val file: File, val dir: File? = null, val splitSet: Boolean = false)
 
 private class InstallBaseline(val wasInstalled: Boolean, val versionCode: Long?, val updateTime: Long?)
 
@@ -351,7 +338,7 @@ class SourcesInstaller private constructor(private val context: Context) {
             return
         }
         // Keep the latest APK's signer on record so the app's page can judge a conflict live.
-        storeApkCertHashes(entry.app.id, apkHashes)
+        repo.storeApkCertHashes(entry.app.id, apkHashes)
         if (userHashes.isNotEmpty() && !userHashes.containsAll(apkHashes)) {
             prompts?.signingMismatch(entry.name, userHashes, apkHashes, hardBlock = true)
             throw SigningCertMismatchError(true, userHashes, apkHashes)
@@ -364,39 +351,17 @@ class SourcesInstaller private constructor(private val context: Context) {
         throw SigningCertMismatchError(false, installedHashes, apkHashes)
     }
 
-    /**
-     * Whether the release on offer cannot be installed over what is on the device because the two
-     * are signed differently. Worked out live from the installed app's certificate and the signer
-     * last recorded for this app's downloads, so it is right the moment an app is added and clears
-     * itself once the clashing app is gone or a matching one is installed.
-     */
-    fun hasSignerConflict(entry: AppEntry): Boolean {
-        if (!settings.verifySigningCertHashes) return false
-        val installedHashes = entry.certificateHashes.toSet()
-        if (installedHashes.isEmpty()) return false
-        val apkHashes = storedApkCertHashes(entry.app.id)
-        if (apkHashes.isEmpty()) return false
-        return !installedHashes.containsAll(apkHashes)
-    }
+    fun hasSignerConflict(entry: AppEntry): Boolean = repo.hasSignerConflict(entry)
 
-    /**
-     * Records the downloaded [apks]' signer for [appId] so [hasSignerConflict] can tell, as soon as
-     * the app is added, that a differently-signed build is already installed - rather than the user
-     * finding out only when an install fails.
-     */
-    fun noteSignerConflict(appId: String, apks: List<File>) {
-        val apkHashes = apkCertHashes(apks)
-        storeApkCertHashes(appId, apkHashes)
-        AppLog.debug("$appId: recorded ${apkHashes.size} signer hash(es) of the downloaded APK")
-    }
+    /** The signer of what a download produced; empty when it cannot be read. */
+    fun signerHashesOf(downloaded: Downloaded): Set<String> = apkCertHashes(
+        downloaded.dir?.walkTopDown()?.filter { it.isFile && it.name.lowercase().endsWith(".apk") }?.toList()
+            ?: listOf(downloaded.file),
+    )
 
-    private fun storedApkCertHashes(appId: String): Set<String> =
-        settings.getString(APK_CERT_PREFIX + appId).orEmpty()
-            .split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
-
-    private fun storeApkCertHashes(appId: String, apkHashes: Set<String>) {
-        if (apkHashes.isNotEmpty()) settings.setString(APK_CERT_PREFIX + appId, apkHashes.joinToString(","))
-    }
+    /** Whether an APK signed with [apkHashes] would clash with the build of [appId] on the device. */
+    fun clashesWithInstalled(appId: String, apkHashes: Set<String>): Boolean =
+        repo.signersClash(repo.installedInfo(appId), apkHashes)
 
     private fun moveObbFiles(dir: File, appId: String) {
         for (obb in dir.walkTopDown().filter { it.isFile && it.name.lowercase().endsWith(".obb") }) {
@@ -414,7 +379,7 @@ class SourcesInstaller private constructor(private val context: Context) {
         if (!settings.beforeNewInstallsShareToAppVerifier) return
         if (verifierPackages.none { repo.installedInfo(it) != null }) return
         try {
-            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.sources", apk)
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.sources", apk)
             context.startActivity(
                 Intent.createChooser(
                     Intent(Intent.ACTION_SEND).setType("application/vnd.android.package-archive")
@@ -600,7 +565,7 @@ class SourcesInstaller private constructor(private val context: Context) {
             var entry = repo.entry(id) ?: throw SourceError(Tr.get("appNotFound"))
             if (entry.needsRefreshBeforeDownload) {
                 try {
-                    repo.checkUpdate(id)
+                    repo.updates.checkUpdate(id)
                 } catch (e: Exception) {
                     errors.add(id, e, appName = entry.name)
                     continue
@@ -628,8 +593,8 @@ class SourcesInstaller private constructor(private val context: Context) {
 
         // This app goes last: installing it ends the process.
         toInstall.sortBy { it == context.packageName }
-        val installed = java.util.Collections.synchronizedList(ArrayList<String>())
-        val installLock = kotlinx.coroutines.sync.Mutex()
+        val installed = Collections.synchronizedList(ArrayList<String>())
+        val installLock = Mutex()
 
         suspend fun handle(id: String) {
             val downloaded = try {
@@ -683,7 +648,7 @@ class SourcesInstaller private constructor(private val context: Context) {
         for (id in appIds) {
             var entry = repo.entry(id) ?: throw SourceError(Tr.get("appNotFound"))
             if (entry.needsRefreshBeforeDownload) {
-                repo.checkUpdate(id)
+                repo.updates.checkUpdate(id)
                 entry = repo.entry(id) ?: continue
             }
             val app = entry.app
@@ -727,8 +692,6 @@ class SourcesInstaller private constructor(private val context: Context) {
     suspend fun uninstallApp(appId: String): Boolean = Installer.uninstall(context, appId)
 
     companion object {
-        private const val APK_CERT_PREFIX = "apkCertHashes:"
-
         private const val BACKGROUND_CONFIRM_ATTEMPTS = 20
         private const val INSTALL_CONFIRM_POLLS = 300
         private const val INSTALL_CONFIRM_TIMEOUT_MS = 10 * 60_000L

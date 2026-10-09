@@ -3,7 +3,6 @@ package io.github.bl3xand.apkcloner.clone
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import com.android.apksig.ApkSigner
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
@@ -15,7 +14,6 @@ import java.math.BigInteger
 import java.security.KeyFactory
 import java.security.KeyPairGenerator
 import java.security.KeyStore
-import java.security.MessageDigest
 import java.security.PrivateKey
 import java.security.SecureRandom
 import java.security.Signature
@@ -31,21 +29,6 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
-
-class SigningKey(val privateKey: PrivateKey, val certificate: X509Certificate) {
-
-    val signerConfig: ApkSigner.SignerConfig by lazy {
-        ApkSigner.SignerConfig.Builder("CERT", privateKey, listOf(certificate)).build()
-    }
-
-    /** Colon-separated SHA-256 of the certificate, the way Android tooling prints it. */
-    val fingerprint: String by lazy {
-        MessageDigest.getInstance("SHA-256").digest(certificate.encoded)
-            .joinToString(":") { "%02X".format(it) }
-    }
-
-    fun signs(certificateBytes: ByteArray) = certificate.encoded.contentEquals(certificateBytes)
-}
 
 /**
  * The keys APKs are signed with. Out of the box that is a key bundled with the app - the same

@@ -7,8 +7,6 @@ import java.util.Locale
 /** Works out, from split file names alone, which splits a given device actually needs. */
 object SplitSelection {
 
-    enum class Kind { BASE, ABI, DENSITY, LANGUAGE, FEATURE }
-
     private val ABIS = setOf("armeabi", "armeabi_v7a", "arm64_v8a", "x86", "x86_64", "mips", "mips64")
     private val DENSITIES = setOf("ldpi", "mdpi", "tvdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi", "nodpi")
     private val LANGUAGE = Regex("[a-z]{2,3}([_-]r?[A-Za-z0-9]+)?")
@@ -21,14 +19,14 @@ object SplitSelection {
         return file.replace(CONFIG_PREFIX, "").replace('-', '_')
     }
 
-    fun kindOf(name: String, baseName: String): Kind {
-        if (name == baseName) return Kind.BASE
-        val qualifier = qualifier(name) ?: return Kind.FEATURE
+    fun kindOf(name: String, baseName: String): SplitKind {
+        if (name == baseName) return SplitKind.BASE
+        val qualifier = qualifier(name) ?: return SplitKind.FEATURE
         return when {
-            qualifier in ABIS -> Kind.ABI
-            qualifier in DENSITIES -> Kind.DENSITY
-            LANGUAGE.matches(qualifier) -> Kind.LANGUAGE
-            else -> Kind.FEATURE
+            qualifier in ABIS -> SplitKind.ABI
+            qualifier in DENSITIES -> SplitKind.DENSITY
+            LANGUAGE.matches(qualifier) -> SplitKind.LANGUAGE
+            else -> SplitKind.FEATURE
         }
     }
 
@@ -43,17 +41,17 @@ object SplitSelection {
         val density = densityBucket(context.resources.displayMetrics.densityDpi)
 
         val byKind = names.groupBy { kindOf(it, baseName) }
-        fun pick(kind: Kind, keepAllIfNoMatch: Boolean, matches: (String) -> Boolean): List<String> {
+        fun pick(kind: SplitKind, keepAllIfNoMatch: Boolean, matches: (String) -> Boolean): List<String> {
             val all = byKind[kind].orEmpty()
             val matching = all.filter { matches(qualifier(it).orEmpty()) }
             return if (matching.isEmpty() && keepAllIfNoMatch) all else matching
         }
         return buildSet {
-            addAll(byKind[Kind.BASE].orEmpty())
-            addAll(byKind[Kind.FEATURE].orEmpty())
-            addAll(pick(Kind.ABI, keepAllIfNoMatch = true) { it == abi })
-            addAll(pick(Kind.DENSITY, keepAllIfNoMatch = true) { it == density })
-            addAll(pick(Kind.LANGUAGE, keepAllIfNoMatch = false) { it == language || it.startsWith(language + "_") })
+            addAll(byKind[SplitKind.BASE].orEmpty())
+            addAll(byKind[SplitKind.FEATURE].orEmpty())
+            addAll(pick(SplitKind.ABI, keepAllIfNoMatch = true) { it == abi })
+            addAll(pick(SplitKind.DENSITY, keepAllIfNoMatch = true) { it == density })
+            addAll(pick(SplitKind.LANGUAGE, keepAllIfNoMatch = false) { it == language || it.startsWith(language + "_") })
         }
     }
 

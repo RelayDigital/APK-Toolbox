@@ -31,34 +31,3 @@ class ApkSource(
         removedPermissions = removedPermissions,
     )
 }
-
-/** An installed app that was produced by this tool. */
-class CloneInfo(
-    val app: ApkSource,
-    val originalPackage: String,
-    /** Null when the app it was cloned from is no longer installed. */
-    val original: ApkSource?,
-    /** The key this clone is signed with; updates must use the same one. */
-    val key: SigningKey,
-    /** Whether its launcher icon carries the clone mark, so an update keeps it. */
-    val badged: Boolean,
-    /** Permissions the clone was made without; an update leaves them out again. */
-    val removedPermissions: Set<String> = emptySet(),
-) {
-    val updateAvailable: Boolean get() = original != null && original.versionCode > app.versionCode
-
-    /**
-     * Re-cloning the original under this clone's package name. Both builds are signed with the
-     * same key, so installing the result is an ordinary in-place update that keeps the data.
-     */
-    fun updateRequest(): CloneRequest? = original?.cloneRequest(app.packageName, app.label, badged, key, removedPermissions)
-
-    /**
-     * Re-cloning the original under this clone's package name with every permission back in, so the
-     * removed-permission choice is undone. Both builds are signed with the same key, so installing
-     * the result is an ordinary in-place update that keeps the data.
-     */
-    fun resetRequest(): CloneRequest? = original?.cloneRequest(app.packageName, app.label, badged, key, emptySet<String>())
-}
-
-class InstalledApps(val apps: List<ApkSource>, val clones: List<CloneInfo>)

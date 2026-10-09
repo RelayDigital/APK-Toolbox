@@ -8,9 +8,8 @@ import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.Url
 import io.github.bl3xand.apkcloner.sources.model.JsonValues
 import java.io.ByteArrayOutputStream
-import java.io.InputStream
+import java.io.IOException
 import java.net.HttpURLConnection
-import java.nio.charset.Charset
 import java.security.KeyStore
 import java.security.SecureRandom
 import java.security.cert.CertificateFactory
@@ -23,60 +22,6 @@ import javax.net.ssl.TrustManager
 import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
 import kotlin.math.ceil
-
-/** A fully read response. Header names are lower-case; repeated headers are joined with ", ". */
-class HttpResponse(
-    val statusCode: Int,
-    val reasonPhrase: String,
-    val headers: Map<String, String>,
-    val bodyBytes: ByteArray,
-    /** The URL that produced this response (after redirects). */
-    val requestUrl: Url,
-) {
-    val body: String by lazy { String(bodyBytes, charset()) }
-
-    private fun charset(): Charset {
-        val contentType = headers["content-type"] ?: return Charsets.UTF_8
-        val match = Regex("charset=\"?([^;\"\\s]+)", RegexOption.IGNORE_CASE).find(contentType)
-        return try {
-            match?.let { Charset.forName(it.groupValues[1]) } ?: Charsets.UTF_8
-        } catch (e: Exception) {
-            Charsets.UTF_8
-        }
-    }
-}
-
-/** An open response whose body has not been read yet. The caller must [close] it. */
-class HttpStream(
-    val url: Url,
-    val connection: HttpURLConnection,
-    val statusCode: Int,
-) : AutoCloseable {
-    val reasonPhrase: String get() = connection.responseMessage ?: ""
-
-    fun header(name: String): String? = connection.getHeaderField(name)
-
-    /** Null when the server did not announce a length. */
-    val contentLength: Long? get() = connection.contentLengthLong.takeIf { it > 0 }
-
-    val body: InputStream
-        get() = (if (statusCode >= 400) connection.errorStream else connection.inputStream)
-            ?: ByteArray(0).inputStream()
-
-    override fun close() {
-        try {
-            connection.disconnect()
-        } catch (_: Exception) {
-        }
-    }
-}
-
-/** Per-request options; these travel in the settings map of the reference implementation. */
-data class RequestOptions(
-    val allowInsecure: Boolean = false,
-    val enableCertificatePinning: Boolean = false,
-    val allowInsecureRedirects: Boolean = false,
-)
 
 object Http {
     const val MAX_REDIRECTS = 10
@@ -255,7 +200,7 @@ object Http {
         val buffer = ByteArrayOutputStream()
         try {
             it.body.use { input -> input.copyTo(buffer) }
-        } catch (e: java.io.IOException) {
+        } catch (e: IOException) {
             if (it.statusCode in 200..299) throw e
         }
         val headers = LinkedHashMap<String, String>()

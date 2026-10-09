@@ -141,7 +141,8 @@ class IconBadger(private val context: Context) {
 
         val ring = size * RING_SHARE / LEGACY_SCALE
         val radius = size * DOT_SHARE / LEGACY_SCALE / 2
-        val center = size * (0.5f + (DOT_CENTER - 0.5f) / LEGACY_SCALE)
+        // As far out as the dot of an adaptive icon, or as far as the picture has room for.
+        val center = minOf(size * (0.5f + (DOT_CENTER - 0.5f) / LEGACY_SCALE), size - radius - ring)
         paint.color = Color.WHITE
         canvas.drawCircle(center, center, radius + ring, paint)
         paint.color = color
@@ -193,11 +194,13 @@ class IconBadger(private val context: Context) {
 
         // One dot for every kind of icon, given as shares of the part of the icon that is
         // seen: how far across the coloured disc is, how wide the white ring around it, and
-        // where the centre is, counted from the top left. The place is as far out as a plain
-        // picture still has room for once it is shrunk (see LEGACY_SCALE).
+        // where the centre is, counted from the top left. The place is the bottom right corner:
+        // as far out along the diagonal as a round mask leaves room for the whole dot, so that
+        // it covers as little of the picture as it can. A plain picture ends sooner than that
+        // once it is shrunk (see LEGACY_SCALE); its dot sits in the corner of the picture.
         const val DOT_SHARE = 0.2f
         const val RING_SHARE = 0.02f
-        const val DOT_CENTER = 0.675f
+        const val DOT_CENTER = 0.76f
 
         private const val LAYER_MARGIN = (LAYER_DP - VISIBLE_DP) / 2
 

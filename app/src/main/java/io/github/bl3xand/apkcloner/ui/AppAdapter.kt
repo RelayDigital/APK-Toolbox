@@ -1,41 +1,14 @@
 package io.github.bl3xand.apkcloner.ui
 
-import android.content.pm.PackageManager
-import android.graphics.drawable.Drawable
-import android.util.LruCache
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.ImageView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.data.ApkSource
 import io.github.bl3xand.apkcloner.databinding.ItemAppBinding
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-
-/** Decodes app icons off the main thread - a few milliseconds each is too slow while scrolling. */
-class IconLoader(private val scope: CoroutineScope, private val packageManager: PackageManager) {
-
-    private val cache = LruCache<String, Drawable>(200)
-
-    /** Returns the job to cancel if [view] is recycled before the icon arrives. */
-    fun load(app: ApkSource, view: ImageView): Job? {
-        // An update replaces the files the old icon came from, so the key names the build.
-        val key = "${app.packageName}@${app.appInfo.sourceDir}"
-        val cached = cache[key]
-        view.setImageDrawable(cached?.constantState?.newDrawable() ?: cached)
-        if (cached != null) return null
-        return scope.launch {
-            val icon = withContext(Dispatchers.IO) { AppIcons.load(packageManager, app.appInfo) }
-            cache.put(key, icon)
-            view.setImageDrawable(icon.constantState?.newDrawable() ?: icon)
-        }
-    }
-}
 
 class AppAdapter(
     private val icons: IconLoader,
@@ -53,6 +26,9 @@ class AppAdapter(
         val app = getItem(position)
         holder.binding.textLabel.text = app.label
         holder.binding.textPackage.text = app.packageName
+        // The same third line as a clone has, minus its "up to date" part.
+        holder.binding.textStatus.text =
+            holder.binding.root.context.getString(R.string.app_version, app.versionName ?: app.versionCode.toString())
         holder.binding.root.setOnClickListener { onClick(app) }
         holder.iconJob?.cancel()
         holder.iconJob = icons.load(app, holder.binding.imageIcon)
@@ -61,6 +37,6 @@ class AppAdapter(
     private object Diff : DiffUtil.ItemCallback<ApkSource>() {
         override fun areItemsTheSame(old: ApkSource, new: ApkSource) = old.packageName == new.packageName
         override fun areContentsTheSame(old: ApkSource, new: ApkSource) =
-            old.label == new.label && old.versionCode == new.versionCode
+            old.label == new.label && old.versionCode == new.versionCode && old.versionName == new.versionName
     }
 }

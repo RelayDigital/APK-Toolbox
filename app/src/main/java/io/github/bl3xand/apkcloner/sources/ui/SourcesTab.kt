@@ -1,13 +1,16 @@
 package io.github.bl3xand.apkcloner.sources.ui
 
 import android.content.Intent
+import android.graphics.Typeface
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.R as MaterialR
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.databinding.ActivityMainBinding
 import io.github.bl3xand.apkcloner.sources.core.Tr
@@ -16,10 +19,21 @@ import io.github.bl3xand.apkcloner.sources.data.SourcesEnvironment
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.source.SourceRegistry
 import io.github.bl3xand.apkcloner.sources.work.SourcesNotifications
+import io.github.bl3xand.apkcloner.ui.Spacing
+import io.github.bl3xand.apkcloner.ui.add
+import io.github.bl3xand.apkcloner.ui.column
+import io.github.bl3xand.apkcloner.ui.confirm
+import io.github.bl3xand.apkcloner.ui.label
+import io.github.bl3xand.apkcloner.ui.scrollable
+import io.github.bl3xand.apkcloner.ui.showError
+import io.github.bl3xand.apkcloner.ui.showSheet
+import io.github.bl3xand.apkcloner.ui.toast
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 
 /** The Sources tab as seen by the main screen: its list, its bar button, links that open it. */
@@ -33,7 +47,7 @@ class SourcesTab(private val activity: AppCompatActivity, private val binding: A
 
     private val adapter = SourcesAdapter(
         activity.lifecycleScope, activity.packageManager, settings,
-        object : SourcesAdapter.Listener {
+        object : SourcesListListener {
             override fun onAppClick(row: ListRow.App) {
                 if (state.selected.isNotEmpty()) viewModel.toggleSelected(row.entry.app.id) else openApp(row.entry.app.id)
             }
@@ -158,7 +172,7 @@ class SourcesTab(private val activity: AppCompatActivity, private val binding: A
     }
 
     fun openApp(id: String) {
-        if (viewModel.repo.entry(id) == null) return
+        if (viewModel.shownEntry(id) == null) return
         if (activity.supportFragmentManager.findFragmentByTag(AppDetailSheet.TAG) == null) {
             AppDetailSheet.newInstance(id).show(activity.supportFragmentManager, AppDetailSheet.TAG)
         }
@@ -290,12 +304,12 @@ class SourcesTab(private val activity: AppCompatActivity, private val binding: A
         activity.lifecycleScope.launch {
             try {
                 val file = withContext(Dispatchers.IO) {
-                    val dir = java.io.File(activity.cacheDir, "sources_share").apply { mkdirs() }
-                    java.io.File(dir, "apk-toolbox-sources-export-count-${ids.size}.json").apply {
-                        writeText(viewModel.repo.generateExportJson(ids, overrideExportSettings = 0).toString(4))
+                    val dir = File(activity.cacheDir, "sources_share").apply { mkdirs() }
+                    File(dir, "apk-toolbox-sources-export-count-${ids.size}.json").apply {
+                        writeText(viewModel.repo.backup.generateExportJson(ids, overrideExportSettings = 0).toString(4))
                     }
                 }
-                val uri = androidx.core.content.FileProvider.getUriForFile(activity, "${activity.packageName}.sources", file)
+                val uri = FileProvider.getUriForFile(activity, "${activity.packageName}.sources", file)
                 activity.startActivity(
                     Intent.createChooser(
                         Intent(Intent.ACTION_SEND).setType("application/json").putExtra(Intent.EXTRA_STREAM, uri)
@@ -362,8 +376,8 @@ class SourcesTab(private val activity: AppCompatActivity, private val binding: A
                 val confirmed = activity.confirm(
                     Tr.get("importX", Tr.get(if (action == "app") "app" else "appsString").lowercase()),
                     view = activity.column(Spacing.SHEET).apply {
-                        add(activity.label(data, com.google.android.material.R.attr.textAppearanceBodySmall).apply {
-                            typeface = android.graphics.Typeface.MONOSPACE
+                        add(activity.label(data, MaterialR.attr.textAppearanceBodySmall).apply {
+                            typeface = Typeface.MONOSPACE
                         })
                     }.scrollable(),
                 )
@@ -372,10 +386,10 @@ class SourcesTab(private val activity: AppCompatActivity, private val binding: A
                     val payload = JSONObject().put(
                         "apps", if (action == "app") JSONArray().put(JSONObject(data)) else JSONArray(data),
                     ).toString()
-                    val imported = withContext(Dispatchers.IO) { viewModel.repo.importJson(payload).first }
+                    val imported = withContext(Dispatchers.IO) { viewModel.repo.backup.importJson(payload).first }
                     activity.toast(Tr.get("importedX", Tr.plural("apps", imported.size).lowercase()))
                 } catch (e: Exception) {
-                    activity.showError(if (e is org.json.JSONException) Tr.get("invalidInput") else errorText(e))
+                    activity.showError(if (e is JSONException) Tr.get("invalidInput") else errorText(e))
                 }
             }
             "refresh" -> viewModel.refresh(uri.getQueryParameter("id"))

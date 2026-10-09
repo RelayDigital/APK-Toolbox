@@ -1,22 +1,24 @@
 package io.github.bl3xand.apkcloner.sources.ui
 
 import android.os.Bundle
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.appcompat.R as AppCompatR
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.R as MaterialR
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.bottomsheet.BottomSheetDragHandleView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.ChipGroup
-import com.google.android.material.divider.MaterialDivider
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -28,13 +30,29 @@ import io.github.bl3xand.apkcloner.sources.core.Url
 import io.github.bl3xand.apkcloner.sources.core.errorText
 import io.github.bl3xand.apkcloner.sources.form.DropdownItem
 import io.github.bl3xand.apkcloner.sources.form.SettingItem
-import io.github.bl3xand.apkcloner.sources.form.SwitchItem
 import io.github.bl3xand.apkcloner.sources.form.TextItem
 import io.github.bl3xand.apkcloner.sources.form.cloneItems
 import io.github.bl3xand.apkcloner.sources.form.defaultValuesOf
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.source.AppSource
 import io.github.bl3xand.apkcloner.sources.source.SourceRegistry
+import io.github.bl3xand.apkcloner.ui.Spacing
+import io.github.bl3xand.apkcloner.ui.actionButton
+import io.github.bl3xand.apkcloner.ui.add
+import io.github.bl3xand.apkcloner.ui.addDivider
+import io.github.bl3xand.apkcloner.ui.addHeading
+import io.github.bl3xand.apkcloner.ui.column
+import io.github.bl3xand.apkcloner.ui.confirm
+import io.github.bl3xand.apkcloner.ui.dp
+import io.github.bl3xand.apkcloner.ui.expandFully
+import io.github.bl3xand.apkcloner.ui.filterChip
+import io.github.bl3xand.apkcloner.ui.label
+import io.github.bl3xand.apkcloner.ui.openUrl
+import io.github.bl3xand.apkcloner.ui.scrollable
+import io.github.bl3xand.apkcloner.ui.showError
+import io.github.bl3xand.apkcloner.ui.switchRow
+import io.github.bl3xand.apkcloner.ui.themeColor
+import io.github.bl3xand.apkcloner.ui.toast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -60,13 +78,13 @@ class AddAppSheet : BottomSheetDialogFragment() {
 
     private lateinit var urlLayout: TextInputLayout
     private lateinit var urlEdit: TextInputEditText
-    private lateinit var urlNote: android.widget.TextView
+    private lateinit var urlNote: TextView
     private lateinit var addButton: MaterialButton
     private lateinit var optionsToggle: MaterialButton
     private lateinit var optionsContainer: LinearLayout
     private lateinit var searchContainer: LinearLayout
     private lateinit var progress: LinearProgressIndicator
-    private lateinit var noteLabel: android.widget.TextView
+    private lateinit var noteLabel: TextView
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val context = requireContext()
@@ -74,23 +92,23 @@ class AddAppSheet : BottomSheetDialogFragment() {
         val settings = viewModel.repo.settings
         val root = context.column(Spacing.SHEET)
         root.add(BottomSheetDragHandleView(context))
-        root.add(context.label(Tr.get("addApp"), com.google.android.material.R.attr.textAppearanceHeadlineSmall))
+        root.add(context.label(Tr.get("addApp"), MaterialR.attr.textAppearanceHeadlineSmall))
 
         // ---- by link ----
         root.addHeading(Tr.get("addByLink"), afterDivider = false)
-        urlLayout = TextInputLayout(context, null, com.google.android.material.R.attr.textInputOutlinedStyle).apply {
+        urlLayout = TextInputLayout(context, null, MaterialR.attr.textInputOutlinedStyle).apply {
             hint = Tr.get("addLinkField")
             endIconMode = TextInputLayout.END_ICON_CLEAR_TEXT
         }
         urlEdit = TextInputEditText(urlLayout.context).apply {
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_URI
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
             doAfterTextChanged { onInputChanged(it?.toString() ?: "") }
         }
-        urlNote = context.label(Tr.get("addLinkHint"), colorAttr = com.google.android.material.R.attr.colorOnSurfaceVariant)
+        urlNote = context.label(Tr.get("addLinkHint"), colorAttr = MaterialR.attr.colorOnSurfaceVariant)
         urlLayout.addView(urlEdit)
         root.add(urlLayout, topMargin = Spacing.UNDER_HEADING - 1)
         root.add(urlNote, topMargin = 4)
-        noteLabel = context.label("", colorAttr = com.google.android.material.R.attr.colorOnSurfaceVariant).apply { isVisible = false }
+        noteLabel = context.label("", colorAttr = MaterialR.attr.colorOnSurfaceVariant).apply { isVisible = false }
         root.add(noteLabel, topMargin = Spacing.BLOCK / 2)
 
         progress = LinearProgressIndicator(context).apply {
@@ -112,14 +130,14 @@ class AddAppSheet : BottomSheetDialogFragment() {
         searchContainer = context.column()
         searchContainer.addDivider(after = addButton)
         searchContainer.addHeading(Tr.get("addBySearch"))
-        val searchLayout = TextInputLayout(context, null, com.google.android.material.R.attr.textInputOutlinedStyle).apply {
+        val searchLayout = TextInputLayout(context, null, MaterialR.attr.textInputOutlinedStyle).apply {
             hint = Tr.get("addSearchField")
             setStartIconDrawable(R.drawable.ic_search)
             endIconMode = TextInputLayout.END_ICON_CLEAR_TEXT
         }
         val searchEdit = TextInputEditText(searchLayout.context).apply {
             setSingleLine()
-            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
+            imeOptions = EditorInfo.IME_ACTION_SEARCH
             setOnEditorActionListener { view, _, _ ->
                 runSearch(view.text.toString())
                 true
@@ -129,7 +147,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
         searchLayout.setStartIconOnClickListener { runSearch(searchEdit.text?.toString() ?: "") }
         searchContainer.add(searchLayout, topMargin = Spacing.UNDER_HEADING - 4)
         searchContainer.add(
-            context.label(Tr.get("addWhere"), colorAttr = com.google.android.material.R.attr.colorOnSurfaceVariant), topMargin = Spacing.UNDER_HEADING,
+            context.label(Tr.get("addWhere"), colorAttr = MaterialR.attr.colorOnSurfaceVariant), topMargin = Spacing.UNDER_HEADING,
         )
         val where = ChipGroup(context)
         for (source in SourceRegistry.sources.filter { it.canSearch }) {
@@ -165,11 +183,8 @@ class AddAppSheet : BottomSheetDialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        (dialog as? BottomSheetDialog)?.behavior?.apply {
-            state = BottomSheetBehavior.STATE_EXPANDED
-            skipCollapsed = true
-        }
-        dialog?.findViewById<FrameLayout>(com.google.android.material.R.id.design_bottom_sheet)?.layoutParams?.height =
+        expandFully()
+        dialog?.findViewById<FrameLayout>(MaterialR.id.design_bottom_sheet)?.layoutParams?.height =
             ViewGroup.LayoutParams.MATCH_PARENT
     }
 
@@ -202,7 +217,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
         }
         urlNote.setTextColor(
             requireContext().themeColor(
-                if (failed) androidx.appcompat.R.attr.colorError else com.google.android.material.R.attr.colorOnSurfaceVariant,
+                if (failed) AppCompatR.attr.colorError else MaterialR.attr.colorOnSurfaceVariant,
             ),
         )
         val changed = previous?.sourceIdentifier != source?.sourceIdentifier ||
@@ -362,6 +377,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     return@launch
                 }
                 val settingsSnapshot = LinkedHashMap(additionalSettings)
+                var apkHashes = emptySet<String>()
                 var app = withContext(Dispatchers.IO) {
                     SourceRegistry.getApp(
                         source, userInput, settingsSnapshot,
@@ -379,17 +395,9 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     app = app.copy(preferredApkIndex = app.apkUrls.indexOfFirst { it.url == picked.url })
                     val downloaded = withContext(Dispatchers.IO) { installer.downloadApp(app, background = false) }
                     app = app.copy(id = downloaded.appId)
-                    // A build of this package may already be on the device under a different signer
-                    // (e.g. a fork). Record it now so the app's page blocks installing and says so,
-                    // instead of the user finding out only when an install fails.
-                    withContext(Dispatchers.IO) {
-                        installer.noteSignerConflict(app.id, listOfNotNull(downloaded.file))
-                    }
+                    apkHashes = withContext(Dispatchers.IO) { installer.signerHashesOf(downloaded) }
                 }
-                // Only the very same source already tracked just opens its page. A different URL
-                // that resolves to the same package (e.g. the original next to a fork) is treated
-                // as adding this one: it replaces the tracked entry and its own page opens, where a
-                // signer conflict is shown if the installed build is signed differently.
+                // The very same source already tracked just opens its page.
                 val existing = repo.entry(app.id)
                 if (existing != null && existing.app.url == app.url) {
                     viewModel.emit(SourcesEvent.OpenApp(app.id))
@@ -400,7 +408,31 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     app = app.copy(installedVersion = app.latestVersion)
                 }
                 app = app.copy(categories = categories.toList())
-                withContext(Dispatchers.IO) { repo.saveApps(listOf(app), onlyIfExists = false) }
+                // A build of this package may already be on the device under a different signer
+                // (e.g. a fork). This one cannot go over it, so it is only shown - with the way to
+                // make room for it - and nothing is tracked or replaced until the user does that.
+                if (withContext(Dispatchers.IO) { installer.clashesWithInstalled(app.id, apkHashes) }) {
+                    AppLog.info("${app.id} from ${app.url} clashes with the installed build's signer; not tracked yet")
+                    viewModel.propose(app, apkHashes)
+                    dismissAllowingStateLoss()
+                    return@launch
+                }
+                // The package is tracked from somewhere else already. Taking that entry over is the
+                // user's call; declined, the entry stays as it is and its page opens.
+                if (existing != null && !context.confirm(
+                        Tr.get("addReplaceSource"), Tr.get("addReplaceSourceText", existing.name, existing.app.url),
+                    )
+                ) {
+                    viewModel.emit(SourcesEvent.OpenApp(app.id))
+                    dismissAllowingStateLoss()
+                    return@launch
+                }
+                withContext(Dispatchers.IO) {
+                    // The signer on record was the old source's.
+                    if (existing != null) repo.forgetApkCertHashes(app.id)
+                    repo.storeApkCertHashes(app.id, apkHashes)
+                    repo.saveApps(listOf(app), onlyIfExists = false)
+                }
                 AppLog.info("Added ${app.id} from ${app.url}, latest ${app.latestVersion}")
                 viewModel.emit(SourcesEvent.OpenApp(app.id))
                 dismissAllowingStateLoss()

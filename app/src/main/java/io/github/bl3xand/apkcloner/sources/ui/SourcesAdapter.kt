@@ -1,18 +1,20 @@
 package io.github.bl3xand.apkcloner.sources.ui
 
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.drawable.Drawable
-import android.util.LruCache
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.appcompat.R as AppCompatR
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.R as MaterialR
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import io.github.bl3xand.apkcloner.R
@@ -21,31 +23,23 @@ import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.capitalizeFirst
 import io.github.bl3xand.apkcloner.sources.data.SourcesSettings
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
-import io.github.bl3xand.apkcloner.ui.AppIcons
+import io.github.bl3xand.apkcloner.ui.IconLoader
+import io.github.bl3xand.apkcloner.ui.Spacing
+import io.github.bl3xand.apkcloner.ui.dp
+import io.github.bl3xand.apkcloner.ui.label
+import io.github.bl3xand.apkcloner.ui.textAppearance
+import io.github.bl3xand.apkcloner.ui.themeColor
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class SourcesAdapter(
     private val scope: CoroutineScope,
     private val packageManager: PackageManager,
     private val settings: SourcesSettings,
-    private val listener: Listener,
+    private val listener: SourcesListListener,
 ) : ListAdapter<ListRow, RecyclerView.ViewHolder>(Diff) {
 
-    interface Listener {
-        fun onAppClick(row: ListRow.App)
-        fun onAppLongClick(row: ListRow.App)
-        fun onIconClick(row: ListRow.App)
-        fun onUpdateClick(row: ListRow.App)
-        fun onCancelDownload(row: ListRow.App)
-        fun onGroupClick(row: ListRow.Group)
-        fun onBannerClick()
-    }
-
-    private val icons = LruCache<String, Drawable>(200)
+    private val icons = IconLoader(scope, packageManager)
 
     class AppHolder(val binding: ItemSourceAppBinding) : RecyclerView.ViewHolder(binding.root) {
         var iconJob: Job? = null
@@ -67,23 +61,23 @@ class SourcesAdapter(
                 TextView(context).apply {
                     layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                     setPadding(context.dp(Spacing.SHEET), context.dp(14), context.dp(Spacing.SHEET), context.dp(6))
-                    setTextAppearance(context.textAppearance(com.google.android.material.R.attr.textAppearanceTitleSmall))
-                    setTextColor(context.themeColor(androidx.appcompat.R.attr.colorPrimary))
+                    setTextAppearance(context.textAppearance(MaterialR.attr.textAppearanceTitleSmall))
+                    setTextColor(context.themeColor(AppCompatR.attr.colorPrimary))
                 },
             )
             else -> SimpleHolder(
-                MaterialCardView(context, null, com.google.android.material.R.attr.materialCardViewFilledStyle).apply {
+                MaterialCardView(context, null, MaterialR.attr.materialCardViewFilledStyle).apply {
                     layoutParams = RecyclerView.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
                     ).apply { setMargins(context.dp(16), context.dp(4), context.dp(16), context.dp(8)) }
-                    setCardBackgroundColor(context.themeColor(com.google.android.material.R.attr.colorPrimaryContainer))
+                    setCardBackgroundColor(context.themeColor(MaterialR.attr.colorPrimaryContainer))
                     val row = LinearLayout(context).apply {
-                        gravity = android.view.Gravity.CENTER_VERTICAL
+                        gravity = Gravity.CENTER_VERTICAL
                         setPadding(context.dp(16), context.dp(12), context.dp(12), context.dp(12))
                     }
                     row.addView(
-                        context.label("", com.google.android.material.R.attr.textAppearanceTitleMedium,
-                            com.google.android.material.R.attr.colorOnPrimaryContainer).apply { tag = "title" },
+                        context.label("", MaterialR.attr.textAppearanceTitleMedium,
+                            MaterialR.attr.colorOnPrimaryContainer).apply { tag = "title" },
                         LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
                     )
                     row.addView(MaterialButton(context).apply { tag = "button" })
@@ -117,16 +111,18 @@ class SourcesAdapter(
         val app = row.entry.app
         binding.textName.text = row.entry.name
         binding.textName.typeface = if (app.pinned) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-        binding.textAuthor.text = row.entry.author
+        // The package is not known until an APK has been seen; until then the id is a made-up one.
+        binding.textAuthor.text =
+            listOfNotNull(row.entry.author.takeIf { it.isNotBlank() }, app.id.takeIf { !app.hasTempId }).joinToString(" · ")
         binding.textNote.isVisible = app.hasPendingRepoRename
         if (app.hasPendingRepoRename) binding.textNote.text = Tr.get("repoRenamed")
 
         // Selected, pinned, or neither.
         binding.card.setCardBackgroundColor(
             when {
-                row.selected -> context.themeColor(com.google.android.material.R.attr.colorSecondaryContainer)
-                app.pinned -> context.themeColor(com.google.android.material.R.attr.colorSurfaceContainerHigh)
-                else -> android.graphics.Color.TRANSPARENT
+                row.selected -> context.themeColor(MaterialR.attr.colorSecondaryContainer)
+                app.pinned -> context.themeColor(MaterialR.attr.colorSurfaceContainerHigh)
+                else -> Color.TRANSPARENT
             },
         )
 
@@ -143,12 +139,19 @@ class SourcesAdapter(
         val installed = app.installedVersion
         val differs = installed != null && installed != app.latestVersion
         binding.textVersion.text = when {
+            // What is on the device is another build under the same package, not this app: it
+            // is neither installed nor behind.
+            row.conflict -> "${Tr.get("notInstalled")} · ${Tr.get("detSignerConflictMark")}"
             differs -> "$installed → ${app.latestVersion}"
             else -> installed ?: Tr.get("notInstalled")
         }
         binding.textVersion.setTypeface(null, if (app.isVersionPseudo) Typeface.ITALIC else Typeface.NORMAL)
         val accent = context.themeColor(
-            if (row.updatable) androidx.appcompat.R.attr.colorPrimary else com.google.android.material.R.attr.colorOnSurfaceVariant,
+            when {
+                row.conflict -> AppCompatR.attr.colorError
+                row.updatable -> AppCompatR.attr.colorPrimary
+                else -> MaterialR.attr.colorOnSurfaceVariant
+            },
         )
         binding.textVersion.setTextColor(accent)
         val download = row.download
@@ -170,20 +173,16 @@ class SourcesAdapter(
             listener.onAppLongClick(row)
             true
         }
-        binding.imageIcon.alpha = if (row.entry.installedInfo != null) 1f else 0.4f
+        val info = row.entry.installedInfo?.applicationInfo?.takeUnless { row.conflict }
+        binding.imageIcon.alpha = if (info != null) 1f else 0.4f
         binding.imageIcon.setOnClickListener { listener.onIconClick(row) }
         holder.iconJob?.cancel()
-        val info = row.entry.installedInfo?.applicationInfo
-        // An update replaces the files the old icon came from, so the key names the build.
-        val iconKey = "${app.id}@${info?.sourceDir}"
-        val cached = icons[iconKey]
-        binding.imageIcon.setImageDrawable(cached ?: context.getDrawable(R.drawable.ic_install))
-        if (cached == null && info != null) {
-            holder.iconJob = scope.launch {
-                val icon = withContext(Dispatchers.IO) { AppIcons.load(packageManager, info) }
-                icons.put(iconKey, icon)
-                binding.imageIcon.setImageDrawable(icon)
-            }
+        val placeholder = context.getDrawable(R.drawable.ic_install)
+        holder.iconJob = if (info != null) {
+            icons.load(app.id, info, binding.imageIcon, placeholder)
+        } else {
+            binding.imageIcon.setImageDrawable(placeholder)
+            null
         }
     }
 
@@ -196,7 +195,7 @@ class SourcesAdapter(
 
         override fun areContentsTheSame(old: ListRow, new: ListRow): Boolean = when {
             old is ListRow.App && new is ListRow.App -> old.entry.app == new.entry.app && old.download == new.download &&
-                old.selected == new.selected && old.updatable == new.updatable &&
+                old.selected == new.selected && old.updatable == new.updatable && old.conflict == new.conflict &&
                 (old.entry.installedInfo == null) == (new.entry.installedInfo == null)
             else -> old == new
         }

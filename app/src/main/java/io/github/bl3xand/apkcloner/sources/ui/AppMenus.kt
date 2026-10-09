@@ -3,11 +3,20 @@ package io.github.bl3xand.apkcloner.sources.ui
 import android.content.Context
 import android.graphics.Typeface
 import android.widget.TextView
+import com.google.android.material.R as MaterialR
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
 import io.github.bl3xand.apkcloner.sources.form.cloneItems
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
+import io.github.bl3xand.apkcloner.ui.Spacing
+import io.github.bl3xand.apkcloner.ui.add
+import io.github.bl3xand.apkcloner.ui.column
+import io.github.bl3xand.apkcloner.ui.enableLinks
+import io.github.bl3xand.apkcloner.ui.label
+import io.github.bl3xand.apkcloner.ui.markdownToSpanned
+import io.github.bl3xand.apkcloner.ui.showSheet
+import io.github.bl3xand.apkcloner.ui.toast
 
 /** The rarely needed dialogs of one tracked app: its options and the details about it. */
 class AppMenus(private val context: Context, private val viewModel: SourcesViewModel) {
@@ -17,7 +26,7 @@ class AppMenus(private val context: Context, private val viewModel: SourcesViewM
         val app = entry.app
         val view = context.column(Spacing.SHEET).apply {
             fun block(title: String, value: String, mono: Boolean = false) {
-                add(context.label(title, com.google.android.material.R.attr.textAppearanceTitleMedium), topMargin = 16)
+                add(context.label(title, MaterialR.attr.textAppearanceTitleMedium), topMargin = 16)
                 add(
                     context.label(value).apply {
                         setTextIsSelectable(true)
@@ -32,7 +41,7 @@ class AppMenus(private val context: Context, private val viewModel: SourcesViewM
             val hashes = entry.certificateHashes
             if (hashes.isNotEmpty()) block(Tr.plural("certificateHash", hashes.size), hashes.joinToString("\n\n"), mono = true)
             (app.additionalSettings[SettingKeys.ABOUT] as? String)?.takeIf { it.isNotEmpty() }?.let { about ->
-                add(context.label(Tr.get("about"), com.google.android.material.R.attr.textAppearanceTitleMedium), topMargin = 16)
+                add(context.label(Tr.get("about"), MaterialR.attr.textAppearanceTitleMedium), topMargin = 16)
                 add(TextView(context).apply {
                     text = markdownToSpanned(about)
                     enableLinks()

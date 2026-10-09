@@ -2,6 +2,7 @@ package io.github.bl3xand.apkcloner.sources.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.settings.AppSettings
 import io.github.bl3xand.apkcloner.sources.core.SourceSettings
 import io.github.bl3xand.apkcloner.sources.source.SourceRegistry
@@ -25,9 +26,18 @@ class SourcesSettings private constructor(context: Context) : SourceSettings {
 
     override fun getBool(key: String): Boolean = bool(key, false)
 
-    override fun setString(key: String, value: String) = prefs.edit().putString(key, value).apply()
+    override fun setString(key: String, value: String) {
+        prefs.edit().putString(key, value).apply()
+        // Tokens and passwords are settings too; what they are set to is nobody's business.
+        AppLog.debug("Sources setting $key = ${if (isSecret(key)) "(set)" else value}")
+    }
 
-    fun setBool(key: String, value: Boolean) = prefs.edit().putBoolean(key, value).apply()
+    fun setBool(key: String, value: Boolean) {
+        prefs.edit().putBoolean(key, value).apply()
+        AppLog.debug("Sources setting $key = $value")
+    }
+
+    private fun isSecret(key: String): Boolean = SECRET_KEY_PARTS.any { key.contains(it, ignoreCase = true) }
 
     private fun bool(key: String, default: Boolean): Boolean = try {
         prefs.getBoolean(key, default)
@@ -212,6 +222,9 @@ class SourcesSettings private constructor(context: Context) : SourceSettings {
         set(value) = prefs.edit().putString("categories", JSONObject(value).toString()).apply()
 
     companion object {
+        /** Settings whose names hold one of these are never written to the log. */
+        private val SECRET_KEY_PARTS = listOf("creds", "token", "password", "key", "pat")
+
         /** Where a search looks until the user says otherwise. */
         private val DEFAULT_SEARCH_SOURCES = setOf("GitHub", "FDroid")
 

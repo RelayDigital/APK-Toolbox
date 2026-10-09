@@ -29,51 +29,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** What the list is narrowed to. The search box fills [name]. */
-data class AppsFilter(
-    val name: String = "",
-    val author: String = "",
-    val id: String = "",
-    val includeUpToDate: Boolean = true,
-    val includeNonInstalled: Boolean = true,
-    val categories: Set<String> = emptySet(),
-    val source: String = "",
-) {
-    val isNeutral: Boolean get() = copy(name = name.trim(), author = author.trim(), id = id.trim()) == AppsFilter()
-}
-
-/** One line of the list: the update banner, a group header, or an app. */
-sealed interface ListRow {
-    data class Banner(val selectedOnly: Boolean) : ListRow
-    data class Group(val key: String?, val title: String, val count: Int, val collapsed: Boolean, val color: Int?) : ListRow
-    data class App(
-        val entry: AppEntry,
-        val download: DownloadState?,
-        val selected: Boolean,
-        val updatable: Boolean,
-        val groupKey: String?,
-    ) : ListRow
-}
-
-data class SourcesUiState(
-    val rows: List<ListRow> = emptyList(),
-    val total: Int = 0,
-    val loading: Boolean = false,
-    val refreshProgress: Double? = null,
-    val selected: Set<String> = emptySet(),
-    val filter: AppsFilter = AppsFilter(),
-    /** Updates, new installs and track-only updates among the listed (or selected) apps. */
-    val pendingUpdates: List<String> = emptyList(),
-    val pendingInstalls: List<String> = emptyList(),
-    val pendingTrackOnly: List<String> = emptyList(),
-)
-
-sealed interface SourcesEvent {
-    data class Error(val error: Any) : SourcesEvent
-    data class Message(val text: String) : SourcesEvent
-    data class OpenApp(val id: String) : SourcesEvent
-}
-
 class SourcesViewModel(application: Application) : AndroidViewModel(application) {
     val repo = SourcesRepository.get(application)
     val installer = SourcesInstaller.get(application)
@@ -93,11 +48,29 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
     private val _uninstalling = MutableStateFlow<Set<String>>(emptySet())
     val uninstalling: StateFlow<Set<String>> = _uninstalling.asStateFlow()
 
+    private val _candidate = MutableStateFlow<AppCandidate?>(null)
+    val candidate: StateFlow<AppCandidate?> = _candidate.asStateFlow()
+
+    /** Shows [app] on its own page without tracking it yet. */
+    fun propose(app: TrackedApp, apkHashes: Set<String>) {
+        val sourceType = runCatching { repo.sourceOf(app).sourceIdentifier }.getOrNull()
+        _candidate.value = AppCandidate(AppEntry(app, repo.installedInfo(app.id), sourceType), apkHashes)
+        _events.tryEmit(SourcesEvent.OpenApp(app.id))
+    }
+
+    /** The page of the candidate was closed without making room for it. */
+    fun discardCandidate(id: String) {
+        _candidate.update { if (it?.entry?.app?.id == id) null else it }
+    }
+
+    /** What the page of [id] is about: the app being added, or else the tracked one. */
+    fun shownEntry(id: String): AppEntry? = _candidate.value?.entry?.takeIf { it.app.id == id } ?: repo.entry(id)
+
     /** Set by the screen while it is shown; installs started here ask their questions through it. */
     var prompts: InstallPrompts? = null
 
     val uiState: StateFlow<SourcesUiState> = combine(
-        combine(repo.apps, repo.downloads, repo.loading, repo.refreshProgress) { apps, downloads, loading, progress ->
+        combine(repo.apps, repo.downloads, repo.loading, repo.updates.progress) { apps, downloads, loading, progress ->
             Quad(apps, downloads, loading, progress)
         },
         filter, selected, collapsed, settingsVersion,
@@ -188,6 +161,7 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         val existingIds = all.map { it.app.id }.toSet()
         val selected = selectedIn.intersect(existingIds)
         val pendingAll = repo.findAppIdsWithPendingUpdates(installedOnly = true).toSet()
+        val conflicts = all.filter(repo::hasSignerConflict).map { it.app.id }.toSet()
 
         var listed = sorted(all.filter { matches(it, filter) })
         if (settings.pinUpdates) listed = listed.filter { it.app.id in pendingAll } + listed.filter { it.app.id !in pendingAll }
@@ -205,7 +179,8 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         val installs = ArrayList<String>()
         for (entry in all) {
             val app = entry.app
-            if (app.id !in scope) continue
+            // Nothing can be done with it until the build in its place is removed.
+            if (app.id !in scope || app.id in conflicts) continue
             val isTrackOnly = app.settings.getBool(SettingKeys.TRACK_ONLY)
             when {
                 app.installedVersion == null -> if (isTrackOnly) trackOnly.add(app.id) else installs.add(app.id)
@@ -221,7 +196,8 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
             rows.add(ListRow.Banner(selected.isNotEmpty()))
         }
         fun appRow(entry: AppEntry, group: String?) = ListRow.App(
-            entry, downloads[entry.app.id], entry.app.id in selected, repo.isAppUpdateable(entry.app), group,
+            entry, downloads[entry.app.id], entry.app.id in selected,
+            repo.isAppUpdateable(entry.app) && entry.app.id !in conflicts, group, entry.app.id in conflicts,
         )
         val groupBy = settings.groupBy
         if (groupBy == "none") {
@@ -292,7 +268,7 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
     /** Checks every app, or just one. */
     fun refresh(id: String? = null) = launchReporting {
         withContext(Dispatchers.IO) {
-            if (id != null) repo.checkUpdate(id) else repo.checkUpdates(forceAll = true)
+            if (id != null) repo.updates.checkUpdate(id) else repo.updates.checkUpdates(forceAll = true)
         }
     }
 
@@ -305,7 +281,7 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         withContext(Dispatchers.IO) {
             repo.saveApps(listOf(app))
             try {
-                repo.checkUpdate(app.id)
+                repo.updates.checkUpdate(app.id)
             } catch (e: RepositoryRenamedError) {
                 repo.entry(app.id)?.let { repo.saveApps(listOf(it.app.copy(pendingRepoRenameUrl = e.newUrl))) }
             }
@@ -334,19 +310,43 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
     /**
      * For a signer conflict: removes the differently-signed build already on the device, showing
      * progress for the wait. Once it is gone the conflict clears and the card becomes an ordinary
-     * install, so the user installs the added build with the normal button.
+     * install, so the user installs the added build with the normal button. An app that was only
+     * proposed starts being tracked here, in place of whatever was tracked under its package.
      */
     fun uninstallConflicting(id: String) = launchReporting {
+        if (!uninstallFromDevice(id)) return@launchReporting
+        val pending = _candidate.value?.takeIf { it.entry.app.id == id }
+        withContext(Dispatchers.IO) {
+            if (pending != null) {
+                // The signer on record was the old source's; from here on it is this one's.
+                repo.forgetApkCertHashes(id)
+                repo.storeApkCertHashes(id, pending.apkHashes)
+                repo.saveApps(
+                    listOf(pending.entry.app.copy(installedVersion = null)),
+                    attemptToCorrectInstallStatus = false, onlyIfExists = false,
+                )
+                AppLog.info("Added $id from ${pending.entry.app.url} in place of the removed build")
+            } else {
+                repo.entry(id)?.app?.let {
+                    repo.saveApps(listOf(it.copy(installedVersion = null)), attemptToCorrectInstallStatus = false)
+                }
+            }
+        }
+        // Only now, so that the page goes straight from the candidate to the tracked app.
+        if (pending != null) discardCandidate(id)
+    }
+
+    /**
+     * Removes what is installed as [id] through the system prompt, keeping the app marked as
+     * being uninstalled for the whole wait. True when nothing is installed under it afterwards.
+     */
+    private suspend fun uninstallFromDevice(id: String): Boolean {
+        if (repo.installedInfo(id) == null) return true
         _uninstalling.update { it + id }
-        val removed = try {
+        return try {
             installer.uninstallApp(id)
         } finally {
             _uninstalling.update { it - id }
-        }
-        if (removed) {
-            repo.entry(id)?.app?.let {
-                repo.saveApps(listOf(it.copy(installedVersion = null)), attemptToCorrectInstallStatus = false)
-            }
         }
     }
 
@@ -377,18 +377,17 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
                 // When both are asked for, the list entry is only dropped once the device uninstall
                 // actually finishes. If the user cancels the system prompt, neither happens.
                 val toForget = ids.filter { id ->
-                    val app = repo.entry(id)?.app
+                    val entry = repo.entry(id)
+                    val app = entry?.app
                     when {
                         app == null -> false
                         !uninstall -> true
                         app.installedVersion == null -> true
+                        // What is installed under this package is another build, not this app:
+                        // removing the app from the list must not take that build with it.
+                        repo.hasSignerConflict(entry) -> true
                         else -> {
-                            _uninstalling.update { it + id }
-                            val removed = try {
-                                installer.uninstallApp(id)
-                            } finally {
-                                _uninstalling.update { it - id }
-                            }
+                            val removed = uninstallFromDevice(id)
                             if (removed) {
                                 repo.saveApps(
                                     listOf(app.copy(installedVersion = null)),

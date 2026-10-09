@@ -26,8 +26,6 @@ import rikka.shizuku.Shizuku
  */
 object ShizukuBridge {
 
-    enum class State { NOT_RUNNING, NO_PERMISSION, READY }
-
     // daemon(true): one persistent process shared across app launches, since we never unbind.
     private val userServiceArgs = Shizuku.UserServiceArgs(
         ComponentName(BuildConfig.APPLICATION_ID, PrivilegedUserService::class.java.name)
@@ -44,30 +42,30 @@ object ShizukuBridge {
     @Volatile
     private var boundService: IPrivilegedService? = null
 
-    fun state(): State = try {
+    fun state(): ShizukuState = try {
         when {
-            !Shizuku.pingBinder() -> State.NOT_RUNNING
-            Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED -> State.NO_PERMISSION
-            else -> State.READY
+            !Shizuku.pingBinder() -> ShizukuState.NOT_RUNNING
+            Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED -> ShizukuState.NO_PERMISSION
+            else -> ShizukuState.READY
         }
     } catch (_: Throwable) {
-        State.NOT_RUNNING
+        ShizukuState.NOT_RUNNING
     }
 
     /**
      * [state] for a process that has only just started: Shizuku hands its binder over a moment
      * after launch, and until then it looks exactly like Shizuku not running.
      */
-    suspend fun stateAfterStartup(): State {
+    suspend fun stateAfterStartup(): ShizukuState {
         repeat(BINDER_WAIT_STEPS) {
-            if (state() != State.NOT_RUNNING) return state()
+            if (state() != ShizukuState.NOT_RUNNING) return state()
             delay(BINDER_WAIT_STEP_MS)
         }
         return state()
     }
 
     fun requestPermission(requestCode: Int) {
-        if (state() == State.NO_PERMISSION) Shizuku.requestPermission(requestCode)
+        if (state() == ShizukuState.NO_PERMISSION) Shizuku.requestPermission(requestCode)
     }
 
     /** Returns null on success, otherwise the reason the install failed. */
@@ -96,7 +94,7 @@ object ShizukuBridge {
     }
 
     private suspend fun getOrBindService(): IPrivilegedService? {
-        if (state() != State.READY) return null
+        if (state() != ShizukuState.READY) return null
         boundService?.let { return it }
         return bindMutex.withLock {
             boundService?.let { return@withLock it }

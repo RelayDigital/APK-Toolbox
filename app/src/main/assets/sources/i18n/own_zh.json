@@ -26,6 +26,8 @@
   "actShare": "分享链接",
   "detSource": "来源",
   "detInstalled": "已安装",
+  "addReplaceSource": "替换来源？",
+  "addReplaceSourceText": "{} 已在跟踪，来源为\n{}\n\n添加此链接后将改为从这里跟踪。",
   "detLatest": "最新",
   "detReleased": "发布时间",
   "detChecked": "检查时间",

@@ -13,21 +13,6 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.security.MessageDigest
 
-/** Lets a running download be stopped from another thread. */
-class CancellationToken {
-    @Volatile
-    var isCancelled = false
-        private set
-
-    fun cancel() {
-        isCancelled = true
-    }
-
-    fun throwIfCancelled() {
-        if (isCancelled) throw CancellationSignal()
-    }
-}
-
 /** percent is 0..100 (null when finished); sizes are null when unknown. */
 typealias ProgressListener = (percent: Double?, received: Long?, total: Long?) -> Unit
 

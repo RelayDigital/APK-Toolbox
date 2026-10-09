@@ -1,37 +1,39 @@
 package io.github.bl3xand.apkcloner.sources.ui
 
+import android.content.DialogInterface
 import android.content.res.ColorStateList
-import android.graphics.Typeface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import android.widget.TextView
+import androidx.appcompat.R as AppCompatR
+import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.R as MaterialR
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.divider.MaterialDivider
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.databinding.SheetSourceDetailBinding
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
-import io.github.bl3xand.apkcloner.sources.core.RepositoryRenamedError
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.formatBytes
-import io.github.bl3xand.apkcloner.sources.core.formatDownloadSize
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
 import io.github.bl3xand.apkcloner.sources.data.DownloadState
-import io.github.bl3xand.apkcloner.sources.form.cloneItems
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.sources.net.Downloader
-import io.github.bl3xand.apkcloner.ui.bind
+import io.github.bl3xand.apkcloner.ui.dp
+import io.github.bl3xand.apkcloner.ui.expandFully
+import io.github.bl3xand.apkcloner.ui.label
+import io.github.bl3xand.apkcloner.ui.markdownToSpanned
+import io.github.bl3xand.apkcloner.ui.openUrl
+import io.github.bl3xand.apkcloner.ui.themeColor
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers
@@ -58,6 +60,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         val download: DownloadState?,
         val removing: Boolean,
         val installedVersionCode: Long?,
+        val candidate: Boolean,
     )
     private var buttonLook: Pair<String, Int>? = null
     private val dateFormat = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.systemDefault())
@@ -66,7 +69,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = SheetSourceDetailBinding.inflate(inflater, container, false)
         buttonLook = null
-        binding.buttonDelete.text = Tr.get("remove")
+        binding.actions.buttonDelete.text = Tr.get("remove")
         dialogs = SourcesDialogs(requireContext())
         return binding.root
     }
@@ -74,16 +77,20 @@ class AppDetailSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                combine(viewModel.repo.apps, viewModel.repo.downloads, viewModel.uninstalling) { _, downloads, uninstalling ->
+                combine(
+                    viewModel.repo.apps, viewModel.repo.downloads, viewModel.uninstalling, viewModel.candidate,
+                ) { _, downloads, uninstalling, _ ->
                     downloads[appId] to (appId in uninstalling)
                 }.collect { (download, removing) ->
-                    val entry = viewModel.repo.entry(appId)
+                    val entry = viewModel.shownEntry(appId)
                     if (entry == null) {
                         dismissAllowingStateLoss()
                     } else {
                         // Re-render on an installedInfo change too (its version code), so the
                         // signer-conflict notice shows once the installed build is known.
-                        val key = RenderKey(entry.app, download, removing, entry.installedInfo?.longVersionCode)
+                        val key = RenderKey(
+                            entry.app, download, removing, entry.installedInfo?.longVersionCode, isCandidate(entry),
+                        )
                         if (lastRendered != key) {
                             lastRendered = key
                             render(entry, download, removing)
@@ -96,10 +103,13 @@ class AppDetailSheet : BottomSheetDialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        (dialog as? BottomSheetDialog)?.behavior?.apply {
-            state = BottomSheetBehavior.STATE_EXPANDED
-            skipCollapsed = true
-        }
+        expandFully()
+    }
+
+    override fun onDismiss(dialog: DialogInterface) {
+        super.onDismiss(dialog)
+        // Also called when the sheet is torn down for a rotation, where the candidate must survive.
+        if (activity?.isChangingConfigurations != true) viewModel.discardCandidate(appId)
     }
 
     override fun onDestroyView() {
@@ -107,10 +117,13 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         _binding = null
     }
 
+    /** Whether [entry] is an app still being added rather than a tracked one. */
+    private fun isCandidate(entry: AppEntry): Boolean = viewModel.candidate.value?.entry === entry
+
     private fun rerender() {
         lastRendered = null
         if (_binding == null) return
-        viewModel.repo.entry(appId)?.let {
+        viewModel.shownEntry(appId)?.let {
             render(it, viewModel.repo.downloads.value[appId], appId in viewModel.uninstalling.value)
         }
     }
@@ -171,15 +184,15 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         if (!first) binding.infoRows.addView(MaterialDivider(context))
         val row = LinearLayout(context).apply { setPadding(0, context.dp(10), 0, context.dp(10)) }
         row.addView(
-            context.label(name, colorAttr = com.google.android.material.R.attr.colorOnSurfaceVariant),
+            context.label(name, colorAttr = MaterialR.attr.colorOnSurfaceVariant),
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 2f),
         )
         row.addView(
-            context.label(value, com.google.android.material.R.attr.textAppearanceBodyLarge).apply {
+            context.label(value, MaterialR.attr.textAppearanceBodyLarge).apply {
                 textAlignment = View.TEXT_ALIGNMENT_VIEW_END
-                if (highlight) setTextColor(context.themeColor(androidx.appcompat.R.attr.colorError))
+                if (highlight) setTextColor(context.themeColor(AppCompatR.attr.colorError))
                 if (onClick != null) {
-                    setTextColor(context.themeColor(androidx.appcompat.R.attr.colorPrimary))
+                    setTextColor(context.themeColor(AppCompatR.attr.colorPrimary))
                     setOnClickListener { onClick() }
                 }
             },
@@ -196,7 +209,9 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         val trackOnly = app.settings.getBool(SettingKeys.TRACK_ONLY)
         val installed = app.installedVersion
 
-        val conflict = viewModel.installer.hasSignerConflict(entry)
+        // An app still being added is here only because of the clash; a tracked one is judged live.
+        val candidate = isCandidate(entry)
+        val conflict = candidate || viewModel.installer.hasSignerConflict(entry)
 
         // The same card as everywhere else; a tap opens the app's page in the system settings. On a
         // signer conflict it is the build being added, not the differently-signed one installed.
@@ -206,14 +221,14 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         // A signer conflict is a hard block, so it gets the bright error colours; the repo-rename
         // notice is only informational and keeps the quieter secondary colours.
         val noticeBg = if (conflict) {
-            com.google.android.material.R.attr.colorErrorContainer
+            MaterialR.attr.colorErrorContainer
         } else {
-            com.google.android.material.R.attr.colorSecondaryContainer
+            MaterialR.attr.colorSecondaryContainer
         }
         val noticeFg = if (conflict) {
-            com.google.android.material.R.attr.colorOnErrorContainer
+            MaterialR.attr.colorOnErrorContainer
         } else {
-            com.google.android.material.R.attr.colorOnSecondaryContainer
+            MaterialR.attr.colorOnSecondaryContainer
         }
         binding.cardNotice.setCardBackgroundColor(context.themeColor(noticeBg))
         binding.textNotice.setTextColor(context.themeColor(noticeFg))
@@ -223,15 +238,15 @@ class AppDetailSheet : BottomSheetDialogFragment() {
             // ordinary install. Inverted error colours so the button reads on the error card.
             binding.buttonNotice.text = Tr.get("detSignerRemoveCurrent")
             binding.buttonNotice.backgroundTintList =
-                ColorStateList.valueOf(context.themeColor(com.google.android.material.R.attr.colorOnErrorContainer))
-            binding.buttonNotice.setTextColor(context.themeColor(com.google.android.material.R.attr.colorErrorContainer))
+                ColorStateList.valueOf(context.themeColor(MaterialR.attr.colorOnErrorContainer))
+            binding.buttonNotice.setTextColor(context.themeColor(MaterialR.attr.colorErrorContainer))
             binding.buttonNotice.setOnClickListener { viewModel.uninstallConflicting(appId) }
         } else if (app.hasPendingRepoRename) {
             binding.textNotice.text = "${Tr.get("repoRenamedExplanation")}\n\n${app.pendingRepoRenameUrl}"
             binding.buttonNotice.text = Tr.get("updateUrl")
             binding.buttonNotice.backgroundTintList =
-                ColorStateList.valueOf(context.themeColor(com.google.android.material.R.attr.colorSecondaryContainer))
-            binding.buttonNotice.setTextColor(context.themeColor(com.google.android.material.R.attr.colorOnSecondaryContainer))
+                ColorStateList.valueOf(context.themeColor(MaterialR.attr.colorSecondaryContainer))
+            binding.buttonNotice.setTextColor(context.themeColor(MaterialR.attr.colorOnSecondaryContainer))
             binding.buttonNotice.setOnClickListener {
                 viewModel.update(listOf(appId)) { it.copy(url = it.pendingRepoRenameUrl ?: it.url, pendingRepoRenameUrl = null) }
             }
@@ -244,7 +259,8 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         infoRow(
             Tr.get("detInstalled"),
             when {
-                conflict -> "$installed · ${Tr.get("detSignerConflictMark")}"
+                // The version of what is on the device, which is not a version of this app.
+                conflict -> "${entry.installedInfo?.versionName ?: installed} · ${Tr.get("detSignerConflictMark")}"
                 installed == null -> Tr.get("notInstalled")
                 trackOnly -> "$installed · ${Tr.get("trackOnly")}"
                 else -> installed
@@ -254,7 +270,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         )
         infoRow(Tr.get("detLatest"), app.latestVersion, first = false)
         // Only while there is something to download.
-        if (installed == null || installed != app.latestVersion) {
+        if (conflict || installed == null || installed != app.latestVersion) {
             probedSize?.let { infoRow(Tr.get("detSize"), formatBytes(it), first = false) }
         }
         app.releaseDate?.let { infoRow(Tr.get("detReleased"), dateFormat.format(it), first = false) }
@@ -262,18 +278,12 @@ class AppDetailSheet : BottomSheetDialogFragment() {
 
         renderChanges(entry)
 
-        // Progress of a running download, install or uninstall.
+        // A running download, install or uninstall shows as the bar alone: what it is, is plain from
+        // what was tapped.
         val busy = download != null || removing
-        binding.progress.isIndeterminate = removing || (download?.progress ?: 0.0) < 0
-        if (download != null && download.progress >= 0) binding.progress.setProgressCompat(download.progress.toInt(), false)
-        binding.progress.isVisible = busy
-        binding.textProgress.isVisible = busy
-        if (removing) {
-            binding.textProgress.text = Tr.get("uninstalling")
-        } else if (download != null) {
-            binding.textProgress.text = if (download.progress < 0) Tr.get("installing")
-            else "${download.progress.toInt()}%  ${formatDownloadSize(download.receivedBytes, download.totalBytes) ?: ""}"
-        }
+        binding.actions.progress.isIndeterminate = removing || (download?.progress ?: 0.0) < 0
+        if (download != null && download.progress >= 0) binding.actions.progress.setProgressCompat(download.progress.toInt(), false)
+        binding.actions.progress.isInvisible = !busy
 
         val canAct = !busy && !conflict && (installed == null || installed != app.latestVersion) && !repo.areDownloadsRunning()
         // A conflict is shown as a fresh install of the added build (the installed one must go
@@ -290,17 +300,25 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         else label to (if (asInstall) R.drawable.ic_download else R.drawable.ic_update)
         if (buttonLook != look) {
             buttonLook = look
-            binding.buttonUpdate.text = look.first
-            binding.buttonUpdate.setIconResource(look.second)
+            binding.actions.buttonUpdate.text = look.first
+            binding.actions.buttonUpdate.setIconResource(look.second)
         }
         val enabled = cancellable || canAct
-        if (binding.buttonUpdate.isEnabled != enabled) binding.buttonUpdate.isEnabled = enabled
-        binding.buttonUpdate.setOnClickListener {
+        if (binding.actions.buttonUpdate.isEnabled != enabled) binding.actions.buttonUpdate.isEnabled = enabled
+        binding.actions.buttonUpdate.setOnClickListener {
             if (cancellable) viewModel.installer.cancelDownload(appId) else viewModel.obtain(listOf(appId))
         }
-        if (canAct && !trackOnly) probeSize(entry)
-        if (binding.buttonDelete.isEnabled == busy) binding.buttonDelete.isEnabled = !busy
-        binding.buttonDelete.setOnClickListener {
+        if ((canAct || conflict) && !trackOnly) probeSize(entry)
+        // Nothing is tracked yet for an app still being added, so there is nothing to remove:
+        // closing the sheet is all it takes to leave things as they were.
+        if (binding.actions.buttonDelete.isVisible == candidate) {
+            binding.actions.buttonDelete.isVisible = !candidate
+            binding.actions.buttonUpdate.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                marginStart = if (candidate) 0 else context.dp(8)
+            }
+        }
+        if (binding.actions.buttonDelete.isEnabled == busy) binding.actions.buttonDelete.isEnabled = !busy
+        binding.actions.buttonDelete.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launch {
                 val (uninstall, removeEntry) = dialogs.askRemove(listOf(app)) ?: return@launch
                 viewModel.remove(listOf(appId), uninstall, removeEntry)

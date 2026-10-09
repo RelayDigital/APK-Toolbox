@@ -1,5 +1,7 @@
 package io.github.bl3xand.apkcloner.sources.core
 
+import java.util.Locale
+
 /** Compares strings run by run: digit runs numerically, a number sorts after text. */
 fun compareAlphaNumeric(a: String, b: String): Int {
     val aParts = splitAlphaNumeric(a)
@@ -58,12 +60,12 @@ fun formatBytes(bytes: Long): String {
         size /= 1024
         unit++
     }
-    var value = if (unit == 0) "%.0f".format(java.util.Locale.ROOT, size) else "%.1f".format(java.util.Locale.ROOT, size)
+    var value = if (unit == 0) "%.0f".format(Locale.ROOT, size) else "%.1f".format(Locale.ROOT, size)
     // Rounding can reach the next unit ("1024.0 KB").
     if (unit > 0 && unit < units.size - 1 && value.toDouble() >= 1024) {
         size /= 1024
         unit++
-        value = "%.1f".format(java.util.Locale.ROOT, size)
+        value = "%.1f".format(Locale.ROOT, size)
     }
     return "$value ${units[unit]}"
 }

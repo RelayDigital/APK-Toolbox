@@ -5,6 +5,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
+import android.view.View
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -22,7 +24,6 @@ import com.google.android.material.tabs.TabLayout
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.databinding.ActivityMainBinding
 import io.github.bl3xand.apkcloner.sources.ui.SourcesTab
-import io.github.bl3xand.apkcloner.sources.ui.showSheet
 import io.github.bl3xand.apkcloner.update.UpdateNotifications
 import kotlinx.coroutines.launch
 
@@ -33,14 +34,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var sourcesTab: SourcesTab
 
     private val pickApk = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) viewModel.loadApkFile(uri)
+        if (uri != null) viewModel.cloning.loadFile(uri)
     }
 
     private val pickToInstall = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-        viewModel.loadSplitFiles(uris, SplitMode.INSTALL)
+        viewModel.splits.loadFiles(uris, SplitMode.INSTALL)
     }
     private val pickToMerge = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-        viewModel.loadSplitFiles(uris, SplitMode.MERGE)
+        viewModel.splits.loadFiles(uris, SplitMode.MERGE)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,14 +60,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         val icons = IconLoader(lifecycleScope, packageManager)
-        val appAdapter = AppAdapter(icons, viewModel::select)
+        val appAdapter = AppAdapter(icons, viewModel.cloning::select)
         val cloneAdapter = CloneAdapter(icons) { clone ->
             if (supportFragmentManager.findFragmentByTag(CloneDetailSheet.TAG) == null) {
                 CloneDetailSheet.newInstance(clone).show(supportFragmentManager, CloneDetailSheet.TAG)
             }
         }
-        val installAdapter = AppAdapter(icons) { viewModel.selectSplitApp(it, SplitMode.EXPORT) }
-        val splitAdapter = AppAdapter(icons) { viewModel.selectSplitApp(it, SplitMode.MERGE) }
+        val installAdapter = AppAdapter(icons) { viewModel.splits.selectApp(it, SplitMode.EXPORT) }
+        val splitAdapter = AppAdapter(icons) { viewModel.splits.selectApp(it, SplitMode.MERGE) }
         binding.listApps.adapter = appAdapter
         binding.listInstall.adapter = installAdapter
         binding.listSplit.adapter = splitAdapter
@@ -74,7 +75,7 @@ class MainActivity : AppCompatActivity() {
 
         for (title in TAB_TITLES) binding.tabs.addTab(binding.tabs.newTab().setText(title))
         sourcesTab = SourcesTab(this, binding)
-        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (!sourcesTab.onBackPressed()) {
                     isEnabled = false
@@ -88,10 +89,10 @@ class MainActivity : AppCompatActivity() {
         binding.tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 viewModel.tab = when (tab.position) {
-                    POSITION_SOURCES -> TAB_SOURCES
+                    POSITION_SOURCES -> MainTabs.SOURCES
                     POSITION_CLONING -> viewModel.cloningSide
-                    POSITION_INSTALL -> TAB_INSTALL
-                    else -> TAB_SPLIT
+                    POSITION_INSTALL -> MainTabs.INSTALL
+                    else -> MainTabs.SPLIT
                 }
                 render(viewModel.uiState.value)
             }
@@ -101,9 +102,9 @@ class MainActivity : AppCompatActivity() {
         })
         binding.toggleCloning.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
-            val side = if (checkedId == R.id.buttonSideClones) TAB_CLONES else TAB_APPS
+            val side = if (checkedId == R.id.buttonSideClones) MainTabs.CLONES else MainTabs.APPS
             viewModel.cloningSide = side
-            if ((viewModel.tab == TAB_APPS || viewModel.tab == TAB_CLONES) && viewModel.tab != side) {
+            if ((viewModel.tab == MainTabs.APPS || viewModel.tab == MainTabs.CLONES) && viewModel.tab != side) {
                 viewModel.tab = side
                 render(viewModel.uiState.value)
             }
@@ -119,7 +120,7 @@ class MainActivity : AppCompatActivity() {
         binding.chipClonesRefresh.setOnClickListener { viewModel.refreshClones() }
         binding.chipSystem.setOnCheckedChangeListener { _, checked -> viewModel.setShowSystem(checked) }
         // Every tab has a button that says what the tab is for.
-        val showTabInfo = { _: android.view.View ->
+        val showTabInfo = { _: View ->
             val (title, text) = TAB_INFO.getValue(viewModel.tab)
             showSheet(getString(title), message = getString(text))
             Unit
@@ -135,9 +136,9 @@ class MainActivity : AppCompatActivity() {
         binding.buttonPickApk.setOnClickListener {
             // Bundles have no MIME type of their own, so the pickers for them accept anything.
             when (viewModel.tab) {
-                TAB_SOURCES -> sourcesTab.onBarButton()
-                TAB_INSTALL -> pickToInstall.launch(arrayOf("*/*"))
-                TAB_SPLIT -> pickToMerge.launch(arrayOf("*/*"))
+                MainTabs.SOURCES -> sourcesTab.onBarButton()
+                MainTabs.INSTALL -> pickToInstall.launch(arrayOf("*/*"))
+                MainTabs.SPLIT -> pickToMerge.launch(arrayOf("*/*"))
                 else -> pickApk.launch(APK_MIME_TYPES)
             }
         }
@@ -173,12 +174,12 @@ class MainActivity : AppCompatActivity() {
     /** Brings the tab strip and the Cloning switch in line with the tab kept in the view model. */
     private fun showTab() {
         val tab = viewModel.tab
-        if (tab == TAB_APPS || tab == TAB_CLONES) viewModel.cloningSide = tab
-        binding.toggleCloning.check(if (viewModel.cloningSide == TAB_CLONES) R.id.buttonSideClones else R.id.buttonSideInstalled)
+        if (tab == MainTabs.APPS || tab == MainTabs.CLONES) viewModel.cloningSide = tab
+        binding.toggleCloning.check(if (viewModel.cloningSide == MainTabs.CLONES) R.id.buttonSideClones else R.id.buttonSideInstalled)
         val position = when (tab) {
-            TAB_SOURCES -> POSITION_SOURCES
-            TAB_INSTALL -> POSITION_INSTALL
-            TAB_SPLIT -> POSITION_SPLIT
+            MainTabs.SOURCES -> POSITION_SOURCES
+            MainTabs.INSTALL -> POSITION_INSTALL
+            MainTabs.SPLIT -> POSITION_SPLIT
             else -> POSITION_CLONING
         }
         if (binding.tabs.selectedTabPosition != position) binding.tabs.getTabAt(position)?.select() else render(viewModel.uiState.value)
@@ -189,10 +190,10 @@ class MainActivity : AppCompatActivity() {
      * APK files can be shared or opened into the app to be installed or merged.
      */
     private fun handleIntent(intent: Intent) {
-        if (intent.hasExtra(EXTRA_TAB)) viewModel.tab = intent.getIntExtra(EXTRA_TAB, TAB_APPS)
+        if (intent.hasExtra(EXTRA_TAB)) viewModel.tab = intent.getIntExtra(EXTRA_TAB, MainTabs.APPS)
         // A shared link, a configuration link or a tapped notification of the Sources tab.
         if (sourcesTab.handleIntent(intent)) {
-            viewModel.tab = TAB_SOURCES
+            viewModel.tab = MainTabs.SOURCES
             return
         }
         val uris = when (intent.action) {
@@ -202,7 +203,7 @@ class MainActivity : AppCompatActivity() {
                 intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
             else -> emptyList()
         }
-        viewModel.offerFiles(uris)
+        viewModel.splits.offerFiles(uris)
     }
 
     override fun onResume() {
@@ -240,47 +241,47 @@ class MainActivity : AppCompatActivity() {
     private fun render(state: MainUiState) {
         val ready = state.permissionsGranted
         val tab = viewModel.tab
-        val appsTab = tab == TAB_APPS
+        val appsTab = tab == MainTabs.APPS
         binding.permissionGroup.isVisible = !ready
         binding.cardFiles.isVisible = !state.hasFileAccess
         binding.cardInstall.isVisible = !state.canInstall
         binding.contentGroup.isVisible = ready
-        binding.toggleCloning.isVisible = tab == TAB_APPS || tab == TAB_CLONES
-        binding.systemRow.isVisible = tab != TAB_SOURCES
-        binding.chipSystem.isVisible = tab != TAB_CLONES
+        binding.toggleCloning.isVisible = tab == MainTabs.APPS || tab == MainTabs.CLONES
+        binding.systemRow.isVisible = tab != MainTabs.SOURCES
+        binding.chipSystem.isVisible = tab != MainTabs.CLONES
         // The Clones side has the same Refresh as Sources: check everything, update what is behind.
-        binding.chipClonesRefresh.isVisible = tab == TAB_CLONES
+        binding.chipClonesRefresh.isVisible = tab == MainTabs.CLONES
         binding.chipClonesRefresh.isEnabled = state.updatingClone == null
         binding.listApps.isVisible = appsTab
-        binding.listClones.isVisible = tab == TAB_CLONES
-        binding.listInstall.isVisible = tab == TAB_INSTALL
-        binding.listSplit.isVisible = tab == TAB_SPLIT
+        binding.listClones.isVisible = tab == MainTabs.CLONES
+        binding.listInstall.isVisible = tab == MainTabs.INSTALL
+        binding.listSplit.isVisible = tab == MainTabs.SPLIT
         // The Clones side has nothing to pick; its one action is the Refresh chip.
-        binding.bottomBar.isVisible = ready && tab != TAB_CLONES
+        binding.bottomBar.isVisible = ready && tab != MainTabs.CLONES
         binding.buttonPickApk.isEnabled = true
         binding.buttonPickApk.setIconResource(R.drawable.ic_folder)
         binding.buttonPickApk.text = when (tab) {
-            TAB_INSTALL -> getString(R.string.button_pick_install)
-            TAB_SPLIT -> getString(R.string.button_pick_split)
+            MainTabs.INSTALL -> getString(R.string.button_pick_install)
+            MainTabs.SPLIT -> getString(R.string.button_pick_split)
             else -> getString(R.string.button_pick_apk)
         }
-        binding.progress.isVisible = state.loading || (tab == TAB_CLONES && state.updatingClone != null)
+        binding.progress.isVisible = state.loading || (tab == MainTabs.CLONES && state.updatingClone != null)
 
         val empty = when (tab) {
-            TAB_CLONES -> state.clones.isEmpty()
-            TAB_SPLIT -> state.splitApps.isEmpty()
+            MainTabs.CLONES -> state.clones.isEmpty()
+            MainTabs.SPLIT -> state.splitApps.isEmpty()
             else -> state.apps.isEmpty()
         }
         binding.textEmpty.isVisible = ready && !state.loading && empty
         binding.textEmpty.setText(
             when (tab) {
-                TAB_CLONES -> R.string.empty_clones
-                TAB_SPLIT -> R.string.empty_split
+                MainTabs.CLONES -> R.string.empty_clones
+                MainTabs.SPLIT -> R.string.empty_split
                 else -> R.string.empty_list
             }
         )
         // The Sources tab draws its own state over the shared pieces of the screen.
-        sourcesTab.setActive(tab == TAB_SOURCES, ready)
+        sourcesTab.setActive(tab == MainTabs.SOURCES, ready)
     }
 
     private fun handle(event: MainEvent) {
@@ -296,15 +297,15 @@ class MainActivity : AppCompatActivity() {
 
     /** The same files can be installed as they are or merged into one APK first. */
     private fun askWhatToDoWithFiles() {
-        val uris = viewModel.pendingFiles
+        val uris = viewModel.splits.pendingFiles
         if (uris.isEmpty()) return
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.files_received_title)
             .setItems(arrayOf(getString(R.string.files_action_install), getString(R.string.files_action_merge))) { _, which ->
                 val mode = if (which == 0) SplitMode.INSTALL else SplitMode.MERGE
-                viewModel.tab = if (which == 0) TAB_INSTALL else TAB_SPLIT
+                viewModel.tab = if (which == 0) MainTabs.INSTALL else MainTabs.SPLIT
                 showTab()
-                viewModel.loadSplitFiles(uris, mode)
+                viewModel.splits.loadFiles(uris, mode)
             }
             .show()
     }
@@ -315,12 +316,6 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_TAB = "tab"
-        const val TAB_APPS = 0
-        const val TAB_CLONES = 1
-        const val TAB_INSTALL = 2
-        const val TAB_SPLIT = 3
-        const val TAB_SOURCES = 4
-
         // Where each tab sits in the strip; both sides of Cloning share one place.
         private const val POSITION_SOURCES = 0
         private const val POSITION_CLONING = 1
@@ -328,11 +323,11 @@ class MainActivity : AppCompatActivity() {
         private const val POSITION_SPLIT = 3
         /** For each tab, its name and what it is for. */
         private val TAB_INFO = mapOf(
-            TAB_SOURCES to (R.string.tab_sources to R.string.hint_tab_sources),
-            TAB_APPS to (R.string.tab_apps to R.string.hint_tab_apps),
-            TAB_CLONES to (R.string.cloning_clones to R.string.hint_tab_clones),
-            TAB_INSTALL to (R.string.tab_install to R.string.hint_tab_install),
-            TAB_SPLIT to (R.string.tab_split to R.string.hint_tab_split),
+            MainTabs.SOURCES to (R.string.tab_sources to R.string.hint_tab_sources),
+            MainTabs.APPS to (R.string.tab_apps to R.string.hint_tab_apps),
+            MainTabs.CLONES to (R.string.cloning_clones to R.string.hint_tab_clones),
+            MainTabs.INSTALL to (R.string.tab_install to R.string.hint_tab_install),
+            MainTabs.SPLIT to (R.string.tab_split to R.string.hint_tab_split),
         )
         private val TAB_TITLES = listOf(R.string.tab_sources, R.string.tab_apps, R.string.tab_install, R.string.tab_split)
 

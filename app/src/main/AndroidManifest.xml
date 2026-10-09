@@ -21,6 +21,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
+        android:name=".App"
         android:allowBackup="false"
         android:largeHeap="true"
         android:icon="@mipmap/ic_launcher"
@@ -84,7 +85,7 @@
             android:exported="false" />
 
         <receiver
-            android:name=".sources.work.SourcesNotifications$CancelDownloadReceiver"
+            android:name=".sources.work.CancelDownloadReceiver"
             android:exported="false" />
 
         <!-- Hands a downloaded APK to a verifier app before its first install. -->

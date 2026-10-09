@@ -1,6 +1,7 @@
 package io.github.bl3xand.apkcloner.settings
 
 import android.content.Context
+import io.github.bl3xand.apkcloner.log.AppLog
 
 class AppSettings(context: Context) {
 
@@ -8,82 +9,79 @@ class AppSettings(context: Context) {
 
     /** Master switch: look for outdated clones in the background at all. */
     var checkUpdates: Boolean
-        get() = prefs.getBoolean(KEY_CHECK_UPDATES, false)
-        set(value) = prefs.edit().putBoolean(KEY_CHECK_UPDATES, value).apply()
+        get() = prefs.getBoolean(SettingsKeys.CHECK_UPDATES, false)
+        set(value) = put(SettingsKeys.CHECK_UPDATES, value)
 
     /** Install what the check finds; when off, the check only notifies. */
     var autoInstall: Boolean
-        get() = prefs.getBoolean(KEY_AUTO_INSTALL, false)
-        set(value) = prefs.edit().putBoolean(KEY_AUTO_INSTALL, value).apply()
+        get() = prefs.getBoolean(SettingsKeys.AUTO_INSTALL, false)
+        set(value) = put(SettingsKeys.AUTO_INSTALL, value)
 
     /** Index into [CHECK_INTERVAL_DAYS]. */
     var checkInterval: Int
-        get() = prefs.getInt(KEY_CHECK_INTERVAL, DEFAULT_CHECK_INTERVAL).coerceIn(CHECK_INTERVAL_DAYS.indices)
-        set(value) = prefs.edit().putInt(KEY_CHECK_INTERVAL, value).apply()
+        get() = prefs.getInt(SettingsKeys.CHECK_INTERVAL, DEFAULT_CHECK_INTERVAL).coerceIn(CHECK_INTERVAL_DAYS.indices)
+        set(value) = put(SettingsKeys.CHECK_INTERVAL, value)
 
     var installMethod: InstallMethod
-        get() = InstallMethod.entries.firstOrNull { it.name == prefs.getString(KEY_INSTALL_METHOD, null) }
+        get() = InstallMethod.entries.firstOrNull { it.name == prefs.getString(SettingsKeys.INSTALL_METHOD, null) }
             ?: InstallMethod.STOCK
-        set(value) = prefs.edit().putString(KEY_INSTALL_METHOD, value.name).apply()
+        set(value) = put(SettingsKeys.INSTALL_METHOD, value.name)
 
     /** What the background check covers: clones, apps tracked from sources, or both. */
     var checkClones: Boolean
-        get() = prefs.getBoolean(KEY_CHECK_CLONES, true)
-        set(value) = prefs.edit().putBoolean(KEY_CHECK_CLONES, value).apply()
+        get() = prefs.getBoolean(SettingsKeys.CHECK_CLONES, true)
+        set(value) = put(SettingsKeys.CHECK_CLONES, value)
 
     var checkSources: Boolean
-        get() = prefs.getBoolean(KEY_CHECK_SOURCES, true)
-        set(value) = prefs.edit().putBoolean(KEY_CHECK_SOURCES, value).apply()
+        get() = prefs.getBoolean(SettingsKeys.CHECK_SOURCES, true)
+        set(value) = put(SettingsKeys.CHECK_SOURCES, value)
 
     /** Background installs wait for an unmetered network and/or a charger. */
     var wifiOnly: Boolean
-        get() = prefs.getBoolean(KEY_WIFI_ONLY, false)
-        set(value) = prefs.edit().putBoolean(KEY_WIFI_ONLY, value).apply()
+        get() = prefs.getBoolean(SettingsKeys.WIFI_ONLY, false)
+        set(value) = put(SettingsKeys.WIFI_ONLY, value)
 
     var chargingOnly: Boolean
-        get() = prefs.getBoolean(KEY_CHARGING_ONLY, false)
-        set(value) = prefs.edit().putBoolean(KEY_CHARGING_ONLY, value).apply()
+        get() = prefs.getBoolean(SettingsKeys.CHARGING_ONLY, false)
+        set(value) = put(SettingsKeys.CHARGING_ONLY, value)
 
     /** Experimental: install with `su`, taking precedence over the chosen method. */
     var useRoot: Boolean
-        get() = prefs.getBoolean(KEY_USE_ROOT, false)
-        set(value) = prefs.edit().putBoolean(KEY_USE_ROOT, value).apply()
+        get() = prefs.getBoolean(SettingsKeys.USE_ROOT, false)
+        set(value) = put(SettingsKeys.USE_ROOT, value)
 
     /** Last choices made in the merge sheet. */
     var mergeSign: Boolean
-        get() = prefs.getBoolean(KEY_MERGE_SIGN, true)
-        set(value) = prefs.edit().putBoolean(KEY_MERGE_SIGN, value).apply()
+        get() = prefs.getBoolean(SettingsKeys.MERGE_SIGN, true)
+        set(value) = put(SettingsKeys.MERGE_SIGN, value)
 
     var cloneBadge: Boolean
-        get() = prefs.getBoolean(KEY_CLONE_BADGE, true)
-        set(value) = prefs.edit().putBoolean(KEY_CLONE_BADGE, value).apply()
+        get() = prefs.getBoolean(SettingsKeys.CLONE_BADGE, true)
+        set(value) = put(SettingsKeys.CLONE_BADGE, value)
 
     var installSign: Boolean
-        get() = prefs.getBoolean(KEY_INSTALL_SIGN, false)
-        set(value) = prefs.edit().putBoolean(KEY_INSTALL_SIGN, value).apply()
+        get() = prefs.getBoolean(SettingsKeys.INSTALL_SIGN, false)
+        set(value) = put(SettingsKeys.INSTALL_SIGN, value)
 
     var mergeForce: Boolean
-        get() = prefs.getBoolean(KEY_MERGE_FORCE, false)
-        set(value) = prefs.edit().putBoolean(KEY_MERGE_FORCE, value).apply()
+        get() = prefs.getBoolean(SettingsKeys.MERGE_FORCE, false)
+        set(value) = put(SettingsKeys.MERGE_FORCE, value)
 
     val checkIntervalDays: Long get() = CHECK_INTERVAL_DAYS[checkInterval].toLong()
 
-    enum class InstallMethod { STOCK, SHIZUKU }
+    /** Stores a setting; every change is put on record, so the log shows how the app was set up. */
+    private fun put(key: String, value: Any) {
+        prefs.edit().apply {
+            when (value) {
+                is Boolean -> putBoolean(key, value)
+                is Int -> putInt(key, value)
+                else -> putString(key, value.toString())
+            }
+        }.apply()
+        AppLog.debug("Setting $key = $value")
+    }
 
     companion object {
-        private const val KEY_INSTALL_METHOD = "install_method"
-        private const val KEY_CHECK_CLONES = "check_clones"
-        private const val KEY_CHECK_SOURCES = "check_sources"
-        private const val KEY_WIFI_ONLY = "wifi_only"
-        private const val KEY_CHARGING_ONLY = "charging_only"
-        private const val KEY_USE_ROOT = "use_root"
-        private const val KEY_MERGE_SIGN = "merge_sign"
-        private const val KEY_INSTALL_SIGN = "install_sign"
-        private const val KEY_CLONE_BADGE = "clone_badge"
-        private const val KEY_MERGE_FORCE = "merge_force"
-        private const val KEY_CHECK_UPDATES = "check_updates"
-        private const val KEY_AUTO_INSTALL = "auto_install"
-        private const val KEY_CHECK_INTERVAL = "check_interval"
         private const val DEFAULT_CHECK_INTERVAL = 2
 
         /** Slider stops, from once a day to once a year. Matches the check_intervals string array. */

@@ -8,6 +8,7 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.ui.MainActivity
+import io.github.bl3xand.apkcloner.ui.MainTabs
 
 /** Everything the background update shows. Dropped by the system if notifications are not allowed. */
 object UpdateNotifications {
@@ -54,7 +55,7 @@ object UpdateNotifications {
 
     private fun showOutdated(context: Context, title: Int, labels: String) {
         val open = Intent(context, MainActivity::class.java)
-            .putExtra(MainActivity.EXTRA_TAB, MainActivity.TAB_CLONES)
+            .putExtra(MainActivity.EXTRA_TAB, MainTabs.CLONES)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val notification = builder(context)
             .setContentTitle(context.getString(title))

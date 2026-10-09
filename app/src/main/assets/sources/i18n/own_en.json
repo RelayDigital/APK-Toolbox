@@ -26,6 +26,8 @@
   "actShare": "Share link",
   "detSource": "Source",
   "detInstalled": "Installed",
+  "addReplaceSource": "Replace the source?",
+  "addReplaceSourceText": "{} is already tracked from\n{}\n\nAdding this link will track it from here instead.",
   "detLatest": "Latest",
   "detReleased": "Released",
   "detChecked": "Checked",

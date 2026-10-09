@@ -1,25 +1,10 @@
 package io.github.bl3xand.apkcloner.sources.model
 
-import io.github.bl3xand.apkcloner.sources.core.MultiAppMultiError
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
-import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import java.time.Instant
 import org.json.JSONArray
 import org.json.JSONObject
-
-data class AppNames(val author: String, val name: String)
-
-/** What a source knows about the newest release of an app. */
-data class ApkDetails(
-    val version: String,
-    val apkUrls: List<NamedUrl>,
-    val names: AppNames,
-    val releaseDate: Instant? = null,
-    val changeLog: String? = null,
-    val releaseUrl: String? = null,
-    val allAssetUrls: List<NamedUrl> = emptyList(),
-)
 
 /** An app tracked from a source. The JSON form matches the reference app's export format. */
 data class TrackedApp(
@@ -140,32 +125,6 @@ data class TrackedApp(
     }
 }
 
-/** Type-safe reads from an app's settings map; values may be stored as strings. */
-class TypedSettings(private val raw: Map<String, Any?>) {
-    fun getBool(key: String, defaultValue: Boolean = false): Boolean = when (val value = raw[key]) {
-        null -> defaultValue
-        is Boolean -> value
-        is String -> value == "true"
-        else -> defaultValue
-    }
-
-    fun getIntOrNull(key: String): Int? = when (val value = raw[key]) {
-        is Number -> value.toInt()
-        is String -> value.toIntOrNull()
-        else -> null
-    }
-
-    fun getStringOrNull(key: String): String? = when (val value = raw[key]) {
-        null -> null
-        is String -> value.ifEmpty { null }
-        else -> value.toString()
-    }
-
-    fun getString(key: String, defaultValue: String = ""): String = getStringOrNull(key) ?: defaultValue
-
-    override fun toString(): String = raw.toString()
-}
-
 /** Keeps the current release fields so a too-young release stays hidden until it has aged. */
 fun applyMinAgeSuppression(currentApp: TrackedApp, fetchedApp: TrackedApp): TrackedApp = fetchedApp.copy(
     latestVersion = currentApp.latestVersion,
@@ -175,11 +134,3 @@ fun applyMinAgeSuppression(currentApp: TrackedApp, fetchedApp: TrackedApp): Trac
     apkUrls = currentApp.apkUrls,
     otherAssetUrls = currentApp.otherAssetUrls,
 )
-
-class CheckUpdatesException(val updates: List<TrackedApp>, val errors: MultiAppMultiError) :
-    SourceError(code = "CHECK_UPDATES_FAILED", unexpected = true) {
-    override fun toString(): String {
-        val base = if (!url.isNullOrEmpty()) "$message ($url)" else message
-        return "$base\n$errors"
-    }
-}

@@ -1,26 +1,5 @@
 package io.github.bl3xand.apkcloner.sources.core
 
-/** Global (not per-app) values the sources read. Backed by preferences in the app. */
-interface SourceSettings {
-    fun getString(key: String): String?
-    fun getBool(key: String): Boolean
-    fun setString(key: String, value: String)
-
-    val enableCertificatePinning: Boolean
-    val globalApkFilterRegEx: String?
-    val minimumUpdateAgeDays: Int
-    val hideDowngrades: Boolean
-}
-
-/** Device facts the sources need; kept behind an interface so the code runs on a plain JVM. */
-interface Platform {
-    val supportedAbis: List<String>
-    val sdkInt: Int
-    val appVersionName: String
-    val screenDensityDpi: Int
-    val isTv: Boolean
-}
-
 object SourceEnv {
     @Volatile
     var settings: SourceSettings = object : SourceSettings {

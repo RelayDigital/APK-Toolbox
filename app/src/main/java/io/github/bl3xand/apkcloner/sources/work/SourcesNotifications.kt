@@ -13,6 +13,7 @@ import io.github.bl3xand.apkcloner.sources.core.formatDownloadSize
 import io.github.bl3xand.apkcloner.sources.install.SourcesInstaller
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.ui.MainActivity
+import io.github.bl3xand.apkcloner.ui.MainTabs
 import kotlin.math.abs
 
 /** Everything the Sources tab reports through notifications. */
@@ -49,7 +50,7 @@ object SourcesNotifications {
         PendingIntent.getActivity(
             context, requestCode,
             Intent(context, MainActivity::class.java)
-                .putExtra(MainActivity.EXTRA_TAB, MainActivity.TAB_SOURCES)
+                .putExtra(MainActivity.EXTRA_TAB, MainTabs.SOURCES)
                 .putExtra(EXTRA_APP_ID, appId)
                 .putExtra(EXTRA_MESSAGE, message)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
@@ -183,11 +184,4 @@ object SourcesNotifications {
         context, idForKey("done|$url"), "FILE_DOWNLOADED", Tr.get("downloadedXNotifChannel", Tr.get("app")),
         NotificationManager.IMPORTANCE_DEFAULT, Tr.get("downloadedX", fileName), "",
     )
-
-    /** The Cancel action of a download notification. */
-    class CancelDownloadReceiver : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            intent.getStringExtra(EXTRA_APP_ID)?.let { SourcesInstaller.get(context).cancelDownload(it) }
-        }
-    }
 }

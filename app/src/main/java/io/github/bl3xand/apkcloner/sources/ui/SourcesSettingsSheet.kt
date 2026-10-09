@@ -2,15 +2,16 @@ package io.github.bl3xand.apkcloner.sources.ui
 
 import android.net.Uri
 import android.os.Bundle
+import android.text.InputType
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.R as MaterialR
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.bottomsheet.BottomSheetDragHandleView
 import com.google.android.material.slider.Slider
@@ -20,15 +21,30 @@ import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.errorText
-import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
+import io.github.bl3xand.apkcloner.sources.data.SourcesBackup
 import io.github.bl3xand.apkcloner.sources.data.SourcesSettings
 import io.github.bl3xand.apkcloner.sources.form.DropdownItem
 import io.github.bl3xand.apkcloner.sources.form.SettingItem
-import io.github.bl3xand.apkcloner.sources.form.SliderItem
 import io.github.bl3xand.apkcloner.sources.form.TextItem
 import io.github.bl3xand.apkcloner.sources.source.MassAppUrlSource
 import io.github.bl3xand.apkcloner.sources.source.SourceRegistry
 import io.github.bl3xand.apkcloner.sources.source.minimumUpdateAgeOptions
+import io.github.bl3xand.apkcloner.ui.Spacing
+import io.github.bl3xand.apkcloner.ui.actionButton
+import io.github.bl3xand.apkcloner.ui.add
+import io.github.bl3xand.apkcloner.ui.addDivider
+import io.github.bl3xand.apkcloner.ui.addHeading
+import io.github.bl3xand.apkcloner.ui.column
+import io.github.bl3xand.apkcloner.ui.confirm
+import io.github.bl3xand.apkcloner.ui.expandFully
+import io.github.bl3xand.apkcloner.ui.label
+import io.github.bl3xand.apkcloner.ui.openUrl
+import io.github.bl3xand.apkcloner.ui.scrollable
+import io.github.bl3xand.apkcloner.ui.settingBlock
+import io.github.bl3xand.apkcloner.ui.showError
+import io.github.bl3xand.apkcloner.ui.showSheet
+import io.github.bl3xand.apkcloner.ui.switchRow
+import io.github.bl3xand.apkcloner.ui.toast
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -56,7 +72,7 @@ class SourcesSettingsSheet : BottomSheetDialogFragment() {
         dialogs = SourcesDialogs(context)
         val root = context.column(Spacing.SHEET)
         root.add(BottomSheetDragHandleView(context))
-        root.add(context.label(getString(R.string.settings_sources), com.google.android.material.R.attr.textAppearanceHeadlineSmall))
+        root.add(context.label(getString(R.string.settings_sources), MaterialR.attr.textAppearanceHeadlineSmall))
 
         var firstSection = true
         fun section(title: String) {
@@ -94,7 +110,7 @@ class SourcesSettingsSheet : BottomSheetDialogFragment() {
         val ageBlock = context.settingBlock(ageLabel(settings.minimumUpdateAgeDays), Tr.get("setMinAgeDesc"), ageSlider)
         ageSlider.addOnChangeListener { _, index, _ ->
             settings.minimumUpdateAgeDays = minimumUpdateAgeOptions[index.toInt()]
-            (ageBlock.getChildAt(0) as android.widget.TextView).text = ageLabel(settings.minimumUpdateAgeDays)
+            (ageBlock.getChildAt(0) as TextView).text = ageLabel(settings.minimumUpdateAgeDays)
         }
         root.add(ageBlock)
 
@@ -149,18 +165,18 @@ class SourcesSettingsSheet : BottomSheetDialogFragment() {
 
         // ---- data ----
         section(Tr.get("setData"))
-        root.add(context.label(Tr.get("setDataDesc", "Obtainium"), colorAttr = com.google.android.material.R.attr.colorOnSurfaceVariant), topMargin = 4)
+        root.add(context.label(Tr.get("setDataDesc", "Obtainium"), colorAttr = MaterialR.attr.colorOnSurfaceVariant), topMargin = 4)
         button(Tr.get("setImportFile"), R.drawable.ic_folder, topMargin = Spacing.UNDER_LABEL - Spacing.BUTTON_INSET) { pickImportFile.launch(arrayOf("*/*")) }
         button(Tr.get("setImportLinks"), R.drawable.ic_add) { askUrlList() }
         for (source in SourceRegistry.massUrlSources) button(source.name, R.drawable.ic_download) { massImport(source) }
         button(Tr.get("setExport"), R.drawable.ic_share) {
-            createExportFile.launch("${SourcesRepository.EXPORT_FILE_PREFIX}-${Instant.now().toString().take(10)}.json")
+            createExportFile.launch("${SourcesBackup.EXPORT_FILE_PREFIX}-${Instant.now().toString().take(10)}.json")
         }
 
         root.add(
             context.label(
                 CREDIT_LINE,
-                com.google.android.material.R.attr.textAppearanceBodySmall, com.google.android.material.R.attr.colorOnSurfaceVariant,
+                MaterialR.attr.textAppearanceBodySmall, MaterialR.attr.colorOnSurfaceVariant,
             ).apply { setOnClickListener { context.openUrl(CREDIT_URL) } },
             topMargin = 24,
         )
@@ -170,10 +186,7 @@ class SourcesSettingsSheet : BottomSheetDialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        (dialog as? BottomSheetDialog)?.behavior?.apply {
-            state = BottomSheetBehavior.STATE_EXPANDED
-            skipCollapsed = true
-        }
+        expandFully()
     }
 
     private fun readText(uri: Uri): String =
@@ -186,7 +199,7 @@ class SourcesSettingsSheet : BottomSheetDialogFragment() {
             try {
                 val text = withContext(Dispatchers.IO) { readText(uri) }
                 val ids = try {
-                    repo.appIdsInImportJson(text)
+                    repo.backup.appIdsInImportJson(text)
                 } catch (e: Exception) {
                     throw SourceError(Tr.get("invalidInput"))
                 }
@@ -199,7 +212,7 @@ class SourcesSettingsSheet : BottomSheetDialogFragment() {
                 ) {
                     return@launch
                 }
-                val (apps, _) = withContext(Dispatchers.IO) { repo.importJson(text).also { repo.addMissingCategories() } }
+                val (apps, _) = withContext(Dispatchers.IO) { repo.backup.importJson(text).also { repo.addMissingCategories() } }
                 viewModel.settingsChanged()
                 context.toast(Tr.get("importedX", Tr.plural("apps", apps.size).lowercase()))
             } catch (e: Exception) {
@@ -214,7 +227,7 @@ class SourcesSettingsSheet : BottomSheetDialogFragment() {
             try {
                 withContext(Dispatchers.IO) {
                     context.contentResolver.openOutputStream(uri, "wt")!!.use {
-                        it.write(viewModel.repo.generateExportJson().toString(4).toByteArray())
+                        it.write(viewModel.repo.backup.generateExportJson().toString(4).toByteArray())
                     }
                 }
                 context.toast(Tr.get("exportDone"))
@@ -227,20 +240,20 @@ class SourcesSettingsSheet : BottomSheetDialogFragment() {
     /** A box for links, one per line. */
     private fun askUrlList() {
         val context = requireContext()
-        val layout = TextInputLayout(context, null, com.google.android.material.R.attr.textInputOutlinedStyle).apply {
+        val layout = TextInputLayout(context, null, MaterialR.attr.textInputOutlinedStyle).apply {
             hint = Tr.get("importLinksHint")
         }
         val edit = TextInputEditText(layout.context).apply {
             minLines = 2
             maxLines = 6
-            gravity = android.view.Gravity.TOP
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
-                android.text.InputType.TYPE_TEXT_VARIATION_URI
+            gravity = Gravity.TOP
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                InputType.TYPE_TEXT_VARIATION_URI
         }
         layout.addView(edit)
         val view = context.column(Spacing.SHEET).apply {
             add(layout, topMargin = 8)
-            add(context.label(Tr.get("importLinksNote"), colorAttr = com.google.android.material.R.attr.colorOnSurfaceVariant), topMargin = 8)
+            add(context.label(Tr.get("importLinksNote"), colorAttr = MaterialR.attr.colorOnSurfaceVariant), topMargin = 8)
         }
         context.showSheet(Tr.get("setImportLinks"), content = view, positive = Tr.get("import"), negative = Tr.get("cancel")) {
             val urls = (edit.text?.toString() ?: "").split('\n').map { it.trim() }.filter { it.isNotEmpty() }

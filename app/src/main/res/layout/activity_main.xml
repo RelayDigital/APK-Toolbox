@@ -252,26 +252,40 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chipSystem"
-                    style="@style/Widget.Material3.Chip.Filter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/chip_system_apps" />
-
-                <!-- On the Clones side: check every clone against its original and update those behind. -->
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chipClonesRefresh"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/button_refresh"
-                    android:visibility="gone"
-                    app:chipIcon="@drawable/ic_update" />
-
-                <Space
+                <!-- One line that scrolls sideways when the chips do not fit; it never wraps. -->
+                <HorizontalScrollView
                     android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:overScrollMode="never"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipSystem"
+                            style="@style/Widget.Material3.Chip.Filter"
+                            android:textColor="@color/chip_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/chip_system_apps" />
+
+                        <!-- On the Clones side: check every clone against its original and update those behind. -->
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipClonesRefresh"
+                            android:textColor="@color/chip_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/button_refresh"
+                            android:visibility="gone"
+                            app:chipIcon="@drawable/ic_update" />
+
+                    </LinearLayout>
+                </HorizontalScrollView>
 
                 <!-- Says what this tab is for. -->
                 <com.google.android.material.button.MaterialButton
@@ -295,33 +309,48 @@
                 android:orientation="horizontal"
                 android:visibility="gone">
 
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chipSourcesRefresh"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    app:chipIcon="@drawable/ic_update" />
-
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chipSourcesFilter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="@string/sources_filter"
-                    app:chipIcon="@drawable/ic_filter" />
-
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chipSourcesClearFilter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="@string/sources_filter_clear"
-                    android:visibility="gone"
-                    app:chipIcon="@drawable/ic_close" />
-
-                <Space
+                <!-- One line that scrolls sideways when the chips do not fit; it never wraps. -->
+                <HorizontalScrollView
                     android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:overScrollMode="never"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipSourcesRefresh"
+                            android:textColor="@color/chip_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:chipIcon="@drawable/ic_update" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipSourcesFilter"
+                            android:textColor="@color/chip_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="@string/sources_filter"
+                            app:chipIcon="@drawable/ic_filter" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipSourcesClearFilter"
+                            android:textColor="@color/chip_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="@string/sources_filter_clear"
+                            android:visibility="gone"
+                            app:chipIcon="@drawable/ic_close" />
+
+                    </LinearLayout>
+                </HorizontalScrollView>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/buttonSourcesInfo"
@@ -419,7 +448,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="@dimen/screen_margin"
-            android:layout_marginVertical="12dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="24dp"
             android:text="@string/button_pick_apk"
             app:icon="@drawable/ic_folder"
             app:iconGravity="textStart"

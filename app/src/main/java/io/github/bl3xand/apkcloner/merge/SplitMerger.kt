@@ -10,19 +10,6 @@ import io.github.bl3xand.apkcloner.clone.ApkCloner
 import java.io.File
 import java.util.zip.ZipFile
 
-enum class SplitStep { EXTRACTING, MERGING, SAVING, SIGNING, EXPORTING, COPYING_OBB }
-
-class MergeResult(val apk: File, val signed: Boolean, val pairip: Boolean)
-
-/**
- * The resource tables are too big to merge within the memory Android gives an app.
- * [megabytes] is their combined size.
- */
-class TablesTooLargeException(val megabytes: Long) : Exception()
-
-/** Some splits do not belong to the same build as the base; merging them needs an explicit go-ahead. */
-class SplitMismatchException(val splits: List<String>) : Exception()
-
 /**
  * Merges split APKs into a single installable APK.
  *

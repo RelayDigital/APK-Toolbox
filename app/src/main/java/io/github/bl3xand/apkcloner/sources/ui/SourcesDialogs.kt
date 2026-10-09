@@ -1,42 +1,68 @@
 package io.github.bl3xand.apkcloner.sources.ui
 
 import android.content.Context
-import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.net.Uri
 import android.os.Build
+import android.text.TextUtils
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.RadioButton
-import android.widget.TextView
+import androidx.appcompat.R as AppCompatR
 import androidx.core.widget.doAfterTextChanged
+import com.google.android.material.R as MaterialR
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.bottomsheet.BottomSheetDragHandleView
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.divider.MaterialDivider
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.Tr
-import io.github.bl3xand.apkcloner.sources.model.SettingKeys
-import io.github.bl3xand.apkcloner.ui.AppIcons
-import io.github.bl3xand.apkcloner.ui.Messages
-import io.github.bl3xand.apkcloner.ui.bind
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
-import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import io.github.bl3xand.apkcloner.sources.install.InstallPrompts
+import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.sources.source.SourceRegistry
+import io.github.bl3xand.apkcloner.ui.Messages
+import io.github.bl3xand.apkcloner.ui.Spacing
+import io.github.bl3xand.apkcloner.ui.actionButton
+import io.github.bl3xand.apkcloner.ui.add
+import io.github.bl3xand.apkcloner.ui.addDivider
+import io.github.bl3xand.apkcloner.ui.addHeading
+import io.github.bl3xand.apkcloner.ui.column
+import io.github.bl3xand.apkcloner.ui.confirm
+import io.github.bl3xand.apkcloner.ui.dp
+import io.github.bl3xand.apkcloner.ui.enableLinks
+import io.github.bl3xand.apkcloner.ui.expandFully
+import io.github.bl3xand.apkcloner.ui.filterChip
+import io.github.bl3xand.apkcloner.ui.inScrollingRow
+import io.github.bl3xand.apkcloner.ui.label
+import io.github.bl3xand.apkcloner.ui.markdownToSpanned
+import io.github.bl3xand.apkcloner.ui.openUrl
+import io.github.bl3xand.apkcloner.ui.scrollable
+import io.github.bl3xand.apkcloner.ui.sectionTitle
+import io.github.bl3xand.apkcloner.ui.showSheet
+import io.github.bl3xand.apkcloner.ui.switchRow
+import io.github.bl3xand.apkcloner.ui.textButton
+import io.github.bl3xand.apkcloner.ui.themeColor
 import kotlin.coroutines.resume
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-
-/** One row of [SourcesDialogs.pickFromList]. */
-class PickItem(val key: String, val title: String, val description: String, val badge: String?)
-
-/** One row of [SourcesDialogs.showActions]. */
-class SheetAction(val icon: Int, val label: String, val danger: Boolean = false, val onClick: () -> Unit)
 
 /** The dialogs of the Sources tab. [context] must be an activity (or themed like one). */
 class SourcesDialogs(private val context: Context) : InstallPrompts {
@@ -69,8 +95,8 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
     override suspend fun confirmOrigin(sourceUrl: String, apkUrl: String): Boolean = withContext(Dispatchers.Main) {
         context.confirm(
             Tr.get("warning"),
-            Tr.get("sourceIsXButPackageFromYPrompt", android.net.Uri.parse(sourceUrl).host ?: sourceUrl,
-                android.net.Uri.parse(apkUrl.lines().first()).host ?: apkUrl),
+            Tr.get("sourceIsXButPackageFromYPrompt", Uri.parse(sourceUrl).host ?: sourceUrl,
+                Uri.parse(apkUrl.lines().first()).host ?: apkUrl),
         )
     }
 
@@ -85,7 +111,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 add(context.sectionTitle(title), topMargin = 12)
                 for (hash in values.ifEmpty { setOf(Tr.get("unknown")) }) {
                     add(
-                        context.label(hash, com.google.android.material.R.attr.textAppearanceBodySmall).apply {
+                        context.label(hash, MaterialR.attr.textAppearanceBodySmall).apply {
                             typeface = Typeface.MONOSPACE
                             setTextIsSelectable(true)
                         },
@@ -175,8 +201,8 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         fun chip(text: String, checked: Boolean, color: Int? = null, onChange: (Boolean) -> Unit) =
             context.filterChip(text, checked, onChange).apply {
                 if (color != null) {
-                    setChipIconResource(io.github.bl3xand.apkcloner.R.drawable.ic_label)
-                    chipIconTint = android.content.res.ColorStateList.valueOf(color or 0xFF000000.toInt())
+                    setChipIconResource(R.drawable.ic_label)
+                    chipIconTint = ColorStateList.valueOf(color or 0xFF000000.toInt())
                     isChipIconVisible = true
                 }
             }
@@ -186,7 +212,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 ChipGroup(context).apply {
                     addView(chip(Tr.get("fltUpToDate"), filter.includeUpToDate) { filter = filter.copy(includeUpToDate = it) })
                     addView(chip(Tr.get("fltNotInstalled"), filter.includeNonInstalled) { filter = filter.copy(includeNonInstalled = it) })
-                },
+                }.inScrollingRow(),
                 topMargin = Spacing.UNDER_HEADING,
             )
             // Only the sources that are actually in use.
@@ -200,7 +226,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 for (id in used) {
                     group.addView(chip(names[id] ?: id, filter.source == id) { if (it) filter = filter.copy(source = id) })
                 }
-                add(group, topMargin = Spacing.UNDER_HEADING)
+                add(group.inScrollingRow(), topMargin = Spacing.UNDER_HEADING)
             }
             val categories = settings.categories
             if (categories.isNotEmpty()) {
@@ -214,7 +240,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                         },
                     )
                 }
-                add(group, topMargin = Spacing.UNDER_HEADING)
+                add(group.inScrollingRow(), topMargin = Spacing.UNDER_HEADING)
             }
         }
         if (!context.confirm(Tr.get("filterApps"), view = view.scrollable())) return null
@@ -240,8 +266,8 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                         onChange(current.toSet())
                     }.apply {
                         // The colour of the category, as on the rows of the list.
-                        setChipIconResource(io.github.bl3xand.apkcloner.R.drawable.ic_label)
-                        chipIconTint = android.content.res.ColorStateList.valueOf(color or 0xFF000000.toInt())
+                        setChipIconResource(R.drawable.ic_label)
+                        chipIconTint = ColorStateList.valueOf(color or 0xFF000000.toInt())
                         isChipIconVisible = true
                         // Held down, a category can be removed right here.
                         setOnLongClickListener {
@@ -259,7 +285,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 group.addView(
                     Chip(context).apply {
                         text = Tr.get("addCategory")
-                        setChipIconResource(io.github.bl3xand.apkcloner.R.drawable.ic_add)
+                        setChipIconResource(R.drawable.ic_add)
                         setEnsureMinTouchTargetSize(false)
                         setOnClickListener {
                             askNewCategory { name ->
@@ -276,14 +302,14 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         return context.column().apply {
             if (showTitle) add(context.sectionTitle(Tr.get("categories")))
             if (settings.categories.isEmpty() && !allowCreate) {
-                add(context.label(Tr.get("noCategories"), colorAttr = com.google.android.material.R.attr.colorOnSurfaceVariant), topMargin = 4)
+                add(context.label(Tr.get("noCategories"), colorAttr = MaterialR.attr.colorOnSurfaceVariant), topMargin = 4)
             }
             add(group, topMargin = if (showTitle) Spacing.UNDER_HEADING else 0)
         }
     }
 
     fun promptText(title: String, hint: String, initial: String = "", onResult: (String) -> Unit) {
-        val layout = TextInputLayout(context, null, com.google.android.material.R.attr.textInputOutlinedStyle).apply { this.hint = hint }
+        val layout = TextInputLayout(context, null, MaterialR.attr.textInputOutlinedStyle).apply { this.hint = hint }
         val edit = TextInputEditText(layout.context).apply {
             setSingleLine()
             setText(initial)
@@ -303,8 +329,8 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
     ).map { it.toInt() }
 
     private fun dot(color: Int, size: Int): View = View(context).apply {
-        background = android.graphics.drawable.GradientDrawable().apply {
-            shape = android.graphics.drawable.GradientDrawable.OVAL
+        background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
             setColor(color or 0xFF000000.toInt())
         }
         layoutParams = ViewGroup.MarginLayoutParams(context.dp(size), context.dp(size))
@@ -317,16 +343,16 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
     private fun colorPicker(initial: Int, onChange: (Int) -> Unit): View {
         val preview = dot(initial, PREVIEW_DOT)
         // The chosen colour, in a square frame of its own.
-        val frame = com.google.android.material.card.MaterialCardView(
-            context, null, com.google.android.material.R.attr.materialCardViewOutlinedStyle,
+        val frame = MaterialCardView(
+            context, null, MaterialR.attr.materialCardViewOutlinedStyle,
         ).apply {
             addView(
                 preview,
-                android.widget.FrameLayout.LayoutParams(context.dp(PREVIEW_DOT), context.dp(PREVIEW_DOT), android.view.Gravity.CENTER),
+                FrameLayout.LayoutParams(context.dp(PREVIEW_DOT), context.dp(PREVIEW_DOT), Gravity.CENTER),
             )
         }
         val field = PaletteView(context) { color ->
-            (preview.background as android.graphics.drawable.GradientDrawable).setColor(color)
+            (preview.background as GradientDrawable).setColor(color)
             onChange(color)
         }
         return context.column().apply {
@@ -335,7 +361,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 frame,
                 LinearLayout.LayoutParams(context.dp(PREVIEW_FRAME), context.dp(PREVIEW_FRAME)).apply {
                     topMargin = context.dp(Spacing.BLOCK)
-                    gravity = android.view.Gravity.CENTER_HORIZONTAL
+                    gravity = Gravity.CENTER_HORIZONTAL
                 },
             )
         }
@@ -352,7 +378,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
 
     /** A small question before a category is removed; apps simply lose it. */
     private fun confirmCategoryRemoval(name: String, onRemoved: () -> Unit) {
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
+        MaterialAlertDialogBuilder(context)
             .setTitle(Tr.get("catRemoveQuestion", name))
             .setPositiveButton(Tr.get("remove")) { _, _ ->
                 repo.setCategories(settings.categories - name)
@@ -365,12 +391,12 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
     /** A new category: its name and its colour in one sheet. Names already taken are refused. */
     private fun askNewCategory(onCreated: (String) -> Unit) {
         var color = palette.random()
-        val layout = TextInputLayout(context, null, com.google.android.material.R.attr.textInputOutlinedStyle).apply { hint = Tr.get("catName") }
+        val layout = TextInputLayout(context, null, MaterialR.attr.textInputOutlinedStyle).apply { hint = Tr.get("catName") }
         val edit = TextInputEditText(layout.context).apply { setSingleLine() }
         layout.addView(edit)
         val view = body().apply {
             add(layout)
-            add(context.label(Tr.get("catColor"), com.google.android.material.R.attr.textAppearanceTitleMedium), topMargin = Spacing.BLOCK)
+            add(context.label(Tr.get("catColor"), MaterialR.attr.textAppearanceTitleMedium), topMargin = Spacing.BLOCK)
             add(colorPicker(color) { color = it }, topMargin = Spacing.UNDER_HEADING)
         }
         context.showSheet(Tr.get("addCategory"), content = view, positive = Tr.get("add"), negative = Tr.get("cancel")) {
@@ -400,12 +426,12 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
             list.removeAllViews()
             val categories = settings.categories
             if (categories.isEmpty()) {
-                list.add(context.label(Tr.get("noCategories"), colorAttr = com.google.android.material.R.attr.colorOnSurfaceVariant))
+                list.add(context.label(Tr.get("noCategories"), colorAttr = MaterialR.attr.colorOnSurfaceVariant))
             }
             categories.entries.sortedBy { it.key.lowercase() }.forEachIndexed { index, (name, color) ->
-                if (index > 0) list.add(com.google.android.material.divider.MaterialDivider(context))
+                if (index > 0) list.add(MaterialDivider(context))
                 val row = LinearLayout(context).apply {
-                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    gravity = Gravity.CENTER_VERTICAL
                     minimumHeight = context.dp(Spacing.ROW)
                 }
                 row.addView(
@@ -421,9 +447,9 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                     LinearLayout.LayoutParams(context.dp(28), context.dp(28)).apply { marginEnd = context.dp(16) },
                 )
                 row.addView(
-                    context.label(name, com.google.android.material.R.attr.textAppearanceBodyLarge).apply {
+                    context.label(name, MaterialR.attr.textAppearanceBodyLarge).apply {
                         maxLines = 1
-                        ellipsize = android.text.TextUtils.TruncateAt.END
+                        ellipsize = TextUtils.TruncateAt.END
                         setOnClickListener {
                             promptText(Tr.get("category"), Tr.get("catName"), name) { newName ->
                                 val trimmed = newName.trim()
@@ -443,11 +469,11 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                     LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
                 )
                 row.addView(
-                    com.google.android.material.button.MaterialButton(
-                        context, null, com.google.android.material.R.attr.materialIconButtonStyle,
+                    MaterialButton(
+                        context, null, MaterialR.attr.materialIconButtonStyle,
                     ).apply {
-                        setIconResource(io.github.bl3xand.apkcloner.R.drawable.ic_delete)
-                        iconTint = android.content.res.ColorStateList.valueOf(context.themeColor(androidx.appcompat.R.attr.colorError))
+                        setIconResource(R.drawable.ic_delete)
+                        iconTint = ColorStateList.valueOf(context.themeColor(AppCompatR.attr.colorError))
                         contentDescription = Tr.get("remove")
                         setOnClickListener {
                             confirmCategoryRemoval(name) {
@@ -462,10 +488,10 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         }
         rebuild()
         val view = body().apply {
-            add(context.label(Tr.get("catHint"), colorAttr = com.google.android.material.R.attr.colorOnSurfaceVariant))
+            add(context.label(Tr.get("catHint"), colorAttr = MaterialR.attr.colorOnSurfaceVariant))
             add(list, topMargin = 8)
             add(
-                context.actionButton(Tr.get("addCategory"), io.github.bl3xand.apkcloner.R.drawable.ic_add) {
+                context.actionButton(Tr.get("addCategory"), R.drawable.ic_add) {
                     askNewCategory {
                         rebuild()
                         onChanged()
@@ -495,7 +521,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         val view = body().apply {
             if (url != null) {
                 add(
-                    context.label(url, colorAttr = androidx.appcompat.R.attr.colorPrimary).apply {
+                    context.label(url, colorAttr = AppCompatR.attr.colorPrimary).apply {
                         setTypeface(null, Typeface.ITALIC)
                         setOnClickListener { context.openUrl(url) }
                     },
@@ -504,7 +530,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
             add(
                 context.label(
                     if (source.changeLogIfAnyIsMarkDown) {
-                        markdownToSpanned(changeLog, android.net.Uri.parse(app.url).let { "${it.scheme}://${it.host}" })
+                        markdownToSpanned(changeLog, Uri.parse(app.url).let { "${it.scheme}://${it.host}" })
                     } else changeLog,
                 ).apply {
                     enableLinks()
@@ -531,7 +557,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         header: View? = null,
     ): List<String>? =
         suspendCancellableCoroutine { continuation ->
-            val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(context)
+            val dialog = BottomSheetDialog(context)
             Messages.track(dialog)
             val chosen = LinkedHashSet<String>()
             var answered = false
@@ -550,29 +576,29 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                     if (words.any { !haystack.contains(it) }) continue
                     // Every choice is a card of its own, so that it is clear where one ends and
                     // the next begins.
-                    val card = com.google.android.material.card.MaterialCardView(
-                        context, null, com.google.android.material.R.attr.materialCardViewOutlinedStyle,
+                    val card = MaterialCardView(
+                        context, null, MaterialR.attr.materialCardViewOutlinedStyle,
                     )
                     val row = LinearLayout(context).apply {
-                        gravity = android.view.Gravity.CENTER_VERTICAL
+                        gravity = Gravity.CENTER_VERTICAL
                         minimumHeight = context.dp(Spacing.ROW)
                         setPadding(context.dp(Spacing.BLOCK), context.dp(CHOICE_PADDING), context.dp(Spacing.BLOCK), context.dp(CHOICE_PADDING))
                     }
                     card.addView(row)
                     val texts = context.column().apply {
-                        add(context.label(item.title, com.google.android.material.R.attr.textAppearanceTitleMedium))
+                        add(context.label(item.title, MaterialR.attr.textAppearanceTitleMedium))
                         if (item.description.isNotBlank()) {
                             add(
-                                context.label(item.description, colorAttr = com.google.android.material.R.attr.colorOnSurfaceVariant).apply {
+                                context.label(item.description, colorAttr = MaterialR.attr.colorOnSurfaceVariant).apply {
                                     maxLines = 3
-                                    ellipsize = android.text.TextUtils.TruncateAt.END
+                                    ellipsize = TextUtils.TruncateAt.END
                                 },
                                 topMargin = 2,
                             )
                         }
                         if (item.badge != null) {
                             add(
-                                context.label(item.badge, com.google.android.material.R.attr.textAppearanceLabelMedium, androidx.appcompat.R.attr.colorPrimary),
+                                context.label(item.badge, MaterialR.attr.textAppearanceLabelMedium, AppCompatR.attr.colorPrimary),
                                 topMargin = 4,
                             )
                         }
@@ -610,21 +636,21 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 add(
                     context.label(
                         title,
-                        if (header != null) com.google.android.material.R.attr.textAppearanceTitleLarge
-                        else com.google.android.material.R.attr.textAppearanceHeadlineSmall,
+                        if (header != null) MaterialR.attr.textAppearanceTitleLarge
+                        else MaterialR.attr.textAppearanceHeadlineSmall,
                     ).apply {
                         setPadding(context.dp(Spacing.SHEET), 0, context.dp(Spacing.SHEET), context.dp(8))
                     },
                 )
                 if (note != null) {
                     add(
-                        context.label(note, colorAttr = com.google.android.material.R.attr.colorOnSurfaceVariant).apply {
+                        context.label(note, colorAttr = MaterialR.attr.colorOnSurfaceVariant).apply {
                             setPadding(context.dp(Spacing.SHEET), 0, context.dp(Spacing.SHEET), context.dp(8))
                         },
                     )
                 }
                 if (filterable && items.size > 6) {
-                    val layout = TextInputLayout(context, null, com.google.android.material.R.attr.textInputOutlinedStyle).apply {
+                    val layout = TextInputLayout(context, null, MaterialR.attr.textInputOutlinedStyle).apply {
                         hint = Tr.get("filter")
                         endIconMode = TextInputLayout.END_ICON_CLEAR_TEXT
                     }
@@ -642,11 +668,11 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 addView(list)
             }
             val root = context.column().apply {
-                addView(com.google.android.material.bottomsheet.BottomSheetDragHandleView(context))
+                addView(BottomSheetDragHandleView(context))
                 addView(scrolling.scrollable(), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
                 if (multiple) {
                     addView(
-                        com.google.android.material.button.MaterialButton(context).apply {
+                        MaterialButton(context).apply {
                             text = Tr.get("continue")
                             setOnClickListener { finish(chosen.toList()) }
                         },
@@ -657,8 +683,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 }
             }
             dialog.setContentView(root)
-            dialog.behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
-            dialog.behavior.skipCollapsed = true
+            dialog.expandFully()
             dialog.setOnDismissListener { finish(null) }
             dialog.show()
             continuation.invokeOnCancellation { dialog.dismiss() }
@@ -666,10 +691,10 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
 
     /** A sheet of actions, each with an icon, in the manner of a context menu. */
     fun showActions(title: String?, actions: List<SheetAction>, entry: AppEntry? = null) {
-        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(context)
+        val dialog = BottomSheetDialog(context)
         Messages.track(dialog)
         val root = context.column().apply {
-            addView(com.google.android.material.bottomsheet.BottomSheetDragHandleView(context))
+            addView(BottomSheetDragHandleView(context))
             if (entry != null) {
                 addView(
                     context.appCard(entry),
@@ -679,22 +704,22 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 )
             } else if (title != null) {
                 add(
-                    context.label(title, com.google.android.material.R.attr.textAppearanceTitleLarge).apply {
+                    context.label(title, MaterialR.attr.textAppearanceTitleLarge).apply {
                         setPadding(context.dp(Spacing.SHEET), 0, context.dp(Spacing.SHEET), context.dp(8))
                         maxLines = 1
-                        ellipsize = android.text.TextUtils.TruncateAt.END
+                        ellipsize = TextUtils.TruncateAt.END
                     },
                 )
             }
             for (action in actions) {
                 val color = context.themeColor(
-                    if (action.danger) androidx.appcompat.R.attr.colorError else com.google.android.material.R.attr.colorOnSurface,
+                    if (action.danger) AppCompatR.attr.colorError else MaterialR.attr.colorOnSurface,
                 )
                 val row = LinearLayout(context).apply {
-                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    gravity = Gravity.CENTER_VERTICAL
                     minimumHeight = context.dp(Spacing.ROW)
                     setPadding(context.dp(Spacing.SHEET), 0, context.dp(Spacing.SHEET), 0)
-                    val outValue = android.util.TypedValue()
+                    val outValue = TypedValue()
                     context.theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
                     setBackgroundResource(outValue.resourceId)
                     setOnClickListener {
@@ -703,23 +728,23 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                     }
                 }
                 row.addView(
-                    android.widget.ImageView(context).apply {
+                    ImageView(context).apply {
                         setImageResource(action.icon)
-                        imageTintList = android.content.res.ColorStateList.valueOf(
-                            if (action.danger) color else context.themeColor(com.google.android.material.R.attr.colorOnSurfaceVariant),
+                        imageTintList = ColorStateList.valueOf(
+                            if (action.danger) color else context.themeColor(MaterialR.attr.colorOnSurfaceVariant),
                         )
                     },
                     LinearLayout.LayoutParams(context.dp(Spacing.SHEET), context.dp(Spacing.SHEET)).apply { marginEnd = context.dp(Spacing.SHEET) },
                 )
                 row.addView(
-                    context.label(action.label, com.google.android.material.R.attr.textAppearanceBodyLarge).apply { setTextColor(color) },
+                    context.label(action.label, MaterialR.attr.textAppearanceBodyLarge).apply { setTextColor(color) },
                 )
                 addView(row)
             }
             add(View(context), topMargin = 12)
         }
         dialog.setContentView(root.scrollable())
-        dialog.behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+        dialog.expandFully()
         dialog.show()
     }
 
@@ -727,94 +752,16 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
     fun showImportErrors(total: Int, errors: List<Pair<String, String>>) {
         val view = body().apply {
             add(context.label(Tr.get("importedXOfYApps", (total - errors.size).toString(), total.toString())))
-            add(context.label(Tr.get("followingURLsHadErrors"), com.google.android.material.R.attr.textAppearanceTitleSmall), topMargin = 12)
+            add(context.label(Tr.get("followingURLsHadErrors"), MaterialR.attr.textAppearanceTitleSmall), topMargin = 12)
             for ((url, error) in errors) {
                 add(context.label(url), topMargin = 8)
-                add(context.label(error, colorAttr = androidx.appcompat.R.attr.colorError).apply { setTypeface(null, Typeface.ITALIC) })
+                add(context.label(error, colorAttr = AppCompatR.attr.colorError).apply { setTypeface(null, Typeface.ITALIC) })
             }
         }
         context.showSheet(Tr.get("importErrors"), content = view, positive = Tr.get("close"))
     }
 }
 
-/** The framed card of a tracked app, as every screen shows an app. */
-fun Context.appCard(entry: AppEntry): View =
-    io.github.bl3xand.apkcloner.databinding.ViewAppCardBinding.inflate(android.view.LayoutInflater.from(this)).also { it.bindTracked(entry) }.root
-
-/**
- * Fills the shared app card for a tracked app; a tap opens its page in the system settings.
- * With [treatAsNotInstalled] the installed copy is ignored - used for a signer conflict, where the
- * card is about the build being added, not the differently-signed one already on the device.
- */
-fun io.github.bl3xand.apkcloner.databinding.ViewAppCardBinding.bindTracked(entry: AppEntry, treatAsNotInstalled: Boolean = false) {
-    val context = root.context
-    val app = entry.app
-    val info = entry.installedInfo?.applicationInfo?.takeUnless { treatAsNotInstalled }
-    val version = if (treatAsNotInstalled) app.latestVersion else app.installedVersion ?: app.latestVersion
-    bind(
-        label = entry.name,
-        subtitle = listOfNotNull(app.id.takeIf { !app.hasTempId }, version).joinToString(" · "),
-        icon = info?.let { AppIcons.load(context.packageManager, it) } ?: context.getDrawable(io.github.bl3xand.apkcloner.R.drawable.ic_install),
-        settingsPackage = app.id.takeIf { info != null },
-    )
-    imageIcon.alpha = if (info != null) 1f else 0.4f
-}
-
-private const val PALETTE_HEIGHT = 200
 private const val CHOICE_PADDING = 12
 private const val PREVIEW_DOT = 40
 private const val PREVIEW_FRAME = 72
-
-/** A field of colours: hue runs left to right, top is pale and bottom is deep. */
-private class PaletteView(context: Context, private val onPick: (Int) -> Unit) : View(context) {
-    private var bitmap: android.graphics.Bitmap? = null
-    private val paint = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG)
-    private val ring = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-        style = android.graphics.Paint.Style.STROKE
-        strokeWidth = context.dp(3).toFloat()
-        color = android.graphics.Color.WHITE
-        setShadowLayer(context.dp(2).toFloat(), 0f, 0f, android.graphics.Color.BLACK)
-    }
-    private var markX = -1f
-    private var markY = -1f
-
-    init {
-        clipToOutline = true
-        outlineProvider = object : android.view.ViewOutlineProvider() {
-            override fun getOutline(view: View, outline: android.graphics.Outline) {
-                outline.setRoundRect(0, 0, view.width, view.height, context.dp(16).toFloat())
-            }
-        }
-    }
-
-    private fun colorAt(x: Float, y: Float): Int {
-        val hue = (x.coerceIn(0f, 1f) * 360f).coerceAtMost(359.9f)
-        val depth = y.coerceIn(0f, 1f)
-        // Pale at the top, pure in the middle, darker at the bottom.
-        val saturation = if (depth < 0.5f) 0.15f + depth * 1.7f else 1f
-        val value = if (depth < 0.5f) 1f else 1f - (depth - 0.5f) * 1.2f
-        return android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, value))
-    }
-
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        val columns = 120
-        val rows = 60
-        val pixels = IntArray(columns * rows) { colorAt((it % columns) / (columns - 1f), (it / columns) / (rows - 1f)) }
-        bitmap = android.graphics.Bitmap.createBitmap(pixels, columns, rows, android.graphics.Bitmap.Config.ARGB_8888)
-    }
-
-    override fun onDraw(canvas: android.graphics.Canvas) {
-        bitmap?.let { canvas.drawBitmap(it, null, android.graphics.Rect(0, 0, width, height), paint) }
-        if (markX >= 0) canvas.drawCircle(markX, markY, context.dp(10).toFloat(), ring)
-    }
-
-    @android.annotation.SuppressLint("ClickableViewAccessibility")
-    override fun onTouchEvent(event: android.view.MotionEvent): Boolean {
-        parent?.requestDisallowInterceptTouchEvent(true)
-        markX = event.x.coerceIn(0f, width.toFloat())
-        markY = event.y.coerceIn(0f, height.toFloat())
-        onPick(colorAt(markX / width, markY / height))
-        invalidate()
-        return true
-    }
-}

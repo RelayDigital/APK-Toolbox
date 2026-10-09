@@ -7,18 +7,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.checkbox.MaterialCheckBox
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.databinding.SheetSplitBinding
-import io.github.bl3xand.apkcloner.merge.SplitStep
 import io.github.bl3xand.apkcloner.merge.SplitSelection
 import io.github.bl3xand.apkcloner.merge.SplitSource
 import io.github.bl3xand.apkcloner.settings.AppSettings
@@ -39,10 +37,10 @@ class SplitSheet : BottomSheetDialogFragment() {
 
     // A generic type keeps the picker from rewriting the extension.
     private val saveAs = registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
-        if (uri != null) viewModel.saveMerged(uri)
+        if (uri != null) viewModel.splits.saveMerged(uri)
     }
     private val exportAs = registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
-        if (uri != null) viewModel.exportSplit(selected(), uri)
+        if (uri != null) viewModel.splits.export(selected(), uri)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -51,7 +49,7 @@ class SplitSheet : BottomSheetDialogFragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        val source = viewModel.splitSource ?: return dismiss()
+        val source = viewModel.splits.source ?: return dismiss()
         val settings = AppSettings(requireContext())
 
         val subtitle = listOfNotNull(source.packageName, source.versionName).joinToString(" · ")
@@ -69,7 +67,7 @@ class SplitSheet : BottomSheetDialogFragment() {
             select(SplitSelection.forDevice(requireContext(), source.entries.map { it.name }, source.baseName))
         }
 
-        val mode = viewModel.splitMode
+        val mode = viewModel.splits.mode
         val fileName = source.label.replace(Regex("[\\\\/:*?\"<>|]"), "_").ifBlank { "app" }
         binding.switchSign.isVisible = mode != SplitMode.EXPORT
         binding.switchForce.isVisible = mode == SplitMode.MERGE
@@ -90,7 +88,7 @@ class SplitSheet : BottomSheetDialogFragment() {
                     binding.switchObb.text = getString(R.string.install_copy_obb, source.obbEntries.size, size)
                 }
                 binding.buttonAction.setOnClickListener {
-                    viewModel.startSplitInstall(
+                    viewModel.splits.startInstall(
                         selected(), binding.switchSign.isChecked,
                         copyObb = binding.switchObb.isVisible && binding.switchObb.isChecked,
                     )
@@ -113,17 +111,17 @@ class SplitSheet : BottomSheetDialogFragment() {
                 binding.buttonAction.setText(R.string.button_merge)
                 binding.buttonAction.setIconResource(R.drawable.ic_merge)
                 binding.buttonAction.setOnClickListener {
-                    viewModel.startMerge(selected(), binding.switchSign.isChecked, binding.switchForce.isChecked)
+                    viewModel.splits.startMerge(selected(), binding.switchSign.isChecked, binding.switchForce.isChecked)
                 }
             }
         }
-        binding.buttonInstall.setOnClickListener { viewModel.installMerged() }
+        binding.buttonInstall.setOnClickListener { viewModel.splits.installMerged() }
         binding.buttonSave.setOnClickListener { saveAs.launch(fileName + MERGED_SUFFIX) }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    viewModel.splitState.combine(viewModel.installing, ::Pair).collect { (state, installing) ->
+                    viewModel.splits.state.combine(viewModel.installing, ::Pair).collect { (state, installing) ->
                         render(state, installing)
                     }
                 }
@@ -138,16 +136,13 @@ class SplitSheet : BottomSheetDialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        (dialog as? BottomSheetDialog)?.behavior?.apply {
-            skipCollapsed = true
-            state = BottomSheetBehavior.STATE_EXPANDED
-        }
+        expandFully()
     }
 
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
         // Also called when the sheet is torn down for a rotation, where the result must survive.
-        if (activity?.isChangingConfigurations != true) viewModel.discardSplit()
+        if (activity?.isChangingConfigurations != true) viewModel.splits.discard()
     }
 
     override fun onDestroyView() {
@@ -171,7 +166,7 @@ class SplitSheet : BottomSheetDialogFragment() {
     }
 
     private fun select(names: Set<String>) {
-        val base = viewModel.splitSource?.baseName
+        val base = viewModel.splits.source?.baseName
         for ((name, box) in boxes) box.isChecked = name == base || name in names
         updateTitle()
     }
@@ -188,7 +183,7 @@ class SplitSheet : BottomSheetDialogFragment() {
         isCancelable = !running && !installing
 
         val editable = !running && !installing && done == null
-        boxes.forEach { (name, box) -> box.isEnabled = editable && name != viewModel.splitSource?.baseName }
+        boxes.forEach { (name, box) -> box.isEnabled = editable && name != viewModel.splits.source?.baseName }
         binding.chipAll.isEnabled = editable
         binding.chipDevice.isEnabled = editable
         binding.switchSign.isEnabled = editable
@@ -200,34 +195,19 @@ class SplitSheet : BottomSheetDialogFragment() {
         // An unsigned APK cannot be installed, only saved.
         binding.buttonInstall.isEnabled = done?.result?.signed == true && !installing
         binding.buttonSave.isEnabled = !installing
-        binding.progress.isVisible = running || installing
+        binding.progress.isInvisible = !(running || installing)
 
         when (state) {
             // Idle is also where installing and exporting end up; their outcome arrives as a message.
-            SplitState.Idle -> if (installing) {
-                binding.textStatus.setText(R.string.status_installing)
-            } else if (binding.textStatus.text.toString() == getString(R.string.status_installing)) {
-                // The system reports how the install went on its own; nothing is left to say here.
-                binding.textStatus.text = ""
-            }
-            is SplitState.Running -> binding.textStatus.setText(
-                when (state.step) {
-                    SplitStep.EXTRACTING -> R.string.merge_step_extracting
-                    SplitStep.MERGING -> R.string.merge_step_merging
-                    SplitStep.SAVING -> R.string.merge_step_saving
-                    SplitStep.SIGNING -> R.string.merge_step_signing
-                    SplitStep.EXPORTING -> R.string.merge_step_exporting
-                    SplitStep.COPYING_OBB -> R.string.merge_step_obb
-                }
-            )
+            SplitState.Idle -> Unit
+            // While it runs the bar says so; words are kept for how it ended.
+            is SplitState.Running -> binding.textStatus.text = ""
             is SplitState.Failed -> binding.textStatus.text = getString(R.string.merge_failed, state.message)
             is SplitState.TooLarge -> binding.textStatus.text = getString(R.string.merge_too_large, state.megabytes)
             is SplitState.Mismatch ->
                 binding.textStatus.text = getString(R.string.merge_mismatch, state.splits.joinToString())
             // Left alone otherwise, so the outcome of an install or a save stays on screen.
-            is SplitState.Done -> if (installing) {
-                binding.textStatus.setText(R.string.status_installing)
-            } else if (lastRunning || binding.textStatus.text.toString() in setOf("", getString(R.string.status_installing))) {
+            is SplitState.Done -> if (lastRunning || binding.textStatus.text.isEmpty()) {
                 binding.textStatus.setText(
                     when {
                         state.result.pairip -> R.string.merge_done_pairip

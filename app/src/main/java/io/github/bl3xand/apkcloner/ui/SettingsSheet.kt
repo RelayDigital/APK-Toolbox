@@ -2,8 +2,8 @@ package io.github.bl3xand.apkcloner.ui
 
 import android.Manifest
 import android.content.Intent
-import android.content.res.ColorStateList
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -12,23 +12,26 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.appcompat.R as AppCompatR
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.R as MaterialR
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.materialswitch.MaterialSwitch
 import io.github.bl3xand.apkcloner.BuildConfig
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.clone.SigningKeys
 import io.github.bl3xand.apkcloner.databinding.DialogKeyPasswordBinding
 import io.github.bl3xand.apkcloner.databinding.SheetSettingsBinding
 import io.github.bl3xand.apkcloner.install.PlayProtect
-import io.github.bl3xand.apkcloner.settings.AppSettings
-import io.github.bl3xand.apkcloner.settings.AppSettings.InstallMethod
-import io.github.bl3xand.apkcloner.shizuku.ShizukuBridge
 import io.github.bl3xand.apkcloner.install.Root
+import io.github.bl3xand.apkcloner.log.AppLog
+import io.github.bl3xand.apkcloner.settings.AppSettings
+import io.github.bl3xand.apkcloner.settings.InstallMethod
+import io.github.bl3xand.apkcloner.shizuku.ShizukuBridge
+import io.github.bl3xand.apkcloner.shizuku.ShizukuState
 import io.github.bl3xand.apkcloner.sources.ui.SourcesSettingsSheet
 import io.github.bl3xand.apkcloner.sources.ui.showLogSheet
 import io.github.bl3xand.apkcloner.update.AutoUpdateWorker
@@ -53,6 +56,21 @@ class SettingsSheet : BottomSheetDialogFragment() {
     private var shizukuDenied = false
 
     private val keys by lazy { SigningKeys.get(requireContext()) }
+
+    /** The log as it was shown when "Save" was tapped, kept until a place for it is chosen. */
+    private var logToSave: String? = null
+
+    // A generic type keeps the picker from adding an extension of its own to the ".log" name.
+    private val saveLogFile = registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        val text = logToSave
+        logToSave = null
+        if (uri == null || text == null) return@registerForActivityResult
+        val saved = runCatching {
+            requireContext().contentResolver.openOutputStream(uri, "wt")!!.use { it.write(text.toByteArray()) }
+        }
+        saved.onFailure { AppLog.error("Saving the log failed", it) }
+        Messages.show(getString(if (saved.isSuccess) R.string.status_saved else R.string.save_failed, saved.exceptionOrNull()?.message.orEmpty()))
+    }
 
     private val importKeyFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) askPassword(R.string.key_import, withAlias = true) { password, alias ->
@@ -140,7 +158,7 @@ class SettingsSheet : BottomSheetDialogFragment() {
         binding.buttonKeyReset.setOnClickListener { confirmKeyChange { keyAction(R.string.key_reset_done) { keys.reset() } } }
 
         // Rows that are a plain on/off value: the row toggles its switch, the switch stores it.
-        fun bindSwitch(row: View, switch: com.google.android.material.materialswitch.MaterialSwitch, get: () -> Boolean, set: (Boolean) -> Unit) {
+        fun bindSwitch(row: View, switch: MaterialSwitch, get: () -> Boolean, set: (Boolean) -> Unit) {
             switch.isChecked = get()
             row.setOnClickListener { if (switch.isEnabled) switch.toggle() }
             switch.setOnCheckedChangeListener { _, checked ->
@@ -166,7 +184,12 @@ class SettingsSheet : BottomSheetDialogFragment() {
                 }
             }
         }
-        binding.buttonShowLog.setOnClickListener { requireContext().showLogSheet() }
+        binding.buttonShowLog.setOnClickListener {
+            requireContext().showLogSheet { fileName, text ->
+                logToSave = text
+                saveLogFile.launch(fileName)
+            }
+        }
         binding.buttonSourcesSettings.setOnClickListener {
             if (parentFragmentManager.findFragmentByTag(SourcesSettingsSheet.TAG) == null) {
                 SourcesSettingsSheet().show(parentFragmentManager, SourcesSettingsSheet.TAG)
@@ -184,11 +207,7 @@ class SettingsSheet : BottomSheetDialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        // Tall enough that a half-open sheet would cut the content off mid-section.
-        (dialog as? BottomSheetDialog)?.behavior?.apply {
-            skipCollapsed = true
-            state = BottomSheetBehavior.STATE_EXPANDED
-        }
+        expandFully()
     }
 
     override fun onResume() {
@@ -227,11 +246,11 @@ class SettingsSheet : BottomSheetDialogFragment() {
 
         if (settings.installMethod == InstallMethod.SHIZUKU) {
             when (ShizukuBridge.state()) {
-                ShizukuBridge.State.READY ->
+                ShizukuState.READY ->
                     showStatus(ok = true, R.string.shizuku_granted, R.string.shizuku_granted_description)
-                ShizukuBridge.State.NOT_RUNNING ->
+                ShizukuState.NOT_RUNNING ->
                     showStatus(ok = false, R.string.shizuku_not_running_title, R.string.shizuku_not_running)
-                ShizukuBridge.State.NO_PERMISSION -> showStatus(
+                ShizukuState.NO_PERMISSION -> showStatus(
                     ok = false,
                     title = if (shizukuDenied) R.string.shizuku_denied else R.string.shizuku_title,
                     description = R.string.shizuku_description,
@@ -300,6 +319,7 @@ class SettingsSheet : BottomSheetDialogFragment() {
             val error = withContext(Dispatchers.IO) { runCatching(action).exceptionOrNull() }
             val message = if (error == null) getString(success)
             else getString(R.string.key_failed, error.message ?: error.javaClass.simpleName)
+            if (error == null) AppLog.info("Signing key: $message") else AppLog.error("Signing key action failed", error)
             Messages.show(message)
             renderKey()
         }
@@ -319,10 +339,10 @@ class SettingsSheet : BottomSheetDialogFragment() {
         val binding = _binding ?: return
         val accent = MaterialColors.getColor(
             binding.root,
-            if (ok) androidx.appcompat.R.attr.colorPrimary else com.google.android.material.R.attr.colorOnSurfaceVariant,
+            if (ok) AppCompatR.attr.colorPrimary else MaterialR.attr.colorOnSurfaceVariant,
         )
         binding.cardStatus.strokeColor =
-            if (ok) accent else MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOutlineVariant)
+            if (ok) accent else MaterialColors.getColor(binding.root, MaterialR.attr.colorOutlineVariant)
         binding.imageStatus.setImageResource(if (ok) R.drawable.ic_check_circle else R.drawable.ic_info)
         binding.imageStatus.imageTintList = ColorStateList.valueOf(accent)
         binding.textStatusTitle.setText(title)

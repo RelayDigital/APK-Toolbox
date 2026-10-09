@@ -8,7 +8,6 @@ import io.github.bl3xand.apkcloner.sources.core.NoReleasesError
 import io.github.bl3xand.apkcloner.sources.core.NoVersionError
 import io.github.bl3xand.apkcloner.sources.core.RateLimitError
 import io.github.bl3xand.apkcloner.sources.core.RepositoryRenamedError
-import io.github.bl3xand.apkcloner.sources.core.SourceEnv
 import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.Url
@@ -34,6 +33,7 @@ import io.github.bl3xand.apkcloner.sources.net.Http
 import io.github.bl3xand.apkcloner.sources.net.HttpResponse
 import java.time.Instant
 import java.util.Base64
+import java.util.IdentityHashMap
 import kotlin.math.ceil
 
 private typealias Release = MutableMap<String, Any?>
@@ -268,7 +268,7 @@ class GitHub(hostChanged: Boolean = false) : AppSource("GitHub") {
     private fun sortReleases(releases: MutableList<Release>, sortMethod: String, useAssetDate: Boolean) {
         if (sortMethod == "none") return
         val dateOnly = sortMethod == "date"
-        val formats = java.util.IdentityHashMap<Release, Set<String>>()
+        val formats = IdentityHashMap<Release, Set<String>>()
         if (!dateOnly) {
             for (r in releases) formats[r] = findStandardFormatsForVersion(tagOf(r)?.toString() ?: "", strict = false)
         }

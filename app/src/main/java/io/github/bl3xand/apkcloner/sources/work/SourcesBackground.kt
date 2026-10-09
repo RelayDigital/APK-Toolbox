@@ -5,11 +5,9 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import androidx.work.Constraints
-import androidx.work.CoroutineWorker
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import io.github.bl3xand.apkcloner.sources.core.MultiAppMultiError
 import io.github.bl3xand.apkcloner.sources.core.RateLimitError
@@ -22,7 +20,6 @@ import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
-import kotlin.random.Random
 
 /** The background pass over tracked apps: check, notify, and install what can go in silently. */
 object SourcesBackground {
@@ -53,7 +50,7 @@ object SourcesBackground {
             AppLog.info("BG update task: No network.")
             return false
         }
-        val toCheck = retry ?: repo.getAppsSortedByUpdateCheckTime(
+        val toCheck = retry ?: repo.updates.getAppsSortedByUpdateCheckTime(
             settings.onlyCheckInstalledOrTrackOnlyApps, forceAll,
         ).map { it to 0 }
 
@@ -75,7 +72,7 @@ object SourcesBackground {
             var retryAfterSeconds = 0
             SourcesNotifications.checking(context, toCheck.size)
             try {
-                updates = repo.checkUpdates(specificIds = toCheck.map { it.first })
+                updates = repo.updates.checkUpdates(specificIds = toCheck.map { it.first })
             } catch (e: CheckUpdatesException) {
                 updates = e.updates
                 errors = e.errors
@@ -163,20 +160,5 @@ object SourcesBackground {
             )
             .build()
         WorkManager.getInstance(context).enqueue(request)
-    }
-}
-
-/** A later attempt at the apps whose check failed. */
-class SourcesRetryWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
-    override suspend fun doWork(): Result {
-        val ids = inputData.getStringArray(SourcesBackground.KEY_IDS) ?: return Result.success()
-        val attempts = inputData.getIntArray(SourcesBackground.KEY_ATTEMPTS) ?: IntArray(ids.size)
-        return try {
-            SourcesBackground.run(applicationContext, retry = ids.mapIndexed { i, id -> id to attempts.getOrElse(i) { 1 } })
-            Result.success()
-        } catch (e: Exception) {
-            AppLog.error("Retry of the background check failed", e)
-            Result.failure()
-        }
     }
 }

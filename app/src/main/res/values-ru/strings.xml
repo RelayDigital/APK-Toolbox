@@ -14,6 +14,7 @@
     <string name="button_pick_apk">Выбрать APK</string>
     <string name="error_invalid_apk">Этот файл не является корректным APK</string>
 
+    <string name="app_version">Версия %1$s</string>
     <string name="clone_up_to_date">Версия %1$s · актуальная</string>
     <string name="clone_update_available">Доступно обновление: %1$s → %2$s</string>
     <string name="clone_original_missing">%1$s не установлено</string>
@@ -25,7 +26,6 @@
     <string name="button_clone">Клонировать</string>
     <string name="button_install">Установить</string>
     <string name="button_save">Сохранить</string>
-    <string name="status_running">Обработка %1$s (%2$d из %3$d)…</string>
     <string name="status_done">Клон готов</string>
     <string name="status_saved">Сохранено</string>
     <string name="status_failed">Ошибка клонирования: %1$s</string>
@@ -37,7 +37,7 @@
     <string name="detail_original_version">Версия оригинала</string>
     <string name="detail_clone_version">Версия клона</string>
     <string name="detail_removed_permissions">Удалённые разрешения</string>
-    <string name="detail_reset_permissions">Сохранить все разрешения</string>
+    <string name="detail_reset_permissions">Сбросить разрешения</string>
     <string name="detail_not_installed">Не установлено</string>
     <string name="button_delete">Удалить</string>
 
@@ -83,7 +83,6 @@
     <string name="settings_auto_install">Устанавливать автоматически</string>
     <string name="settings_auto_install_description">Устанавливать найденные обновления без подтверждения.</string>
     <string name="notification_failed_title">Не удалось обновить клоны</string>
-    <string name="status_installing">Установка…</string>
 
     <string name="tab_split">AntiSplit</string>
     <string name="empty_split">Сплит-приложения не найдены. Выберите ниже пакет (APKS, XAPK, APKM) или несколько сплит-APK.</string>
@@ -95,10 +94,6 @@
     <string name="merge_sign">Подписать после объединения</string>
     <string name="merge_force">Объединять несовпадающие сплиты</string>
     <string name="button_merge">Объединить</string>
-    <string name="merge_step_extracting">Сбор APK…</string>
-    <string name="merge_step_merging">Объединение…</string>
-    <string name="merge_step_saving">Запись APK…</string>
-    <string name="merge_step_signing">Подпись…</string>
     <string name="merge_done">Объединено в один APK</string>
     <string name="merge_done_unsigned">Объединено без подписи. Неподписанный APK нельзя установить, пока его не подпишут.</string>
     <string name="merge_done_pairip">Объединено, но не подписано: приложение защищено PairIP и проверяет свою целостность, переподписанная сборка будет падать при запуске.</string>
@@ -110,7 +105,6 @@
     <string name="button_pick_install">Выбрать APKS</string>
     <string name="install_sign">Подписать перед установкой</string>
     <string name="button_export">Экспорт в APKS</string>
-    <string name="merge_step_exporting">Экспорт…</string>
     <string name="files_received_title">Что сделать с этими файлами?</string>
     <string name="files_action_install">Установить</string>
     <string name="files_action_merge">Объединить в один APK</string>
@@ -119,7 +113,6 @@
     <string name="check_now_started">Проверяю; результат придёт уведомлением</string>
     <string name="notification_up_to_date">Обновлений нет</string>
     <string name="install_copy_obb">Скопировать OBB-файлы (%1$d · %2$s)</string>
-    <string name="merge_step_obb">Копирование OBB-файлов…</string>
 
     <string name="settings_signing_key">Ключ подписи</string>
     <string name="key_bundled_title">Встроенный ключ</string>
@@ -178,11 +171,10 @@
     <string name="hint_tab_apps">Делает вторую копию установленного приложения с другим именем пакета: обе живут рядом, у каждой свои данные. Выберите приложение из списка или файл APK.</string>
     <string name="hint_tab_clones">Клоны, сделанные здесь. Клон устаревает, когда обновляется его оригинал; пересобрать его из новой версии можно здесь или автоматически.</string>
     <string name="settings_log">Журнал</string>
-    <string name="settings_log_description">Что проверялось, скачивалось, клонировалось, объединялось и устанавливалось и что не удалось. Хранится неделю.</string>
+    <string name="settings_log_description">Что проверялось, скачивалось, клонировалось, объединялось и устанавливалось и что не удалось. Хранится 30 дней.</string>
     <string name="button_show_log">Показать журнал</string>
     <string name="log_empty">В журнале пока пусто.</string>
-    <string name="log_share">Поделиться</string>
-    <string name="log_close">Закрыть</string>
+    <string name="log_save">Сохранить</string>
     <string name="button_refresh">Обновить</string>
     <string name="clones_up_to_date">Все клоны актуальны</string>
     <plurals name="log_days">
@@ -192,10 +184,9 @@
         <item quantity="other">%d дня</item>
     </plurals>
     <string name="search_clear">Очистить поиск</string>
-    <string name="clone_permissions">Разрешения клона</string>
-    <string name="clone_permissions_removed">Разрешения клона: убрано %1$d</string>
+    <string name="clone_permissions">Разрешения</string>
+    <string name="clone_permissions_removed">Разрешения: убрано %1$d</string>
     <string name="clone_permissions_hint">Всё, что запрашивает оригинал. Выключите то, чего у клона быть не должно; без нужного разрешения приложение может перестать работать.</string>
     <string name="clone_permissions_none">Приложение не запрашивает разрешений.</string>
-    <string name="clone_permissions_reset">Сбросить изменения</string>
     <string name="button_done">Готово</string>
 </resources>

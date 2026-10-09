@@ -6,9 +6,11 @@ import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.core.widget.doAfterTextChanged
+import com.google.android.material.R as MaterialR
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.divider.MaterialDivider
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.slider.Slider
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputEditText
@@ -22,6 +24,16 @@ import io.github.bl3xand.apkcloner.sources.form.SubFormItem
 import io.github.bl3xand.apkcloner.sources.form.SwitchItem
 import io.github.bl3xand.apkcloner.sources.form.TextItem
 import io.github.bl3xand.apkcloner.sources.form.defaultValuesOf
+import io.github.bl3xand.apkcloner.ui.Spacing
+import io.github.bl3xand.apkcloner.ui.add
+import io.github.bl3xand.apkcloner.ui.addDivider
+import io.github.bl3xand.apkcloner.ui.addHeading
+import io.github.bl3xand.apkcloner.ui.column
+import io.github.bl3xand.apkcloner.ui.label
+import io.github.bl3xand.apkcloner.ui.openUrl
+import io.github.bl3xand.apkcloner.ui.settingBlock
+import io.github.bl3xand.apkcloner.ui.switchRow
+import io.github.bl3xand.apkcloner.ui.textButton
 
 /**
  * Renders a generated settings form and keeps its values. [onChange] is called with the values
@@ -109,7 +121,7 @@ class FormView(
     }
 
     private fun addText(item: TextItem) {
-        val layout = TextInputLayout(context, null, com.google.android.material.R.attr.textInputOutlinedStyle).apply {
+        val layout = TextInputLayout(context, null, MaterialR.attr.textInputOutlinedStyle).apply {
             // The link to the help is always at the start; the end is for the eye of a hidden value.
             if (item.password) endIconMode = TextInputLayout.END_ICON_PASSWORD_TOGGLE
             if (item.helpUrl != null) {
@@ -152,7 +164,7 @@ class FormView(
 
     private fun addDropdown(item: DropdownItem) {
         val layout = TextInputLayout(
-            context, null, com.google.android.material.R.attr.textInputOutlinedExposedDropdownMenuStyle,
+            context, null, MaterialR.attr.textInputOutlinedExposedDropdownMenuStyle,
         )
         val labels = item.options.map { optionLabel(it.second, item.rawLabels) }
         val edit = MaterialAutoCompleteTextView(layout.context).apply {
@@ -186,7 +198,7 @@ class FormView(
         val block = context.settingBlock("$name: ${stopLabel(current)}", description(item), slider)
         slider.addOnChangeListener { _, value, _ ->
             values[item.key] = item.stops[value.toInt()].first
-            (block.getChildAt(0) as android.widget.TextView).text = "$name: ${stopLabel(value.toInt())}"
+            (block.getChildAt(0) as TextView).text = "$name: ${stopLabel(value.toInt())}"
             changed()
         }
         add(block)
@@ -194,7 +206,7 @@ class FormView(
 
     private fun addSubForm(item: SubFormItem) {
         val container = context.column()
-        add(context.label(item.label, com.google.android.material.R.attr.textAppearanceTitleMedium), topMargin = Spacing.ITEM)
+        add(context.label(item.label, MaterialR.attr.textAppearanceTitleMedium), topMargin = Spacing.ITEM)
         add(container)
         val entries = ArrayList<FormView>()
 
@@ -206,8 +218,8 @@ class FormView(
 
         fun addEntry(initial: Map<String, Any?>) {
             lateinit var form: FormView
-            val card = com.google.android.material.card.MaterialCardView(
-                context, null, com.google.android.material.R.attr.materialCardViewOutlinedStyle,
+            val card = MaterialCardView(
+                context, null, MaterialR.attr.materialCardViewOutlinedStyle,
             )
             form = FormView(context, item.items, initial) { _, _ -> sync() }
             val body = context.column(12).apply {
@@ -229,7 +241,7 @@ class FormView(
         @Suppress("UNCHECKED_CAST")
         for (entry in (values[item.key] as? List<Map<String, Any?>>) ?: emptyList()) addEntry(entry)
         add(
-            MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            MaterialButton(context, null, MaterialR.attr.materialButtonOutlinedStyle).apply {
                 text = "${Tr.get("add")}: ${item.label}"
                 setOnClickListener {
                     addEntry(emptyMap())
@@ -244,29 +256,3 @@ class FormView(
 }
 
 /** Which heading a per-app setting goes under. Anything unknown belongs to the source itself. */
-
-object OptionGroups {
-    const val SOURCE = "grpSource"
-    const val FILES = "grpFiles"
-    const val VERSION = "grpVersion"
-    const val UPDATES = "grpUpdates"
-    const val DISPLAY = "grpDisplay"
-    val ORDER = listOf(SOURCE, FILES, VERSION, UPDATES, DISPLAY)
-
-    private val groups = mapOf(
-        FILES to listOf(
-            "apkFilterRegEx", "invertAPKFilter", "autoApkFilterByArch", "includeZips", "zippedApkFilterRegEx",
-            "includeTarballs", "tarballedApkFilterRegEx",
-        ),
-        VERSION to listOf(
-            "versionExtractionRegEx", "matchGroupToUse", "versionDetection", "releaseDateAsVersion", "useVersionCodeAsOSVersion",
-        ),
-        UPDATES to listOf(
-            "trackOnly", "exemptFromBackgroundUpdates", "skipUpdateNotifications", "refreshBeforeDownload",
-            "minimumUpdateAgeDays", "shizukuPretendToBeGooglePlay", "allowInsecure", "allowedSigningCertHashes",
-        ),
-        DISPLAY to listOf("appName", "appAuthor", "about"),
-    ).flatMap { (group, keys) -> keys.map { it to group } }.toMap()
-
-    fun of(key: String): String = groups[key] ?: SOURCE
-}

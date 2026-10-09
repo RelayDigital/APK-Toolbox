@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.data.CloneInfo
-import io.github.bl3xand.apkcloner.databinding.ItemCloneBinding
+import io.github.bl3xand.apkcloner.databinding.ItemAppBinding
 import kotlinx.coroutines.Job
 
 class CloneAdapter(
@@ -24,12 +24,12 @@ class CloneAdapter(
             notifyDataSetChanged()
         }
 
-    class Holder(val binding: ItemCloneBinding) : RecyclerView.ViewHolder(binding.root) {
+    class Holder(val binding: ItemAppBinding) : RecyclerView.ViewHolder(binding.root) {
         var iconJob: Job? = null
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-        Holder(ItemCloneBinding.inflate(LayoutInflater.from(parent.context), parent, false))
+        Holder(ItemAppBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val clone = getItem(position)

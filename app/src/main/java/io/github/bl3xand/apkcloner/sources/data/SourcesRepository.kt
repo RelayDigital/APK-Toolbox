@@ -3,75 +3,27 @@ package io.github.bl3xand.apkcloner.sources.data
 import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.net.Uri
-import android.provider.DocumentsContract
-import io.github.bl3xand.apkcloner.BuildConfig
+import android.graphics.Color
 import io.github.bl3xand.apkcloner.log.AppLog
-import io.github.bl3xand.apkcloner.settings.AppSettings
-import io.github.bl3xand.apkcloner.sources.core.CertHashes
-import io.github.bl3xand.apkcloner.sources.core.MultiAppMultiError
-import io.github.bl3xand.apkcloner.sources.core.RateLimitError
-import io.github.bl3xand.apkcloner.sources.core.RepositoryRenamedError
-import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.doStringsMatchUnderRegEx
-import io.github.bl3xand.apkcloner.sources.core.effectiveMinUpdateAgeDays
 import io.github.bl3xand.apkcloner.sources.core.errorText
-import io.github.bl3xand.apkcloner.sources.core.isReleaseTooYoung
 import io.github.bl3xand.apkcloner.sources.core.isUpdateable
 import io.github.bl3xand.apkcloner.sources.core.reconcileTrackedVersion
 import io.github.bl3xand.apkcloner.sources.core.versionDetectionPossible
-import io.github.bl3xand.apkcloner.sources.model.CheckUpdatesException
 import io.github.bl3xand.apkcloner.sources.model.JsonValues
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.sources.model.appFromStoredJson
-import io.github.bl3xand.apkcloner.sources.model.applyMinAgeSuppression
 import io.github.bl3xand.apkcloner.sources.source.AppSource
-import io.github.bl3xand.apkcloner.sources.source.DEFAULT_FETCH_CONCURRENCY
 import io.github.bl3xand.apkcloner.sources.source.SourceRegistry
 import java.io.File
 import java.io.IOException
-import java.time.Instant
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledFuture
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import javax.net.ssl.SSLHandshakeException
 import kotlin.random.Random
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import org.json.JSONArray
-import org.json.JSONObject
-
-/** A tracked app together with what the system knows about its installed copy. */
-class AppEntry(val app: TrackedApp, val installedInfo: PackageInfo?, val sourceType: String?) {
-    val name: String get() = app.finalName
-    val author: String get() = app.finalAuthor
-
-    /** The stored APK list is stale, or the app asks for a fresh one before every download. */
-    val needsRefreshBeforeDownload: Boolean
-        get() = app.settings.getBool("refreshBeforeDownload") || app.apkUrls.firstOrNull()?.url == "placeholder"
-
-    val hasMultipleSigners: Boolean get() = installedInfo?.signingInfo?.hasMultipleSigners() ?: false
-
-    val certificateHashes: List<String> get() = certHashesOf(installedInfo).toList()
-}
-
-/** [progress] is 0..100, or -1 while installing. */
-data class DownloadState(val progress: Double, val receivedBytes: Long? = null, val totalBytes: Long? = null)
-
-fun certHashesOf(info: PackageInfo?): Set<String> {
-    val signing = info?.signingInfo ?: return emptySet()
-    val signatures = if (signing.hasMultipleSigners()) signing.apkContentsSigners else signing.signingCertificateHistory
-    return signatures?.map { CertHashes.format(it.toByteArray()) }?.toSet() ?: emptySet()
-}
-
-/** The version the system reports: its code or its name, as the app is set up. */
-fun realInstalledVersionOf(app: TrackedApp, info: PackageInfo?): String? {
-    if (info == null) return null
-    return if (app.settings.getBool(SettingKeys.VERSION_CODE_AS_OS_VERSION)) info.longVersionCode.toString() else info.versionName
-}
+import org.json.JSONException
 
 /** Tracked apps: their files, their state, update checks, import and export. */
 class SourcesRepository private constructor(private val context: Context) {
@@ -89,19 +41,18 @@ class SourcesRepository private constructor(private val context: Context) {
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading
 
-    /** 0..1 while an update check runs, else null. */
-    private val _refreshProgress = MutableStateFlow<Double?>(null)
-    val refreshProgress: StateFlow<Double?> = _refreshProgress
-
     private val appsDir = File(context.filesDir, "sources/app_data").apply { mkdirs() }
 
     /** Downloads live in the cache: the system may reclaim them, a new download brings them back. */
     val apkDir: File get() = File(context.externalCacheDir ?: context.cacheDir, "sources").apply { mkdirs() }
 
-    private val scheduler = Executors.newSingleThreadScheduledExecutor()
-    private var pendingAutoExport: ScheduledFuture<*>? = null
     private val saveCounter = AtomicInteger()
-    private val checkLock = Any()
+
+    /** Checking the sources for new versions. */
+    val updates = UpdateChecker(context, this)
+
+    /** Export and import of the list. */
+    val backup = SourcesBackup(context, this)
 
     fun entry(id: String): AppEntry? = synchronized(lock) { entries[id] }
 
@@ -129,6 +80,38 @@ class SourcesRepository private constructor(private val context: Context) {
     }
 
     fun sourceOf(app: TrackedApp): AppSource = SourceRegistry.getSource(app.url, app.overrideSource)
+
+    // ---- signer of what a source offers ------------------------------------------------------
+
+    /** The signer of the last APK seen from the source [appId] is tracked from; empty if none was. */
+    fun storedApkCertHashes(appId: String): Set<String> =
+        settings.getString(APK_CERT_PREFIX + appId).orEmpty()
+            .split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+
+    fun storeApkCertHashes(appId: String, apkHashes: Set<String>) {
+        if (apkHashes.isNotEmpty()) settings.setString(APK_CERT_PREFIX + appId, apkHashes.joinToString(","))
+    }
+
+    /** The record belongs to one source of a package: it goes when that source stops being tracked. */
+    fun forgetApkCertHashes(appId: String) {
+        settings.prefs.edit().remove(APK_CERT_PREFIX + appId).apply()
+    }
+
+    /** Whether an APK signed with [apkHashes] cannot go over what is installed as [info]. */
+    fun signersClash(info: PackageInfo?, apkHashes: Set<String>): Boolean {
+        if (!settings.verifySigningCertHashes || apkHashes.isEmpty()) return false
+        val installedHashes = certHashesOf(info)
+        return installedHashes.isNotEmpty() && !installedHashes.containsAll(apkHashes)
+    }
+
+    /**
+     * Whether the release on offer cannot be installed over what is on the device because the two
+     * are signed differently. Worked out live from the installed app's certificate and the signer
+     * last recorded for this app's source, so it clears itself once the clashing app is gone or a
+     * matching one is installed. What is installed then is not this app, whatever its version says.
+     */
+    fun hasSignerConflict(entry: AppEntry): Boolean =
+        entry.installedInfo != null && signersClash(entry.installedInfo, storedApkCertHashes(entry.app.id))
 
     private fun isNaiveDetection(app: TrackedApp, source: AppSource = sourceOf(app)): Boolean =
         app.settings.getBool("naiveStandardVersionDetection") || source.naiveStandardVersionDetection
@@ -194,7 +177,7 @@ class SourcesRepository private constructor(private val context: Context) {
             for (file in files) {
                 var app = try {
                     appFromStoredJson(JsonValues.parseObject(file.readText()))
-                } catch (e: org.json.JSONException) {
+                } catch (e: JSONException) {
                     // Broken beyond reading: set it aside so that it stops failing.
                     AppLog.error("Corrupt JSON, renaming ${file.name}", e)
                     file.renameTo(File(file.path + ".corrupt"))
@@ -276,163 +259,36 @@ class SourcesRepository private constructor(private val context: Context) {
             }
         }
         publish()
-        scheduleAutoExport()
+        backup.scheduleAutoExport()
     }
 
     fun removeApps(ids: List<String>) {
         val downloads = apkDir.listFiles() ?: emptyArray()
         for (id in ids) {
             File(appsDir, "$id.json").delete()
+            forgetApkCertHashes(id)
             downloads.filter { it.name.startsWith("$id-") }.forEach { it.deleteRecursively() }
             synchronized(lock) { entries.remove(id) }
         }
         if (ids.isNotEmpty()) {
             publish()
-            scheduleAutoExport()
+            backup.scheduleAutoExport()
         }
-    }
-
-    // ---- update checks ---------------------------------------------------------------------
-
-    /** The newest state of an app from its source, not yet saved. Null while a rename is pending. */
-    fun fetchUpdate(id: String): TrackedApp? {
-        val current = entry(id)?.app ?: return null
-        if (current.hasPendingRepoRename) return null
-        var fresh = SourceRegistry.getApp(sourceOf(current), current.url, current.additionalSettings, currentApp = current)
-        if (fresh.latestVersion != current.latestVersion &&
-            isReleaseTooYoung(fresh.releaseDate, effectiveMinUpdateAgeDays(current.additionalSettings, settings))
-        ) {
-            // Too young to be offered yet (a guard against bad or hijacked releases).
-            fresh = applyMinAgeSuppression(current, fresh)
-        }
-        fresh = if (current.preferredApkIndex < fresh.apkUrls.size) {
-            fresh.copy(preferredApkIndex = current.preferredApkIndex)
-        } else if (fresh.apkUrls.isNotEmpty()) {
-            fresh.copy(preferredApkIndex = 0)
-        } else fresh
-        return fresh
-    }
-
-    private fun fetchUpdateWithHandshakeRetry(id: String): TrackedApp? {
-        var attempt = 0
-        while (true) {
-            try {
-                return fetchUpdate(id)
-            } catch (e: SSLHandshakeException) {
-                // Parallel handshakes with one host fail on some networks; try again shortly.
-                if (attempt++ >= 2) throw e
-                Thread.sleep(250L + Random.nextInt(501))
-            }
-        }
-    }
-
-    /** Checks one app and saves it; returns it only when its latest version changed. */
-    fun checkUpdate(id: String): TrackedApp? {
-        val current = entry(id)?.app ?: return null
-        AppLog.debug("Checking $id at ${current.url}")
-        val fresh = try {
-            fetchUpdate(id)
-        } catch (e: Exception) {
-            AppLog.warn("Check of $id failed: ${e.message ?: e}")
-            throw e
-        } ?: return null
-        saveApps(listOf(fresh))
-        if (fresh.latestVersion != current.latestVersion) {
-            AppLog.info("$id: new version ${fresh.latestVersion} (was ${current.latestVersion})")
-            return fresh
-        }
-        AppLog.debug("$id: no change, latest is ${fresh.latestVersion}")
-        return null
-    }
-
-    /** The interval of the app's background check, which the Sources tab shares. */
-    val updateIntervalMinutes: Long get() = AppSettings(context).checkIntervalDays * 24 * 60
-
-    /** Apps due for a check (all of them when [forceAll]), longest unchecked first. */
-    fun getAppsSortedByUpdateCheckTime(onlyInstalledOrTrackOnly: Boolean = false, forceAll: Boolean = false): List<String> {
-        val dueBefore = Instant.now().minusSeconds(updateIntervalMinutes * 60)
-        return all()
-            .filter { forceAll || it.app.lastUpdateCheck == null || it.app.lastUpdateCheck.isBefore(dueBefore) }
-            .filter { !onlyInstalledOrTrackOnly || it.app.installedVersion != null || it.app.settings.getBool(SettingKeys.TRACK_ONLY) }
-            .sortedBy { it.app.lastUpdateCheck ?: Instant.EPOCH }
-            .map { it.app.id }
     }
 
     fun isAppUpdateable(app: TrackedApp): Boolean =
         isUpdateable(app.installedVersion, app.latestVersion, settings.hideDowngrades)
 
     /**
-     * Checks many apps, a few at a time. Returns the apps with a new version; failures are
-     * collected per app and thrown together as [CheckUpdatesException] at the end.
+     * Apps that are not installed, or whose installed version is behind the latest one. An app
+     * whose package is taken by a differently-signed build has nothing pending: it cannot be
+     * installed, and the version on the device is not a version of it.
      */
-    fun checkUpdates(
-        specificIds: List<String>? = null,
-        forceAll: Boolean = false,
-        throwErrorsForRetry: Boolean = false,
-    ): List<TrackedApp> = synchronized(checkLock) {
-        val ids = specificIds?.toList()
-            ?: getAppsSortedByUpdateCheckTime(settings.onlyCheckInstalledOrTrackOnlyApps, forceAll)
-        val updates = java.util.Collections.synchronizedList(ArrayList<TrackedApp>())
-        val fetched = java.util.Collections.synchronizedList(ArrayList<TrackedApp>())
-        val failed = java.util.Collections.synchronizedList(ArrayList<TrackedApp>())
-        val errors = MultiAppMultiError()
-        val completed = AtomicInteger()
-        val next = AtomicInteger()
-        var fatal: Throwable? = null
-        _refreshProgress.value = 0.0
-        try {
-            val workers = (0 until minOf(DEFAULT_FETCH_CONCURRENCY, ids.size)).map {
-                Thread {
-                    while (fatal == null) {
-                        val index = next.getAndIncrement()
-                        if (index >= ids.size) return@Thread
-                        val id = ids[index]
-                        val current = entry(id)?.app
-                        try {
-                            val fresh = fetchUpdateWithHandshakeRetry(id)
-                            if (fresh != null) {
-                                fetched.add(fresh)
-                                if (current != null && fresh.latestVersion != current.latestVersion &&
-                                    isAppUpdateable(fresh)
-                                ) {
-                                    updates.add(fresh)
-                                }
-                            }
-                        } catch (e: Throwable) {
-                            if ((e is RateLimitError || e is IOException) && throwErrorsForRetry) {
-                                fatal = e
-                            } else if (e is RepositoryRenamedError) {
-                                current?.let { saveApps(listOf(it.copy(pendingRepoRenameUrl = e.newUrl))) }
-                            } else {
-                                synchronized(errors) { errors.add(id, e, appName = entry(id)?.name) }
-                                AppLog.warn("Update check failed for $id: ${errorText(e)}")
-                                // Still counts as checked, or the background task would retry it
-                                // every time it runs.
-                                current?.let { failed.add(it.copy(lastUpdateCheck = Instant.now())) }
-                            }
-                        }
-                        _refreshProgress.value = completed.incrementAndGet().toDouble() / ids.size
-                    }
-                }.apply { start() }
-            }
-            workers.forEach { it.join() }
-            fatal?.let { throw it }
-            if (fetched.isNotEmpty()) saveApps(fetched.toList(), reuseInstalledInfo = true)
-            if (failed.isNotEmpty()) {
-                saveApps(failed.toList(), attemptToCorrectInstallStatus = false, reuseInstalledInfo = true)
-            }
-            if (errors.idsByErrorString.isNotEmpty()) throw CheckUpdatesException(updates.toList(), errors)
-            updates.toList()
-        } finally {
-            _refreshProgress.value = null
-        }
-    }
-
-    /** Apps that are not installed, or whose installed version is behind the latest one. */
     fun findAppIdsWithPendingUpdates(installedOnly: Boolean = false, nonInstalledOnly: Boolean = false): List<String> {
         val result = ArrayList<String>()
         for (entry in all()) {
             val app = entry.app
+            if (hasSignerConflict(entry)) continue
             val installed = app.installedVersion
             if (installedOnly) {
                 if (installed == null) continue
@@ -491,163 +347,8 @@ class SourcesRepository private constructor(private val context: Context) {
         if (added) settings.categories = categories
     }
 
-    // ---- import and export -----------------------------------------------------------------
-
-    fun generateExportJson(appIds: List<String>? = null, overrideExportSettings: Int? = null): JSONObject {
-        val exportSettings = overrideExportSettings ?: settings.exportSettings
-        val appList = JSONArray()
-        for (entry in all()) {
-            if (appIds != null && entry.app.id !in appIds) continue
-            if (settings.exportInstalledOnly && entry.app.installedVersion == null) continue
-            // Per-app credentials are secrets too.
-            val app = if (exportSettings < 2) {
-                entry.app.copy(additionalSettings = entry.app.additionalSettings.filterKeys { !it.endsWith("-creds") })
-            } else entry.app
-            appList.put(app.toJson())
-        }
-        val settingsJson: Any = if (exportSettings > 0) {
-            JSONObject().also { json ->
-                for ((key, value) in settings.prefs.all) {
-                    if (exportSettings < 2 && key.endsWith("-creds")) continue
-                    json.put(key, if (value is Set<*>) JSONArray(value) else value)
-                }
-            }
-        } else JSONObject.NULL
-        return JSONObject().apply {
-            put("schemaVersion", EXPORT_SCHEMA_VERSION)
-            put("exportedAt", Instant.now().toString())
-            put("appVersion", BuildConfig.VERSION_NAME)
-            put("apps", appList)
-            put("settings", settingsJson)
-        }
-    }
-
-    /** The ids of the apps in an export, without importing it. */
-    fun appIdsInImportJson(text: String): List<String> {
-        val apps = when (val decoded = JsonValues.parse(text)) {
-            is Map<*, *> -> decoded["apps"] as? List<*>
-            is List<*> -> decoded
-            else -> null
-        } ?: return emptyList()
-        return apps.mapNotNull { (it as? Map<*, *>)?.get("id") as? String }
-    }
-
-    /** Imports apps (and settings, when present). Returns the apps and whether settings came along. */
-    fun importJson(text: String): Pair<List<TrackedApp>, Boolean> {
-        val imported: List<TrackedApp>
-        var importedSettings: Map<String, Any?>? = null
-        try {
-            val decoded = JsonValues.parse(text)
-            val appMaps: List<*>
-            if (decoded is Map<*, *>) {
-                val version = (decoded["schemaVersion"] as? Number)?.toInt() ?: 1
-                if (version > EXPORT_SCHEMA_VERSION) {
-                    throw SourceError("Export schema v$version is newer than this app supports (v$EXPORT_SCHEMA_VERSION).")
-                }
-                appMaps = decoded["apps"] as? List<*> ?: emptyList<Any?>()
-                @Suppress("UNCHECKED_CAST")
-                importedSettings = decoded["settings"] as? Map<String, Any?>
-            } else {
-                appMaps = decoded as List<*>
-            }
-            @Suppress("UNCHECKED_CAST")
-            imported = appMaps.map { appFromStoredJson(it as Map<String, Any?>) }
-        } catch (e: Exception) {
-            throw SourceError("${Tr.get("failedToImport")}: ${errorText(e)}")
-        }
-        val adjusted = imported.map { it.copy(installedVersion = realInstalledVersionOf(it, installedInfo(it.id))) }
-        saveApps(adjusted, onlyIfExists = false)
-        importedSettings?.let { values ->
-            val editor = settings.prefs.edit()
-            for ((key, value) in values) {
-                when (value) {
-                    is Boolean -> editor.putBoolean(key, value)
-                    is Int -> editor.putInt(key, value)
-                    is Long -> editor.putInt(key, value.toInt())
-                    is Double -> editor.putFloat(key, value.toFloat())
-                    is List<*> -> editor.putStringSet(key, value.filterIsInstance<String>().toSet())
-                    is String -> editor.putString(key, value)
-                }
-            }
-            editor.apply()
-        }
-        return adjusted to (importedSettings != null)
-    }
-
-    /** The export folder, when one is set and still reachable. */
-    fun exportDirUri(): Uri? {
-        val uri = settings.exportDir?.let(Uri::parse) ?: return null
-        val granted = context.contentResolver.persistedUriPermissions.any {
-            it.uri == uri && it.isReadPermission && it.isWritePermission
-        }
-        return if (granted) uri else null
-    }
-
-    fun setExportDir(uri: Uri?) {
-        val resolver = context.contentResolver
-        val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
-            android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-        for (permission in resolver.persistedUriPermissions) {
-            if (permission.uri != uri) runCatching { resolver.releasePersistableUriPermission(permission.uri, flags) }
-        }
-        if (uri != null) resolver.takePersistableUriPermission(uri, flags)
-        settings.exportDir = uri?.toString()
-    }
-
-    /** Writes an export file into the export folder; returns a readable path, or null. */
-    fun export(isAuto: Boolean = false): String? {
-        if (isAuto && !settings.autoExportOnChanges) return null
-        val tree = exportDirUri() ?: return null
-        val resolver = context.contentResolver
-        val customName = settings.autoExportFileName
-        val parent = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
-        if (isAuto) {
-            // The previous automatic export is replaced, not piled up.
-            val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
-            resolver.query(
-                children,
-                arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME),
-                null, null, null,
-            )?.use { cursor ->
-                while (cursor.moveToNext()) {
-                    val name = cursor.getString(1) ?: continue
-                    if (name.endsWith("-auto.json") || (customName != null && name == "$customName.json")) {
-                        runCatching {
-                            DocumentsContract.deleteDocument(
-                                resolver, DocumentsContract.buildDocumentUriUsingTree(tree, cursor.getString(0)),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        val displayName = if (isAuto && customName != null) {
-            "$customName.json"
-        } else {
-            "$EXPORT_FILE_PREFIX-${Instant.now().toString().replace(':', '-')}${if (isAuto) "-auto" else ""}.json"
-        }
-        val document = DocumentsContract.createDocument(resolver, parent, "application/json", displayName)
-            ?: throw SourceError(Tr.get("unexpectedError"))
-        resolver.openOutputStream(document)?.use { it.write(generateExportJson().toString(4).toByteArray()) }
-            ?: throw SourceError(Tr.get("unexpectedError"))
-        return DocumentsContract.getTreeDocumentId(tree).substringAfter(':').let { "/$it" }
-    }
-
-    /** Many saves in a row lead to one export. */
-    private fun scheduleAutoExport() {
-        if (!settings.autoExportOnChanges) return
-        synchronized(scheduler) {
-            pendingAutoExport?.cancel(false)
-            pendingAutoExport = scheduler.schedule(
-                { runCatching { export(isAuto = true) }.onFailure { AppLog.warn("Auto-export failed: $it") } },
-                2, TimeUnit.SECONDS,
-            )
-        }
-    }
-
     companion object {
-        const val EXPORT_SCHEMA_VERSION = 2
-        const val EXPORT_FILE_PREFIX = "apk-toolbox-sources-export"
+        private const val APK_CERT_PREFIX = "apkCertHashes:"
 
         @Volatile
         private var instance: SourcesRepository? = null
@@ -664,7 +365,7 @@ class SourcesRepository private constructor(private val context: Context) {
         /** A light, saturated colour for a new category. */
         fun randomLightColor(): Int {
             val hue = (Random.nextInt(120) * 137.508f) % 360f
-            return android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.45f, 0.95f))
+            return Color.HSVToColor(floatArrayOf(hue, 0.45f, 0.95f))
         }
     }
 }

@@ -26,6 +26,8 @@
   "actShare": "Поделиться ссылкой",
   "detSource": "Источник",
   "detInstalled": "Установлена",
+  "addReplaceSource": "Заменить источник?",
+  "addReplaceSourceText": "{} уже отслеживается из\n{}\n\nЕсли добавить эту ссылку, приложение будет отслеживаться отсюда.",
   "detLatest": "Последняя",
   "detReleased": "Выпущена",
   "detChecked": "Проверено",

@@ -16,6 +16,7 @@
     <string name="button_pick_apk">Choose APK</string>
     <string name="error_invalid_apk">This file is not a valid APK</string>
 
+    <string name="app_version">Version %1$s</string>
     <string name="clone_up_to_date">Version %1$s · up to date</string>
     <string name="clone_update_available">Update available: %1$s → %2$s</string>
     <string name="clone_original_missing">%1$s is not installed</string>
@@ -27,7 +28,6 @@
     <string name="button_clone">Clone</string>
     <string name="button_install">Install</string>
     <string name="button_save">Save</string>
-    <string name="status_running">Processing %1$s (%2$d of %3$d)…</string>
     <string name="status_done">The clone is ready</string>
     <string name="status_saved">Saved</string>
     <string name="status_failed">Cloning failed: %1$s</string>
@@ -39,7 +39,7 @@
     <string name="detail_original_version">Original version</string>
     <string name="detail_clone_version">Clone version</string>
     <string name="detail_removed_permissions">Removed permissions</string>
-    <string name="detail_reset_permissions">Keep all permissions</string>
+    <string name="detail_reset_permissions">Reset permissions</string>
     <string name="detail_not_installed">Not installed</string>
     <string name="button_delete">Delete</string>
 
@@ -89,7 +89,6 @@
     <string name="settings_auto_install">Install automatically</string>
     <string name="settings_auto_install_description">Install found updates without confirmation.</string>
     <string name="notification_failed_title">Could not update clones</string>
-    <string name="status_installing">Installing…</string>
 
     <string name="tab_split">AntiSplit</string>
     <string name="empty_split">No split apps found. Pick a bundle (APKS, XAPK, APKM) or several split APKs below.</string>
@@ -102,10 +101,6 @@
     <string name="merge_sign">Sign after merging</string>
     <string name="merge_force">Merge mismatched splits anyway</string>
     <string name="button_merge">Merge</string>
-    <string name="merge_step_extracting">Collecting APKs…</string>
-    <string name="merge_step_merging">Merging…</string>
-    <string name="merge_step_saving">Writing APK…</string>
-    <string name="merge_step_signing">Signing…</string>
     <string name="merge_done">Merged into a single APK</string>
     <string name="merge_done_unsigned">Merged, not signed. An unsigned APK cannot be installed until it is signed.</string>
     <string name="merge_done_pairip">Merged, left unsigned: this app is protected by PairIP and checks its own integrity, so a re-signed build will crash on start.</string>
@@ -117,7 +112,6 @@
     <string name="button_pick_install">Choose APKS</string>
     <string name="install_sign">Sign before installing</string>
     <string name="button_export">Export as APKS</string>
-    <string name="merge_step_exporting">Exporting…</string>
     <string name="files_received_title">What to do with these files?</string>
     <string name="files_action_install">Install</string>
     <string name="files_action_merge">Merge into a single APK</string>
@@ -126,7 +120,6 @@
     <string name="check_now_started">Checking; the result will come as a notification</string>
     <string name="notification_up_to_date">No updates</string>
     <string name="install_copy_obb">Copy OBB files (%1$d · %2$s)</string>
-    <string name="merge_step_obb">Copying OBB files…</string>
 
     <string name="settings_signing_key">Signing key</string>
     <string name="key_bundled_title">Built-in key</string>
@@ -185,11 +178,10 @@
     <string name="hint_tab_apps">Makes a second copy of an installed app under another package name, so both live side by side with separate data. Pick an app from the list or an APK file.</string>
     <string name="hint_tab_clones">The clones made here. A clone becomes outdated when its original is updated; it can be rebuilt from the new version here or automatically.</string>
     <string name="settings_log">Log</string>
-    <string name="settings_log_description">What was checked, downloaded, cloned, merged and installed, and what failed. Kept for a week.</string>
+    <string name="settings_log_description">What was checked, downloaded, cloned, merged and installed, and what failed. Kept for 30 days.</string>
     <string name="button_show_log">Show the log</string>
     <string name="log_empty">Nothing has been logged yet.</string>
-    <string name="log_share">Share</string>
-    <string name="log_close">Close</string>
+    <string name="log_save">Save</string>
     <string name="button_refresh">Refresh</string>
     <string name="clones_up_to_date">All clones are up to date</string>
     <plurals name="log_days">
@@ -197,10 +189,9 @@
         <item quantity="other">%d days</item>
     </plurals>
     <string name="search_clear">Clear the search</string>
-    <string name="clone_permissions">Permissions of the clone</string>
-    <string name="clone_permissions_removed">Permissions of the clone: %1$d removed</string>
+    <string name="clone_permissions">Permissions</string>
+    <string name="clone_permissions_removed">Permissions: %1$d removed</string>
     <string name="clone_permissions_hint">Everything the original asks for. Switch off what the clone should not have; the app may stop working without a permission it relies on.</string>
     <string name="clone_permissions_none">The app asks for no permissions.</string>
-    <string name="clone_permissions_reset">Reset changes</string>
     <string name="button_done">Done</string>
 </resources>
