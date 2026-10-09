@@ -6,6 +6,8 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Environment
 import androidx.core.content.FileProvider
+import io.github.bl3xand.apkcloner.clone.ApkCloner
+import io.github.bl3xand.apkcloner.clone.CloneRequest
 import io.github.bl3xand.apkcloner.install.InstallOutcome
 import io.github.bl3xand.apkcloner.install.InstallReceiver
 import io.github.bl3xand.apkcloner.install.Installer
@@ -297,8 +299,8 @@ class SourcesInstaller private constructor(private val context: Context) {
         if (app.apkUrls.size > 1) return false
         if (installer(background = true) !is StockInstaller) return true
         if (app.id == context.packageName) return false
-        val targetSdk = repo.installedInfo(app.id)?.applicationInfo?.targetSdkVersion ?: return false
-        return StockInstaller.isUpdateWithoutPrompt(context, app.id, targetSdk)
+        val targetSdk = repo.installedInfo(app.devicePackage)?.applicationInfo?.targetSdkVersion ?: return false
+        return StockInstaller.isUpdateWithoutPrompt(context, app.devicePackage, targetSdk)
     }
 
     fun canInstallSilentlyInBackground(app: TrackedApp): Boolean =
@@ -330,7 +332,10 @@ class SourcesInstaller private constructor(private val context: Context) {
      */
     private suspend fun verifySignatures(entry: AppEntry, apkHashes: Set<String>, prompts: InstallPrompts?) {
         val userHashes = CertHashes.parseAllowed(entry.app.settings.getStringOrNull("allowedSigningCertHashes"))
-        val installedHashes = entry.certificateHashes.toSet()
+        // A clone carries this app's key; what its updates are held against is the signer of the
+        // APK it was built from.
+        val installedHashes = if (entry.app.clonePackage == null) entry.certificateHashes.toSet()
+        else entry.app.cloneSourceSigner.takeIf { entry.installedInfo != null }.orEmpty()
         if (apkHashes.isEmpty()) {
             if (userHashes.isNotEmpty()) {
                 // Unreadable, and a certificate is required: do not install unverified.
@@ -394,9 +399,14 @@ class SourcesInstaller private constructor(private val context: Context) {
         }
     }
 
-    /** Installs [apks] (base first). Returns true when the app is installed afterwards. */
-    private suspend fun installFiles(appId: String, apks: List<File>, background: Boolean, pretendPlay: Boolean): Boolean {
-        val entry = repo.entry(appId) ?: throw SourceError(Tr.get("appNotFound"))
+    /**
+     * Installs [apks] (base first) for the tracked app [id]. Returns true when the app is
+     * installed afterwards.
+     */
+    private suspend fun installFiles(id: String, apks: List<File>, background: Boolean, pretendPlay: Boolean): Boolean {
+        val entry = repo.entry(id) ?: throw SourceError(Tr.get("appNotFound"))
+        // Where it lands on the device: under the clone's package when it is installed as one.
+        val appId = entry.app.devicePackage
         val newInfo = archiveInfo(apks.first())
         if (newInfo == null) {
             apks.forEach { it.delete() }
@@ -457,7 +467,7 @@ class SourcesInstaller private constructor(private val context: Context) {
         InstallReceiver.reportedByCaller = false
         AppLog.info(if (succeeded) "Installed $appId ${newInfo.versionName}" else "Install of $appId was not confirmed")
         if (succeeded) {
-            repo.entry(appId)?.let { repo.saveApps(listOf(it.app.copy(installedVersion = it.app.latestVersion))) }
+            repo.entry(id)?.let { repo.saveApps(listOf(it.app.copy(installedVersion = it.app.latestVersion))) }
             apks.forEach { it.delete() }
         }
         return succeeded
@@ -471,15 +481,16 @@ class SourcesInstaller private constructor(private val context: Context) {
         val id = downloaded.appId
         val entry = repo.entry(id) ?: return false
         val apks = if (downloaded.dir != null) {
-            moveObbFiles(downloaded.dir, id)
+            moveObbFiles(downloaded.dir, entry.app.devicePackage)
             orderApks(
                 downloaded.dir.walkTopDown().filter { it.isFile && it.name.lowercase().endsWith(".apk") }.toMutableList(),
                 id, downloaded.splitSet,
             )
         } else mutableListOf(downloaded.file)
         if (apks.isEmpty()) throw NoApkError()
+        val apkHashes = apkCertHashes(apks)
         try {
-            verifySignatures(entry, apkCertHashes(apks), prompts)
+            verifySignatures(entry, apkHashes, prompts)
         } catch (e: SigningCertMismatchError) {
             // A refused file is of no use; do not keep it for a retry.
             downloaded.file.delete()
@@ -491,7 +502,20 @@ class SourcesInstaller private constructor(private val context: Context) {
             if (!background && entry.installedInfo == null) shareWithVerifier(apks.first())
             val pretendPlay = settings.shizukuPretendToBeGooglePlay ||
                 entry.app.settings.getBool(SettingKeys.PRETEND_GOOGLE_PLAY)
-            val installed = installFiles(id, apks, background, pretendPlay)
+            // Installed as a clone, the downloaded APK never reaches the device itself.
+            val cloned = entry.app.clonePackage != null
+            val files = if (cloned) cloneOf(entry, apks) else apks
+            val installed = installFiles(id, files, background, pretendPlay)
+            if (cloned) {
+                cloneDir(id).deleteRecursively()
+                if (installed) {
+                    apks.forEach { it.delete() }
+                    // What the next release is held against, as the system would for an app of its own.
+                    repo.entry(id)?.let {
+                        repo.saveApps(listOf(it.app.withSetting(SettingKeys.CLONE_SOURCE_SIGNER, apkHashes.joinToString(","))))
+                    }
+                }
+            }
             if (background) {
                 val app = repo.entry(id)?.app ?: entry.app
                 if (installer(true) is StockInstaller && !installed) {
@@ -509,6 +533,67 @@ class SourcesInstaller private constructor(private val context: Context) {
         } finally {
             repo.setDownload(id, null)
         }
+    }
+
+    /**
+     * Downloads the latest release of [id] without installing it, to learn which permissions it
+     * asks for. The file stays, so installing afterwards does not download it again. Returns the
+     * id the app has once its APK is known, and the permissions.
+     */
+    fun downloadForPermissions(id: String): Pair<String, Set<String>> {
+        val downloaded = downloadApp(repo.entry(id)?.app ?: throw SourceError(Tr.get("appNotFound")), background = false)
+        val base = downloaded.dir?.let { dir ->
+            orderApks(dir.walkTopDown().filter { it.isFile && it.name.lowercase().endsWith(".apk") }.toMutableList(), downloaded.appId, downloaded.splitSet)
+                .firstOrNull()
+        } ?: downloaded.file
+        val requested = packageManager.getPackageArchiveInfo(
+            base.path, PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong()),
+        )?.requestedPermissions.orEmpty().toSet()
+        repo.entry(downloaded.appId)?.let {
+            repo.saveApps(listOf(it.app.withSetting(SettingKeys.CLONE_REQUESTED_PERMISSIONS, requested.sorted().joinToString(","))))
+        }
+        return downloaded.appId to requested
+    }
+
+    private fun cloneDir(id: String) = File(repo.apkDir, "$id-clone")
+
+    /**
+     * Rebuilds the downloaded [apks] as the clone [entry] is installed as: under the clone's
+     * package, without the permissions that were taken away, signed with the key the installed
+     * clone has so that it goes over it and the data stays.
+     */
+    private fun cloneOf(entry: AppEntry, apks: List<File>): List<File> {
+        var app = entry.app
+        val target = app.clonePackage ?: return apks
+        val cloner = ApkCloner(context)
+        // Only a clone made here can be updated: anything else under that package is signed by someone else.
+        val key = repo.installedInfo(target)?.let { installed ->
+            installed.signingInfo?.apkContentsSigners?.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) }
+                ?: throw SourceError(Tr.get("cloneInstallTaken", target))
+        }
+        val info = packageManager.getPackageArchiveInfo(
+            apks.first().path, PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong()),
+        )
+        // Nothing is asked here: what the clone goes without is set on the app's page, before or
+        // after. What this release asks for is kept, so that the page can show what is new.
+        val requested = info?.requestedPermissions.orEmpty().toSet()
+        val removed = app.cloneRemovedPermissions
+        if (requested != app.cloneRequestedPermissions) {
+            app = (repo.entry(app.id)?.app ?: app)
+                .withSetting(SettingKeys.CLONE_REQUESTED_PERMISSIONS, requested.sorted().joinToString(","))
+            repo.saveApps(listOf(app))
+            app.cloneNewPermissions.takeIf { it.isNotEmpty() }?.let {
+                AppLog.warn("${app.id} ${app.latestVersion} asks for permissions it did not have before: ${it.sorted().joinToString()}")
+            }
+        }
+        // The icon is drawn from the APK itself: nothing is installed to take it from.
+        val icon = info?.applicationInfo?.takeIf { app.settings.getBool(SettingKeys.CLONE_BADGE) }?.apply {
+            sourceDir = apks.first().path
+            publicSourceDir = apks.first().path
+        }
+        AppLog.info("Building ${app.id} ${app.latestVersion} as the clone $target, without: ${removed.sorted().joinToString().ifEmpty { "-" }}")
+        val name = app.settings.getStringOrNull(SettingKeys.CLONE_NAME)?.takeIf { it.isNotBlank() }
+        return cloner.clone(CloneRequest(apks, target, name, key, icon, removed), cloneDir(app.id)) { _, _, _ -> }
     }
 
     /**

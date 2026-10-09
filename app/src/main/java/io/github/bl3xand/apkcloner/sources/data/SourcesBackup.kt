@@ -87,7 +87,7 @@ class SourcesBackup(private val context: Context, private val repo: SourcesRepos
         } catch (e: Exception) {
             throw SourceError("${Tr.get("failedToImport")}: ${errorText(e)}")
         }
-        val adjusted = imported.map { it.copy(installedVersion = realInstalledVersionOf(it, repo.installedInfo(it.id))) }
+        val adjusted = imported.map { it.copy(installedVersion = realInstalledVersionOf(it, repo.installedInfo(it.devicePackage))) }
         AppLog.info("Imported ${adjusted.size} app(s) into the list" + if (importedSettings != null) ", with settings" else "")
         repo.saveApps(adjusted, onlyIfExists = false)
         importedSettings?.let { values ->

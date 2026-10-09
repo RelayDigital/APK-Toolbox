@@ -67,16 +67,17 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
         // The same editor as when the clone was made. A change is applied by building the clone
         // again and installing it over itself, so the data is kept. Needs the original to build from.
         val original = clone.original
-        binding.buttonPermissions.text = requireContext().clonePermissionsLabel(removed.size)
-        binding.buttonPermissions.isEnabled = original != null && !busy
-        binding.buttonPermissions.setOnClickListener {
+        binding.permissions.buttonPermissions.text = requireContext().clonePermissionsLabel(removed.size)
+        binding.permissions.buttonPermissions.isEnabled = original != null && !busy
+        binding.permissions.buttonPermissions.setOnClickListener {
             if (original != null) {
-                requireContext().pickClonePermissions(original.apkPaths.first(), removed) { viewModel.setClonePermissions(clone, it) }
+                val context = requireContext()
+                context.pickClonePermissions(context.requestedPermissionsOf(original.apkPaths.first()), removed) { viewModel.setClonePermissions(clone, it) }
             }
         }
-        binding.buttonResetPermissions.isVisible = removed.isNotEmpty()
-        binding.buttonResetPermissions.isEnabled = original != null && !busy
-        binding.buttonResetPermissions.setOnClickListener { viewModel.setClonePermissions(clone, emptySet()) }
+        binding.permissions.buttonResetPermissions.isVisible = removed.isNotEmpty()
+        binding.permissions.buttonResetPermissions.isEnabled = original != null && !busy
+        binding.permissions.buttonResetPermissions.setOnClickListener { viewModel.setClonePermissions(clone, emptySet()) }
 
         binding.actions.progress.isInvisible = !busy
         binding.actions.buttonUpdate.isEnabled = clone.updateAvailable && !busy

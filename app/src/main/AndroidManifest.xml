@@ -22,6 +22,7 @@
 
     <application
         android:name=".App"
+        android:localeConfig="@xml/locales_config"
         android:allowBackup="false"
         tools:replace="android:allowBackup"
         android:largeHeap="true"

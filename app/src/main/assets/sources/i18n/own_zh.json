@@ -208,5 +208,8 @@
   "srcNeedsSignIn": "需要登录",
   "srcCheckFailed": "上次检查失败：\n{}",
   "srcCheckFailedShort": "检查失败",
-  "srcCheckAgain": "再次检查"
+  "srcCheckAgain": "再次检查",
+  "actCloneInstall": "以克隆方式安装",
+  "cloneInstallTaken": "{} 已被其他应用占用,它不是此应用的克隆",
+  "cloneNewPermissions": "新增权限"
 }

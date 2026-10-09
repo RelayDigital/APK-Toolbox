@@ -9,7 +9,11 @@ original and grew into a small set of tools for APK files:
   channels and other sites, and install their new versions straight from the
   source.
 - **Cloning** — make a copy of an app under a new package name and app name,
-  and keep the clone in step with the original as it gets updated.
+  take away the permissions it should not have, and keep the clone in step
+  with the original as it gets updated: seamlessly, with its data kept.
+- **A clone instead of the app** — a tracked app can be installed as a clone
+  only, without the permissions you switch off, and is updated from its
+  source without the original ever being on the device.
 - **SAI** — install split APKs (APKS, XAPK, APKM, ZIP) and export installed
   apps as `.apks` archives.
 - **AntiSplit** — merge an app that ships as several APKs into one regular APK.
@@ -118,7 +122,10 @@ the link to the channel (`https://t.me/name`), or to a message with the file.
 3. Leave **Mark the icon with a dot** on to tell the clone from the original
    on the home screen. Each clone gets its own colour. The dot is drawn on
    top of the app's own icon layers, so it works for apps of any size.
-4. Tap **Clone**, then **Install** the result or **Save** it.
+4. **Permissions** lists everything the app asks for; switch off what the
+   clone should not have — the network, the contacts, the location. The
+   clone is built without them, so the system never grants them.
+5. Tap **Clone**, then **Install** the result or **Save** it.
 
 The clone is a separate app with its own data, installed side by side with
 the original. An app can be cloned as many times as you like.
@@ -127,11 +134,52 @@ the original. An app can be cloned as many times as you like.
 
 The **Clones** side lists every clone you have installed. Tap one to see
 which app and version it was made from, to **Update** it to the original's
-current version or to **Delete** it. **Permissions** takes permissions away
-from a clone, or gives them back, after it was made: the clone is built again
-and installed over itself, so its data is kept. Updating keeps the clone's data and its
-icon mark. **Refresh** looks at every clone and its original again and
-brings the clones that are behind up to date one after another.
+current version or to **Delete** it.
+
+- **Updates are seamless.** A new version of the original is cloned again
+  under the same package and signed with the same key, so it installs over
+  the clone like any ordinary update: the data, the sign-ins, the icon mark
+  and the removed permissions all stay.
+- **Permissions can be changed at any time.** **Permissions** takes
+  permissions away from a clone, or gives them back, after it was made: the
+  clone is built again and installed over itself, so its data is kept.
+- **A removed permission stays removed.** The choice is remembered by name.
+  If a release stops asking for a permission and a later one brings it back,
+  it is taken away again; it stays in the list meanwhile, so it can be
+  allowed again.
+
+**Refresh** looks at every clone and its original again and brings the
+clones that are behind up to date one after another.
+
+### A clone instead of the app
+
+An app that asks for more than you want to give it — and cannot be denied
+the network, say — does not have to be installed at all. The page of a
+tracked app has a switch, **Install as a clone**. Switched on, it shows what
+a clone is always made with — the package, the name, the mark on the icon
+and **Permissions** — and **Install** does the rest:
+
+- Every release is downloaded, rebuilt as a clone — under the clone's
+  package, without the permissions you switched off — and only the clone is
+  installed. Choosing permissions is optional; nothing is asked on the way.
+- The clone is updated from the source like any tracked app, in the
+  background too. The original is never on the device.
+- Once installed, the page shows what the clone goes without, with the same
+  **Permissions** and **Reset permissions** as a clone's own page: a change
+  rebuilds the clone and installs it over itself, data kept.
+- A release that asks for a permission no earlier one had is listed on the
+  page as **New permissions**, and comes first in the list, marked as new.
+- If the publisher's signing key changes between releases, the update is
+  refused the way the system would refuse it for the app itself.
+- A clone you made earlier from an installed app is picked up when the
+  switch is turned on: it becomes the one that is updated from the source,
+  with its data, and the original can be removed. This is also the way to
+  keep a clone of an app from Google Play current without the original:
+  Google Play hands out no files, so track the app from a source that
+  carries it.
+
+A clone is signed with APK Toolbox's key, not the publisher's: sign-in with
+Google, payments and integrity checks may not work in it.
 
 ## Updates in the background
 

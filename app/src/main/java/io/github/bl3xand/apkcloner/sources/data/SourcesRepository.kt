@@ -124,8 +124,15 @@ class SourcesRepository private constructor(private val context: Context) {
      * last recorded for this app's source, so it clears itself once the clashing app is gone or a
      * matching one is installed. What is installed then is not this app, whatever its version says.
      */
-    fun hasSignerConflict(entry: AppEntry): Boolean =
-        entry.installedInfo != null && signersClash(entry.installedInfo, storedApkCertHashes(entry.app.id))
+    fun hasSignerConflict(entry: AppEntry): Boolean {
+        if (entry.installedInfo == null) return false
+        val offered = storedApkCertHashes(entry.app.id)
+        if (entry.app.clonePackage == null) return signersClash(entry.installedInfo, offered)
+        // A clone is signed with this app's key, so the system has nothing to compare. What is
+        // compared instead is the signer of the APK the clone was built from.
+        val builtFrom = entry.app.cloneSourceSigner
+        return settings.verifySigningCertHashes && offered.isNotEmpty() && builtFrom.isNotEmpty() && !builtFrom.containsAll(offered)
+    }
 
     private fun isNaiveDetection(app: TrackedApp, source: AppSource = sourceOf(app)): Boolean =
         app.settings.getBool("naiveStandardVersionDetection") || source.naiveStandardVersionDetection
@@ -205,7 +212,7 @@ class SourcesRepository private constructor(private val context: Context) {
                 }
                 try {
                     val sourceType = sourceOf(app).sourceIdentifier
-                    val info = installedInfo(app.id)
+                    val info = installedInfo(app.devicePackage)
                     reconcileInstallStatus(app, info)?.let {
                         app = it
                         corrected.add(it)
@@ -262,8 +269,9 @@ class SourcesRepository private constructor(private val context: Context) {
         for (input in apps) {
             var app = input
             val existing = entry(app.id)
-            val canReuse = reuseInstalledInfo && existing != null
-            val info = if (canReuse) existing!!.installedInfo else installedInfo(app.id)
+            // Not when the app has just been told to live under another package.
+            val canReuse = reuseInstalledInfo && existing != null && existing.app.devicePackage == app.devicePackage
+            val info = if (canReuse) existing!!.installedInfo else installedInfo(app.devicePackage)
             if (!canReuse && info != null) {
                 // The name the system shows wins over the one the source reports.
                 info.applicationInfo?.loadLabel(packageManager)?.toString()?.let { app = app.copy(name = it) }

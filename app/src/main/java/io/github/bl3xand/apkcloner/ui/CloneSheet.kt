@@ -15,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import io.github.bl3xand.apkcloner.R
+import io.github.bl3xand.apkcloner.clone.CloneRequest
 import io.github.bl3xand.apkcloner.data.ApkSource
 import io.github.bl3xand.apkcloner.databinding.SheetCloneBinding
 import io.github.bl3xand.apkcloner.settings.AppSettings
@@ -46,17 +47,17 @@ class CloneSheet : BottomSheetDialogFragment() {
         binding.appCard.bind(source, source.packageName.takeIf { installed })
         if (savedInstanceState == null) {
             val (packageName, name) = viewModel.cloning.suggest(source)
-            binding.editPackage.setText(packageName)
-            binding.editName.setText(name)
+            binding.options.editPackage.setText(packageName)
+            binding.options.editName.setText(name)
         }
 
         val settings = AppSettings(requireContext())
-        binding.switchBadge.isChecked = settings.cloneBadge
-        binding.switchBadge.setOnCheckedChangeListener { _, checked -> settings.cloneBadge = checked }
-        binding.editPackage.doAfterTextChanged { binding.layoutPackage.error = null }
+        binding.options.switchBadge.isChecked = settings.cloneBadge
+        binding.options.switchBadge.setOnCheckedChangeListener { _, checked -> settings.cloneBadge = checked }
+        binding.options.editPackage.doAfterTextChanged { binding.options.layoutPackage.error = null }
         binding.buttonClone.setOnClickListener { startClone() }
         binding.buttonInstall.setOnClickListener { viewModel.cloning.installResult() }
-        binding.buttonPermissions.setOnClickListener { pickPermissions(source) }
+        binding.options.buttonPermissions.setOnClickListener { pickPermissions(source) }
         renderPermissions()
         binding.buttonSave.setOnClickListener { save() }
 
@@ -98,16 +99,16 @@ class CloneSheet : BottomSheetDialogFragment() {
         val running = state is CloneState.Running
         val done = state is CloneState.Done
         isCancelable = !running && !installing
-        binding.layoutPackage.isEnabled = !running && !done
-        binding.layoutName.isEnabled = !running && !done
-        binding.switchBadge.isEnabled = !running && !done
-        binding.buttonPermissions.isEnabled = !running && !done
+        binding.options.layoutPackage.isEnabled = !running && !done
+        binding.options.layoutName.isEnabled = !running && !done
+        binding.options.switchBadge.isEnabled = !running && !done
+        binding.options.buttonPermissions.isEnabled = !running && !done
         binding.buttonClone.isEnabled = !running
         binding.buttonClone.isVisible = !done
         binding.resultActions.isVisible = done
         // Over a clone that is already there this is an update - and nothing at all to do when
         // that clone already has the version just built.
-        val target = binding.editPackage.text?.toString().orEmpty().trim()
+        val target = binding.options.editPackage.text?.toString().orEmpty().trim()
         val installed = runCatching { requireContext().packageManager.getPackageInfo(target, 0) }.getOrNull()
         val sameVersion = installed != null && installed.longVersionCode == viewModel.cloning.selected?.versionCode
         binding.buttonInstall.setText(if (installed != null) R.string.button_update else R.string.button_install)
@@ -130,11 +131,12 @@ class CloneSheet : BottomSheetDialogFragment() {
     }
 
     private fun renderPermissions() {
-        binding.buttonPermissions.text = requireContext().clonePermissionsLabel(viewModel.cloning.removedPermissions.size)
+        binding.options.buttonPermissions.text = requireContext().clonePermissionsLabel(viewModel.cloning.removedPermissions.size)
     }
 
     private fun pickPermissions(source: ApkSource) {
-        requireContext().pickClonePermissions(source.apkPaths.first(), viewModel.cloning.removedPermissions) { removed ->
+        val context = requireContext()
+        context.pickClonePermissions(context.requestedPermissionsOf(source.apkPaths.first()), viewModel.cloning.removedPermissions) { removed ->
             viewModel.cloning.removedPermissions = removed
             renderPermissions()
         }
@@ -144,25 +146,24 @@ class CloneSheet : BottomSheetDialogFragment() {
     private var lastRunning = false
 
     private fun startClone() {
-        val newPackage = binding.editPackage.text?.toString().orEmpty().trim()
-        if (!PACKAGE_NAME.matches(newPackage)) {
-            binding.layoutPackage.error = getString(R.string.error_invalid_package)
+        val newPackage = binding.options.editPackage.text?.toString().orEmpty().trim()
+        if (!CloneRequest.PACKAGE_NAME.matches(newPackage)) {
+            binding.options.layoutPackage.error = getString(R.string.error_invalid_package)
             return
         }
-        val newName = binding.editName.text?.toString().orEmpty().trim()
+        val newName = binding.options.editName.text?.toString().orEmpty().trim()
             .ifEmpty { viewModel.cloning.selected?.label.orEmpty() }
-        viewModel.cloning.start(newPackage, newName, binding.switchBadge.isChecked)
+        viewModel.cloning.start(newPackage, newName, binding.options.switchBadge.isChecked)
     }
 
     private fun save() {
         val state = viewModel.cloning.state.value as? CloneState.Done ?: return
-        val name = binding.editName.text?.toString().orEmpty().trim().replace(Regex("[\\\\/:*?\"<>|]"), "_")
+        val name = binding.options.editName.text?.toString().orEmpty().trim().replace(Regex("[\\\\/:*?\"<>|]"), "_")
             .ifEmpty { "clone" }
         saveAs.launch(if (state.apks.size == 1) "$name.apk" else "$name.apks")
     }
 
     companion object {
         const val TAG = "clone"
-        private val PACKAGE_NAME = Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+")
     }
 }

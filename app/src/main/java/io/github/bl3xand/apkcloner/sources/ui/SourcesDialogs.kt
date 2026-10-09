@@ -598,6 +598,15 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                         }
                     }
                     row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                    if (item.current) {
+                        row.addView(
+                            ImageView(context).apply {
+                                setImageResource(R.drawable.ic_check)
+                                imageTintList = ColorStateList.valueOf(context.themeColor(AppCompatR.attr.colorPrimary))
+                            },
+                            LinearLayout.LayoutParams(context.dp(24), context.dp(24)).apply { marginStart = context.dp(Spacing.BLOCK) },
+                        )
+                    }
                     if (multiple) {
                         val box = CheckBox(context).apply {
                             isChecked = item.key in chosen

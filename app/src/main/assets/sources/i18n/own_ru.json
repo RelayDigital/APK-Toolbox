@@ -210,5 +210,8 @@
   "srcNeedsSignIn": "Нужен вход",
   "srcCheckFailed": "Последняя проверка не удалась:\n{}",
   "srcCheckFailedShort": "Не удалось проверить",
-  "srcCheckAgain": "Проверить снова"
+  "srcCheckAgain": "Проверить снова",
+  "actCloneInstall": "Установить как клон",
+  "cloneInstallTaken": "{} занят приложением, которое не является клоном этого",
+  "cloneNewPermissions": "Новые разрешения"
 }

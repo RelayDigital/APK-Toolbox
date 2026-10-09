@@ -170,6 +170,9 @@
     <string name="hint_tab_sources">Отслеживает приложения с GitHub, F-Droid, магазинов и других сайтов: добавьте приложение по ссылке или по названию, и новые версии будут находиться, скачиваться и устанавливаться отсюда.</string>
     <string name="hint_tab_apps">Делает вторую копию установленного приложения с другим именем пакета: обе живут рядом, у каждой свои данные. Выберите приложение из списка или файл APK.</string>
     <string name="hint_tab_clones">Клоны, сделанные здесь. Клон устаревает, когда обновляется его оригинал; пересобрать его из новой версии можно здесь или автоматически.</string>
+    <string name="settings_language">Язык</string>
+    <string name="settings_language_description">Приложение говорит на языке системы, если не выбрать другой.</string>
+    <string name="language_system">Как в системе</string>
     <string name="settings_log">Журнал</string>
     <string name="settings_log_description">Что проверялось, скачивалось, клонировалось, объединялось и устанавливалось и что не удалось. Хранится 30 дней.</string>
     <string name="button_show_log">Показать журнал</string>
@@ -188,5 +191,7 @@
     <string name="clone_permissions_removed">Разрешения: убрано %1$d</string>
     <string name="clone_permissions_hint">Всё, что запрашивает оригинал. Выключите то, чего у клона быть не должно; без нужного разрешения приложение может перестать работать.</string>
     <string name="clone_permissions_none">Приложение не запрашивает разрешений.</string>
+    <string name="clone_permission_absent">В этой версии не запрашивается. Если вернётся — останется выключенным.</string>
+    <string name="clone_permission_new">Новое в этой версии</string>
     <string name="button_done">Готово</string>
 </resources>

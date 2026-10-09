@@ -177,6 +177,9 @@
     <string name="hint_tab_sources">Tracks apps from GitHub, F-Droid, stores and other sites: add an app by link or by name, and new versions are found, downloaded and installed from here.</string>
     <string name="hint_tab_apps">Makes a second copy of an installed app under another package name, so both live side by side with separate data. Pick an app from the list or an APK file.</string>
     <string name="hint_tab_clones">The clones made here. A clone becomes outdated when its original is updated; it can be rebuilt from the new version here or automatically.</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_description">The app speaks the language of the system unless told another.</string>
+    <string name="language_system">As in the system</string>
     <string name="settings_log">Log</string>
     <string name="settings_log_description">What was checked, downloaded, cloned, merged and installed, and what failed. Kept for 30 days.</string>
     <string name="button_show_log">Show the log</string>
@@ -193,5 +196,7 @@
     <string name="clone_permissions_removed">Permissions: %1$d removed</string>
     <string name="clone_permissions_hint">Everything the original asks for. Switch off what the clone should not have; the app may stop working without a permission it relies on.</string>
     <string name="clone_permissions_none">The app asks for no permissions.</string>
+    <string name="clone_permission_absent">Not asked for by this version. Stays off if it comes back.</string>
+    <string name="clone_permission_new">New in this version</string>
     <string name="button_done">Done</string>
 </resources>

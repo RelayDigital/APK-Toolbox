@@ -6,6 +6,7 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.net.Uri
 import io.github.bl3xand.apkcloner.clone.ApkCloner
+import io.github.bl3xand.apkcloner.clone.CloneMetadata
 import java.io.File
 
 class AppRepository(private val context: Context, private val cloner: ApkCloner) {
@@ -31,6 +32,18 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
             clones = clones.sortedBy { it.app.label.lowercase() },
         )
     }
+
+    /**
+     * Installed clones of [originalPackage], by their own package. Reads nothing about the other
+     * apps, so it is cheap enough to ask for one app.
+     */
+    fun clonesOf(originalPackage: String): Map<String, CloneMetadata> =
+        packageManager.getInstalledPackages(PackageManager.GET_SIGNING_CERTIFICATES).mapNotNull { info ->
+            val signers = info.signingInfo?.apkContentsSigners ?: return@mapNotNull null
+            if (signers.none { cloner.keys.matching(it.toByteArray()) != null }) return@mapNotNull null
+            val metadata = info.applicationInfo?.sourceDir?.let(ApkCloner::readMetadata) ?: return@mapNotNull null
+            if (metadata.originalPackage == originalPackage) info.packageName to metadata else null
+        }.toMap()
 
     /** Copies the picked document to [target] (it may not be a real file) and parses it. */
     fun fromUri(uri: Uri, target: File): ApkSource? {

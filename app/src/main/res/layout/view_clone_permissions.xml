@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Changing what an installed clone goes without: the picker, and a way back to everything. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- Which of the original's permissions the clone keeps; a change is applied by an update. -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonPermissions"
+        style="@style/Widget.ApkCloner.Button.Action"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/clone_permissions"
+        app:icon="@drawable/ic_tune" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonResetPermissions"
+        style="@style/Widget.ApkCloner.Button.Action"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/detail_reset_permissions"
+        android:visibility="gone"
+        app:icon="@drawable/ic_update" />
+
+</LinearLayout>

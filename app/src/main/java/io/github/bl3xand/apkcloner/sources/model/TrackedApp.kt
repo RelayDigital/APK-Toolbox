@@ -46,6 +46,38 @@ data class TrackedApp(
         get() = settings.getBool(SettingKeys.TRACK_ONLY) ||
             (installedVersion != null && !settings.getBool(SettingKeys.VERSION_DETECTION))
 
+    /**
+     * The package this app is installed under when it is installed as a clone - rebuilt under
+     * another name, without the permissions the user took away - instead of as it is. Null otherwise.
+     */
+    val clonePackage: String? get() = settings.getStringOrNull(SettingKeys.CLONE_PACKAGE)?.takeIf { it.isNotBlank() }
+
+    /** The package to look for on the device: the clone's when the app is installed as one. */
+    val devicePackage: String get() = clonePackage ?: id
+
+    /**
+     * Permissions the clone is built without. A name stays here whatever a single release asks
+     * for, so a permission that is dropped by one release and brought back by a later one is
+     * taken away again.
+     */
+    val cloneRemovedPermissions: Set<String> get() = listSetting(SettingKeys.CLONE_REMOVED_PERMISSIONS)
+
+    /** What the last APK seen of this app asks for; empty until one has been downloaded. */
+    val cloneRequestedPermissions: Set<String> get() = listSetting(SettingKeys.CLONE_REQUESTED_PERMISSIONS)
+
+    /** Every permission the user has been shown for this app. */
+    val cloneKnownPermissions: Set<String> get() = listSetting(SettingKeys.CLONE_KNOWN_PERMISSIONS)
+
+    /** Permissions a release brought that the user has not been shown yet. Nothing before the first look. */
+    val cloneNewPermissions: Set<String>
+        get() = cloneKnownPermissions.takeIf { it.isNotEmpty() }?.let { cloneRequestedPermissions - it }.orEmpty()
+
+    /** The signer of the APK the installed clone was built from: the clone itself carries our key. */
+    val cloneSourceSigner: Set<String> get() = listSetting(SettingKeys.CLONE_SOURCE_SIGNER)
+
+    private fun listSetting(key: String): Set<String> =
+        settings.getStringOrNull(key).orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+
     fun withSetting(key: String, value: Any?): TrackedApp =
         copy(additionalSettings = LinkedHashMap(additionalSettings).also { it[key] = value })
 

@@ -170,6 +170,9 @@
     <string name="hint_tab_sources">跟踪来自 GitHub、F-Droid、应用商店和其他网站的应用：通过链接或名称添加应用，新版本将在此处被发现、下载并安装。</string>
     <string name="hint_tab_apps">用另一个包名为已安装的应用制作第二个副本：两者并存，数据各自独立。从列表中选择应用或选择 APK 文件。</string>
     <string name="hint_tab_clones">在此制作的克隆。原应用更新后克隆即过期；可在此处或自动用新版本重新构建。</string>
+    <string name="settings_language">语言</string>
+    <string name="settings_language_description">应用默认使用系统语言，也可以另选一种。</string>
+    <string name="language_system">跟随系统</string>
     <string name="settings_log">日志</string>
     <string name="settings_log_description">检查、下载、克隆、合并和安装的记录，以及失败的操作。保留 30 天。</string>
     <string name="button_show_log">显示日志</string>
@@ -185,5 +188,7 @@
     <string name="clone_permissions_removed">权限：已移除 %1$d 项</string>
     <string name="clone_permissions_hint">原应用请求的全部权限。关闭克隆不应拥有的权限；缺少所依赖的权限时应用可能无法运行。</string>
     <string name="clone_permissions_none">该应用未请求任何权限。</string>
+    <string name="clone_permission_absent">此版本未请求。若以后恢复,仍保持关闭。</string>
+    <string name="clone_permission_new">此版本新增</string>
     <string name="button_done">完成</string>
 </resources>

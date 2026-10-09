@@ -80,6 +80,35 @@
 
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Installing the app as a clone of itself: the same controls a clone is made with, and
+             the same ones an installed clone is changed with. -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchClone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:visibility="gone" />
+
+        <!-- The included blocks bring the margins they have under a card. Under the switch, which
+             has space of its own around it, less is needed for the same 16dp. -->
+        <include
+            android:id="@+id/cloneOptions"
+            layout="@layout/view_clone_options"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="-14dp"
+            android:visibility="gone" />
+
+        <include
+            android:id="@+id/clonePermissions"
+            layout="@layout/view_clone_permissions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="-8dp"
+            android:layout_marginBottom="-4dp"
+            android:visibility="gone" />
+
         <!-- What the latest release brings. A tap shows all of it. -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardChanges"

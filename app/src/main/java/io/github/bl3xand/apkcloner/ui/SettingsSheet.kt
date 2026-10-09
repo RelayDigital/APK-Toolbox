@@ -28,10 +28,13 @@ import io.github.bl3xand.apkcloner.databinding.SheetSettingsBinding
 import io.github.bl3xand.apkcloner.install.PlayProtect
 import io.github.bl3xand.apkcloner.install.Root
 import io.github.bl3xand.apkcloner.log.AppLog
+import io.github.bl3xand.apkcloner.settings.AppLanguage
 import io.github.bl3xand.apkcloner.settings.AppSettings
 import io.github.bl3xand.apkcloner.settings.InstallMethod
 import io.github.bl3xand.apkcloner.shizuku.ShizukuBridge
 import io.github.bl3xand.apkcloner.shizuku.ShizukuState
+import io.github.bl3xand.apkcloner.sources.ui.PickItem
+import io.github.bl3xand.apkcloner.sources.ui.SourcesDialogs
 import io.github.bl3xand.apkcloner.sources.ui.SourcesSettingsSheet
 import io.github.bl3xand.apkcloner.sources.ui.showLogSheet
 import io.github.bl3xand.apkcloner.update.AutoUpdateWorker
@@ -184,6 +187,9 @@ class SettingsSheet : BottomSheetDialogFragment() {
                 }
             }
         }
+        val language = AppLanguage.current()
+        binding.buttonLanguage.text = if (language == AppLanguage.SYSTEM) getString(R.string.language_system) else language.ownName
+        binding.buttonLanguage.setOnClickListener { pickLanguage(language) }
         binding.buttonShowLog.setOnClickListener {
             requireContext().showLogSheet { fileName, text ->
                 logToSave = text
@@ -314,6 +320,21 @@ class SettingsSheet : BottomSheetDialogFragment() {
     }
 
     /** Key operations touch the keystore and the disk; keep them off the main thread. */
+    /** Every language is offered under its own name, so that it can be found from any other. */
+    private fun pickLanguage(current: AppLanguage) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val items = AppLanguage.entries.map {
+                PickItem(
+                    it.name, if (it == AppLanguage.SYSTEM) getString(R.string.language_system) else it.ownName, "",
+                    badge = null, current = it == current,
+                )
+            }
+            val chosen = SourcesDialogs(requireContext()).pickFromList(getString(R.string.settings_language), items, filterable = false)
+                ?.firstOrNull() ?: return@launch
+            if (chosen != current.name) AppLanguage.valueOf(chosen).apply()
+        }
+    }
+
     private fun keyAction(success: Int, action: () -> Unit) {
         lifecycleScope.launch {
             val error = withContext(Dispatchers.IO) { runCatching(action).exceptionOrNull() }

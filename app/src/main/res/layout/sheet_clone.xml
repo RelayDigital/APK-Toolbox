@@ -31,65 +31,11 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/layoutPackage"
-            style="?attr/textInputOutlinedStyle"
+        <include
+            android:id="@+id/options"
+            layout="@layout/view_clone_options"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:hint="@string/field_package"
-            app:errorEnabled="true">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editPackage"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="monospace"
-                android:inputType="textNoSuggestions|textVisiblePassword"
-                android:maxLines="1" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/layoutName"
-            style="?attr/textInputOutlinedStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:hint="@string/field_app_name">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editName"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textCapWords"
-                android:maxLines="1" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/switchBadge"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/clone_badge"
-            android:textAppearance="?attr/textAppearanceBodyLarge" />
-
-        <!-- Which of the original's permissions the clone keeps. -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/buttonPermissions"
-            style="@style/Widget.ApkCloner.Button.Action"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/clone_permissions"
-            app:icon="@drawable/ic_tune" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/signature_hint"
-            android:textAppearance="?attr/textAppearanceBodySmall"
-            android:textColor="?attr/colorOnSurfaceVariant" />
+            android:layout_height="wrap_content" />
 
         <!-- How it ended. It is part of what scrolls, so that it cannot move the buttons. -->
         <TextView

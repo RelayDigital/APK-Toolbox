@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What a clone is made with: its package, its name, the mark on its icon and the permissions it
+     keeps. Shared by every place a clone is set up. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+<com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/layoutPackage"
+        style="?attr/textInputOutlinedStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:hint="@string/field_package"
+        app:errorEnabled="true">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editPackage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:inputType="textNoSuggestions|textVisiblePassword"
+            android:maxLines="1" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/layoutName"
+        style="?attr/textInputOutlinedStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:hint="@string/field_app_name">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textCapWords"
+            android:maxLines="1" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/switchBadge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/clone_badge"
+        android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+    <!-- Which of the original's permissions the clone keeps. -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonPermissions"
+        style="@style/Widget.ApkCloner.Button.Action"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/clone_permissions"
+        app:icon="@drawable/ic_tune" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/signature_hint"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+
+</LinearLayout>

@@ -27,7 +27,7 @@ fun ViewAppCardBinding.bindTracked(entry: AppEntry, treatAsNotInstalled: Boolean
         label = entry.name,
         subtitle = listOfNotNull(app.id.takeIf { !app.hasTempId }, version).joinToString(" · "),
         icon = info?.let { AppIcons.load(context.packageManager, it) } ?: context.getDrawable(R.drawable.ic_install),
-        settingsPackage = app.id.takeIf { info != null },
+        settingsPackage = app.devicePackage.takeIf { info != null },
     )
     imageIcon.alpha = if (info != null) 1f else 0.4f
 }

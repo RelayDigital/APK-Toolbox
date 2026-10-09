@@ -18,4 +18,9 @@ class CloneRequest(
     val badgeIconOf: ApplicationInfo? = null,
     /** Permissions of the original, by name, that the clone is made without. */
     val removedPermissions: Set<String> = emptySet(),
-)
+) {
+    companion object {
+        /** What a package name has to look like for the system to take it. */
+        val PACKAGE_NAME = Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+")
+    }
+}

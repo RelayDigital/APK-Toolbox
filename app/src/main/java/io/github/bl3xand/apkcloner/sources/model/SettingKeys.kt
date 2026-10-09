@@ -15,4 +15,13 @@ object SettingKeys {
     const val ABOUT = "about"
     const val INCLUDE_PRERELEASES = "includePrereleases"
     const val APP_ID = "appId"
+
+    // Installing an app as a clone of itself. These are this app's own: the reference app ignores them.
+    const val CLONE_PACKAGE = "clonePackage"
+    const val CLONE_NAME = "cloneName"
+    const val CLONE_BADGE = "cloneBadge"
+    const val CLONE_REMOVED_PERMISSIONS = "cloneRemovedPermissions"
+    const val CLONE_KNOWN_PERMISSIONS = "cloneKnownPermissions"
+    const val CLONE_REQUESTED_PERMISSIONS = "cloneRequestedPermissions"
+    const val CLONE_SOURCE_SIGNER = "cloneSourceSigner"
 }

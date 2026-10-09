@@ -159,25 +159,11 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Which of the original's permissions the clone keeps; a change is applied by an update. -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/buttonPermissions"
-            style="@style/Widget.ApkCloner.Button.Action"
+        <include
+            android:id="@+id/permissions"
+            layout="@layout/view_clone_permissions"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/clone_permissions"
-            app:icon="@drawable/ic_tune" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/buttonResetPermissions"
-            style="@style/Widget.ApkCloner.Button.Action"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/detail_reset_permissions"
-            android:visibility="gone"
-            app:icon="@drawable/ic_update" />
+            android:layout_height="wrap_content" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

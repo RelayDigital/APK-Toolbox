@@ -9,6 +9,8 @@ import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
 import io.github.bl3xand.apkcloner.sources.data.DownloadState
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
+import io.github.bl3xand.apkcloner.clone.ApkCloner
+import io.github.bl3xand.apkcloner.data.AppRepository
 import io.github.bl3xand.apkcloner.sources.install.InstallPrompts
 import io.github.bl3xand.apkcloner.sources.install.SourcesInstaller
 import io.github.bl3xand.apkcloner.sources.model.CheckUpdatesException
@@ -305,6 +307,89 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    /**
+     * Switches installing [id] as a clone of itself on or off. Switched on, a clone of the app
+     * that is already on the device - made from the installed original, say - is taken over with
+     * what it was made with: it is the one kept up to date from the source from then on.
+     */
+    fun setCloneMode(id: String, on: Boolean) = saving {
+        val app = repo.entry(id)?.app ?: return@saving
+        if (on == (app.clonePackage != null)) return@saving
+        // Under another package nothing of this source is installed yet.
+        var updated = app.withSetting(SettingKeys.CLONE_SOURCE_SIGNER, "")
+        if (on) {
+            val context = getApplication<Application>()
+            val existing = runCatching { AppRepository(context, ApkCloner(context)).clonesOf(id) }.getOrDefault(emptyMap()).entries.firstOrNull()
+            updated = updated.withSetting(SettingKeys.CLONE_PACKAGE, existing?.key ?: "$id.clone")
+            if (existing != null) {
+                updated = updated.withSetting(SettingKeys.CLONE_BADGE, existing.value.badged)
+                    .withSetting(SettingKeys.CLONE_REMOVED_PERMISSIONS, existing.value.removedPermissions.sorted().joinToString(","))
+            }
+        } else {
+            updated = updated.withSetting(SettingKeys.CLONE_PACKAGE, "")
+        }
+        repo.saveApps(listOf(updated))
+        AppLog.info("$id is now installed ${updated.clonePackage?.let { "as the clone $it" } ?: "as it is"}")
+    }
+
+    /** What the clone [id] is installed as is made with; with [install] it is then installed. */
+    fun setCloneOptions(id: String, packageName: String, name: String, badge: Boolean, install: Boolean = false) = saving {
+        val app = repo.entry(id)?.app ?: return@saving
+        repo.saveApps(
+            listOf(
+                app.withSetting(SettingKeys.CLONE_PACKAGE, packageName).withSetting(SettingKeys.CLONE_NAME, name)
+                    .withSetting(SettingKeys.CLONE_BADGE, badge),
+            ),
+        )
+        if (install) obtain(listOf(id))
+    }
+
+    /**
+     * The permissions the clone [id] is installed as goes without; [seen] is what the user had in
+     * front of them while choosing. An installed clone is built again from the latest release and
+     * installed over itself, so its data stays.
+     */
+    fun setClonePermissions(id: String, removed: Set<String>, seen: Set<String>) = saving {
+        val app = repo.entry(id)?.app ?: return@saving
+        repo.saveApps(
+            listOf(
+                app.withSetting(SettingKeys.CLONE_REMOVED_PERMISSIONS, removed.sorted().joinToString(","))
+                    .withSetting(SettingKeys.CLONE_KNOWN_PERMISSIONS, (app.cloneKnownPermissions + seen).sorted().joinToString(",")),
+            ),
+        )
+        if (removed != app.cloneRemovedPermissions && repo.entry(id)?.installedInfo != null) obtain(listOf(id))
+    }
+
+    /** Whether [packageName] cannot be the clone of [id]: another app has it, tracked or installed. */
+    fun isTakenForClone(id: String, packageName: String): Boolean {
+        if (repo.all().any { it.app.id != id && it.app.devicePackage == packageName }) return true
+        if (repo.installedInfo(packageName) == null) return false
+        val context = getApplication<Application>()
+        return runCatching { AppRepository(context, ApkCloner(context)).clonesOf(id) }.getOrDefault(emptyMap())[packageName] == null
+    }
+
+    private fun saving(block: suspend () -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                block()
+            } catch (e: Exception) {
+                _events.tryEmit(SourcesEvent.Error(e))
+            }
+        }
+    }
+
+    /**
+     * Finds out which permissions the latest release of [id] asks for, downloading it if no
+     * release has been seen yet. [onReady] gets the app's id - a new one if the download was what
+     * told the app's package - and the permissions; it is not called when that failed.
+     */
+    fun clonePermissions(id: String, onReady: (id: String, requested: Set<String>) -> Unit) = launchReporting {
+        val known = repo.entry(id)?.app?.takeUnless { it.hasTempId }?.cloneRequestedPermissions.orEmpty()
+        val (resolved, requested) = if (known.isNotEmpty()) id to known
+        else withContext(Dispatchers.IO) { installer.downloadForPermissions(id) }
+        onReady(resolved, requested)
+    }
+
     /** Downloads and installs (or, for track-only apps, marks as updated) the given apps. */
     fun obtain(requested: List<String>) {
         // A second tap while the first is still at work must not start the same download again.
@@ -357,10 +442,12 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
      * being uninstalled for the whole wait. True when nothing is installed under it afterwards.
      */
     private suspend fun uninstallFromDevice(id: String): Boolean {
-        if (repo.installedInfo(id) == null) return true
+        // An app installed as a clone is on the device under the clone's package.
+        val installedAs = repo.entry(id)?.app?.devicePackage ?: id
+        if (repo.installedInfo(installedAs) == null) return true
         _uninstalling.update { it + id }
         return try {
-            installer.uninstallApp(id)
+            installer.uninstallApp(installedAs)
         } finally {
             _uninstalling.update { it - id }
         }
