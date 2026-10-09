@@ -11,8 +11,12 @@ interface TelegramGateway {
     /** Whether there is an account to act for. */
     val isSignedIn: Boolean
 
-    /** The files in the last [limit] messages with a file of the public channel [username]. */
-    fun channel(username: String, limit: Int): TelegramChannelInfo
+    /**
+     * The files of the public channel [username], newest first and [limit] at most. With a
+     * [query] only the messages Telegram's own search finds for it are looked at, however far
+     * back they are.
+     */
+    fun channel(username: String, limit: Int, query: String = ""): TelegramChannelInfo
 
     /** The file of one message, or null if the message has none. */
     fun file(channel: String, messageId: Long): TelegramFile?

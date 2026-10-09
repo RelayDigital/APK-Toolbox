@@ -24,10 +24,12 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.log.AppLog
+import io.github.bl3xand.apkcloner.sources.core.CancellationSignal
 import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.Url
 import io.github.bl3xand.apkcloner.sources.core.errorText
+import io.github.bl3xand.apkcloner.sources.data.DownloadState
 import io.github.bl3xand.apkcloner.sources.form.DropdownItem
 import io.github.bl3xand.apkcloner.sources.form.SettingItem
 import io.github.bl3xand.apkcloner.sources.form.TextItem
@@ -122,7 +124,10 @@ class AddAppSheet : BottomSheetDialogFragment() {
             setIconResource(R.drawable.ic_add)
             iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
             minimumHeight = context.dp(Spacing.ROW)
-            setOnClickListener { addApp() }
+            setOnClickListener {
+                val running = download
+                if (busy && running != null) viewModel.installer.cancelDownload(running.first) else addApp()
+            }
         }
         root.add(addButton, topMargin = Spacing.UNDER_LABEL - Spacing.BUTTON_INSET)
 
@@ -330,10 +335,25 @@ class AddAppSheet : BottomSheetDialogFragment() {
         }
     }
 
+    /** The download that is finding out what the app is, while one runs: its id and how far it has got. */
+    private var download: Pair<String, DownloadState>? = null
+
     private fun render() {
         val source = pickedSource
         val valid = (source != null) && settingsValid && requiredFilled(source)
-        addButton.isEnabled = valid && !busy
+        // While a file is coming down, the button is the way to stop it.
+        val downloading = busy && download != null
+        addButton.isEnabled = downloading || (valid && !busy)
+        addButton.text = Tr.get(if (downloading) "cancel" else "add")
+        addButton.setIconResource(if (downloading) R.drawable.ic_close else R.drawable.ic_add)
+        // A known share of the file shows as such; anything else as "working on it".
+        val percent = download?.second?.progress?.takeIf { it >= 0 }
+        if (progress.isIndeterminate != (percent == null)) {
+            // The bar cannot change its kind while it is on screen.
+            progress.isVisible = false
+            progress.isIndeterminate = percent == null
+        }
+        if (percent != null) progress.setProgressCompat(percent.toInt(), true)
         progress.isVisible = busy
         searchContainer.isVisible = source == null && userInput.isEmpty()
         // Options that must be filled in cannot stay hidden.
@@ -354,6 +374,13 @@ class AddAppSheet : BottomSheetDialogFragment() {
         val installer = viewModel.installer
         viewLifecycleOwner.lifecycleScope.launch {
             setBusy(true)
+            // Finding out what the app is can take a whole download; its progress is shown.
+            val watcher = launch {
+                repo.downloads.collect { running ->
+                    download = running.entries.firstOrNull()?.toPair()
+                    if (view != null) render()
+                }
+            }
             try {
                 val userPickedTrackOnly = additionalSettings[SettingKeys.TRACK_ONLY] == true
                 val trackOnly = source.enforceTrackOnly || userPickedTrackOnly
@@ -387,9 +414,10 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     )
                 }
                 // A source that offers several things side by side has the user choose one first.
-                source.trackingChoice(app)?.let { choice ->
-                    val picked = dialogs.pickFromList(
-                        choice.title, choice.options.map { PickItem(it.value, it.label, it.description, null) }, filterable = false,
+                withContext(Dispatchers.IO) { source.trackingChoice(app, userInput) }?.let { choice ->
+                    // There may be hundreds on offer, so the list can be searched.
+                    val picked = choice.chosen ?: dialogs.pickFromList(
+                        choice.title, choice.options.map { PickItem(it.value, it.label, it.description, null) },
                     )?.firstOrNull() ?: return@launch
                     settingsSnapshot[choice.settingKey] = picked
                     app = withContext(Dispatchers.IO) {
@@ -451,10 +479,14 @@ class AddAppSheet : BottomSheetDialogFragment() {
                 AppLog.info("Added ${app.id} from ${app.url}, latest ${app.latestVersion}")
                 viewModel.emit(SourcesEvent.OpenApp(app.id))
                 dismissAllowingStateLoss()
+            } catch (e: CancellationSignal) {
+                AppLog.info("Adding $userInput was cancelled")
             } catch (e: Exception) {
                 AppLog.error("Adding $userInput failed", e)
                 context.showError(e)
             } finally {
+                watcher.cancel()
+                download = null
                 setBusy(false)
             }
         }

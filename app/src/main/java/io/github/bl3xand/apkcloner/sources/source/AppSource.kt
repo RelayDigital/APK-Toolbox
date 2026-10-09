@@ -308,8 +308,11 @@ abstract class AppSource(
     /** The size of an asset when the source knows it itself; null leaves it to be asked over HTTP. */
     open fun assetSize(assetUrl: String, additionalSettings: Map<String, Any?>): Long? = null
 
-    /** What the user has to choose before [app] can be tracked, if anything. */
-    open fun trackingChoice(app: TrackedApp): TrackingChoice? = null
+    /**
+     * What the user has to choose before [app] can be tracked, if anything. [typedUrl] is the
+     * link as it was given, which may say more than the app's own URL keeps.
+     */
+    open fun trackingChoice(app: TrackedApp, typedUrl: String): TrackingChoice? = null
 
     /** Last-minute change of an asset URL right before it is downloaded. */
     open fun assetUrlPrefetchModifier(

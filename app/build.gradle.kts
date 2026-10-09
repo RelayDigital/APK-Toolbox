@@ -120,6 +120,8 @@ dependencies {
     implementation(libs.xz)
     // Telegram channels as a source: reading a channel's files takes a signed-in client.
     implementation(libs.tdlib)
+    // The QR code of a Telegram sign-in.
+    implementation(libs.zxing.core)
 
     testImplementation(libs.junit)
     // The org.json classes in android.jar are stubs; unit tests need a real implementation.

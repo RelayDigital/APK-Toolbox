@@ -6,6 +6,7 @@ import io.github.bl3xand.apkcloner.BuildConfig
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.CancellationSignal
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
+import io.github.bl3xand.apkcloner.sources.core.RateLimitError
 import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.net.ProgressListener
@@ -15,6 +16,7 @@ import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +40,14 @@ object TelegramClient : TelegramGateway {
     private const val POLL_MS = 300L
     private const val DOWNLOAD_PRIORITY = 32
 
+    /** The most messages Telegram gives in one answer. */
+    private const val PAGE_SIZE = 100
+
+    /** A download that brings nothing for this long is taken for stuck and started again. */
+    private const val STALL_MS = 90_000L
+    private const val DOWNLOAD_ATTEMPTS = 3
+    private const val RETRY_PAUSE_MS = 3_000L
+
     /** How TDLib counts messages against the numbers in their links. */
     private const val MESSAGE_ID_SHIFT = 20
 
@@ -45,6 +55,14 @@ object TelegramClient : TelegramGateway {
 
     @Volatile
     private var client: Client? = null
+
+    /** Set while the user is signing out or starting over, so that the end of the session is no surprise. */
+    @Volatile
+    private var closingOnRequest = false
+
+    /** Set while an unfinished sign-in is being dropped, which also ends in a closed client. */
+    @Volatile
+    private var startingOver = false
 
     private val _auth = MutableStateFlow<TelegramAuth>(TelegramAuth.Starting)
     val auth: StateFlow<TelegramAuth> = _auth.asStateFlow()
@@ -69,10 +87,20 @@ object TelegramClient : TelegramGateway {
     @Synchronized
     fun start() {
         if (!isConfigured || client != null) return
-        // TDLib writes its own log to logcat unless told not to.
-        runCatching { Client.execute(TdApi.SetLogVerbosityLevel(0)) }
-        AppLog.debug("Telegram: starting the client")
-        client = Client.create(::onUpdate, null, null)
+        try {
+            // TDLib writes its own log to logcat unless told not to.
+            runCatching { Client.execute(TdApi.SetLogVerbosityLevel(0)) }
+            AppLog.debug("Telegram: starting the client")
+            client = Client.create(::onUpdate, ::onClientFailure, ::onClientFailure)
+        } catch (e: Throwable) {
+            // The native library did not load: nothing of Telegram can work on this device.
+            AppLog.error("Telegram: the client cannot be started", e)
+            _auth.value = TelegramAuth.Unsupported(e.javaClass.simpleName)
+        }
+    }
+
+    private fun onClientFailure(error: Throwable) {
+        AppLog.error("Telegram: the client failed", error)
     }
 
     private fun onUpdate(update: TdApi.Object) {
@@ -85,10 +113,18 @@ object TelegramClient : TelegramGateway {
     private fun onAuthorization(state: TdApi.AuthorizationState) {
         when (state) {
             is TdApi.AuthorizationStateWaitTdlibParameters -> client?.send(parameters()) { result ->
-                if (result is TdApi.Error) AppLog.error("Telegram: the client did not start: ${result.message}")
+                if (result is TdApi.Error) {
+                    AppLog.error("Telegram: the client did not start: ${result.message}")
+                    _auth.value = TelegramAuth.Unsupported(result.message)
+                }
             }
             is TdApi.AuthorizationStateWaitPhoneNumber -> _auth.value = TelegramAuth.WaitPhone
-            is TdApi.AuthorizationStateWaitCode -> _auth.value = TelegramAuth.WaitCode
+            is TdApi.AuthorizationStateWaitOtherDeviceConfirmation -> _auth.value = TelegramAuth.WaitOtherDevice(state.link)
+            is TdApi.AuthorizationStateWaitCode -> _auth.value = TelegramAuth.WaitCode(
+                viaTelegram = state.codeInfo?.type is TdApi.AuthenticationCodeTypeTelegramMessage,
+            )
+            is TdApi.AuthorizationStateWaitEmailAddress -> _auth.value = TelegramAuth.WaitEmail
+            is TdApi.AuthorizationStateWaitEmailCode -> _auth.value = TelegramAuth.WaitEmailCode
             is TdApi.AuthorizationStateWaitPassword -> _auth.value = TelegramAuth.WaitPassword(state.passwordHint.orEmpty())
             is TdApi.AuthorizationStateReady -> {
                 prefs.edit().putBoolean(KEY_SIGNED_IN, true).apply()
@@ -96,16 +132,28 @@ object TelegramClient : TelegramGateway {
                 _auth.value = TelegramAuth.Ready
             }
             is TdApi.AuthorizationStateLoggingOut, is TdApi.AuthorizationStateClosing -> _auth.value = TelegramAuth.Starting
-            is TdApi.AuthorizationStateClosed -> {
-                // A closed client is of no further use; a new one starts from the phone number.
-                prefs.edit().putBoolean(KEY_SIGNED_IN, false).apply()
-                AppLog.info("Telegram: signed out")
-                client = null
-                _auth.value = TelegramAuth.Starting
-                start()
-            }
+            is TdApi.AuthorizationStateClosed -> onClosed()
             else -> _auth.value = TelegramAuth.Unsupported(state.javaClass.simpleName.removePrefix("AuthorizationState"))
         }
+    }
+
+    /** A closed client is of no further use; a new one starts from the beginning of signing in. */
+    private fun onClosed() {
+        val hadSession = prefs.getBoolean(KEY_SIGNED_IN, false)
+        prefs.edit().putBoolean(KEY_SIGNED_IN, false).apply()
+        if (startingOver) {
+            AppLog.debug("Telegram: the unfinished sign-in was dropped")
+        } else if (closingOnRequest) {
+            AppLog.info("Telegram: signed out")
+        } else if (hadSession) {
+            // Ended from another device, revoked by Telegram, or the account was closed.
+            AppLog.warn("Telegram: the session was ended from outside; apps tracked from channels need a new sign-in")
+        }
+        closingOnRequest = false
+        startingOver = false
+        client = null
+        _auth.value = TelegramAuth.Starting
+        start()
     }
 
     private fun parameters(): TdApi.SetTdlibParameters {
@@ -119,7 +167,7 @@ object TelegramClient : TelegramGateway {
         )
     }
 
-    /** Sends [function] and waits for its answer; an error answer is thrown. */
+    /** Sends [function] and waits for its answer; an error answer is thrown, in words of its own. */
     private fun <T : TdApi.Object> request(function: TdApi.Function<T>, timeoutSeconds: Long = REQUEST_TIMEOUT_S): T {
         val running = client ?: throw SourceError(Tr.get("telegramSignInFirst"))
         val answer = AtomicReference<TdApi.Object>()
@@ -130,9 +178,14 @@ object TelegramClient : TelegramGateway {
         }
         if (!latch.await(timeoutSeconds, TimeUnit.SECONDS)) throw SourceError(Tr.get("telegramNoAnswer"))
         val result = answer.get()
-        if (result is TdApi.Error) throw SourceError("Telegram: ${result.message}")
+        if (result is TdApi.Error) throw errorOf(result)
         @Suppress("UNCHECKED_CAST")
         return result as T
+    }
+
+    private fun errorOf(error: TdApi.Error): SourceError {
+        AppLog.warn("Telegram answered with an error: ${error.code} ${error.message}")
+        return TelegramErrors.toError(error.code, error.message.orEmpty())
     }
 
     // ---- signing in and out ------------------------------------------------------------------
@@ -141,8 +194,21 @@ object TelegramClient : TelegramGateway {
         request(TdApi.SetAuthenticationPhoneNumber(phone, null))
     }
 
+    /** Asks for a sign-in that is confirmed from a Telegram app that is signed in already. */
+    fun requestOtherDevice() {
+        request(TdApi.RequestQrCodeAuthentication(LongArray(0)))
+    }
+
     fun submitCode(code: String) {
         request(TdApi.CheckAuthenticationCode(code))
+    }
+
+    fun submitEmail(address: String) {
+        request(TdApi.SetAuthenticationEmailAddress(address))
+    }
+
+    fun submitEmailCode(code: String) {
+        request(TdApi.CheckAuthenticationEmailCode(TdApi.EmailAddressAuthenticationCode(code)))
     }
 
     fun submitPassword(password: String) {
@@ -150,7 +216,20 @@ object TelegramClient : TelegramGateway {
     }
 
     fun signOut() {
+        closingOnRequest = true
         request(TdApi.LogOut())
+    }
+
+    /**
+     * Drops a sign-in that was begun and not finished, so that it can be begun another way. What
+     * was begun is kept by the client across restarts, so its data is wiped, not just closed.
+     */
+    fun startOver() {
+        if (_auth.value is TelegramAuth.Ready) return
+        startingOver = true
+        _auth.value = TelegramAuth.Starting
+        val running = client ?: return start()
+        running.send(TdApi.Destroy()) {}
     }
 
     // ---- the gateway -------------------------------------------------------------------------
@@ -165,12 +244,22 @@ object TelegramClient : TelegramGateway {
             return _auth.value is TelegramAuth.Ready
         }
 
-    override fun channel(username: String, limit: Int): TelegramChannelInfo {
+    override fun channel(username: String, limit: Int, query: String): TelegramChannelInfo {
         val chat = request(TdApi.SearchPublicChat(username))
-        val found = request(
-            TdApi.SearchChatMessages(chat.id, null, "", null, 0, 0, limit, TdApi.SearchMessagesFilterDocument()),
-        )
-        return TelegramChannelInfo(chat.title, found.messages.mapNotNull { fileOf(username, it) })
+        val files = ArrayList<TelegramFile>()
+        var from = 0L
+        // Telegram hands the messages out a page at a time, newest first.
+        while (files.size < limit) {
+            val found = request(
+                TdApi.SearchChatMessages(
+                    chat.id, null, query, null, from, 0, minOf(PAGE_SIZE, limit - files.size), TdApi.SearchMessagesFilterDocument(),
+                ),
+            )
+            found.messages.mapNotNullTo(files) { fileOf(username, it) }
+            from = found.nextFromMessageId
+            if (from == 0L || found.messages.isEmpty()) break
+        }
+        return TelegramChannelInfo(chat.title, files)
     }
 
     override fun file(channel: String, messageId: Long): TelegramFile? = message(channel, messageId)?.let { fileOf(channel, it) }
@@ -188,6 +277,10 @@ object TelegramClient : TelegramGateway {
         )
     }
 
+    /**
+     * Downloads the file of a message. A download that fails or stops moving is started again a
+     * few times - TDLib keeps what it already has, so it goes on from there - before giving up.
+     */
     override fun download(
         channel: String,
         messageId: Long,
@@ -195,6 +288,28 @@ object TelegramClient : TelegramGateway {
         onProgress: ProgressListener?,
         isCancelled: () -> Boolean,
     ): File {
+        var attempt = 1
+        while (true) {
+            try {
+                return downloadOnce(channel, messageId, destination, onProgress, isCancelled)
+            } catch (e: Exception) {
+                // Cancelled by the user, told to wait, or out of attempts: nothing to try again.
+                if (e is CancellationSignal || e is RateLimitError || attempt >= DOWNLOAD_ATTEMPTS || !hasSession) throw e
+                AppLog.warn("Telegram: download of $channel/$messageId failed (attempt $attempt), trying again: ${e.message}")
+                attempt++
+                Thread.sleep(RETRY_PAUSE_MS)
+            }
+        }
+    }
+
+    private fun downloadOnce(
+        channel: String,
+        messageId: Long,
+        destination: File,
+        onProgress: ProgressListener?,
+        isCancelled: () -> Boolean,
+    ): File {
+        // Asked for anew on every attempt: the reference to a file goes stale after a while.
         val document = (message(channel, messageId)?.content as? TdApi.MessageDocument)?.document ?: throw NoApkError()
         val remote = document.document
         val total = remote.size.takeIf { it > 0 } ?: remote.expectedSize
@@ -202,8 +317,11 @@ object TelegramClient : TelegramGateway {
         val running = client ?: throw SourceError(Tr.get("telegramSignInFirst"))
         val answer = AtomicReference<TdApi.Object>()
         val latch = CountDownLatch(1)
+        val lastMoved = AtomicLong(System.currentTimeMillis())
+        val lastReceived = AtomicLong(-1)
         fileListeners[remote.id] = { file ->
             val received = file.local.downloadedSize
+            if (lastReceived.getAndSet(received) != received) lastMoved.set(System.currentTimeMillis())
             onProgress?.invoke(if (total > 0) received * 100.0 / total else null, received, total.takeIf { it > 0 })
         }
         try {
@@ -214,17 +332,25 @@ object TelegramClient : TelegramGateway {
                 latch.countDown()
             }
             while (!latch.await(POLL_MS, TimeUnit.MILLISECONDS)) {
-                if (isCancelled()) {
+                val stalled = System.currentTimeMillis() - lastMoved.get() > STALL_MS
+                if (isCancelled() || stalled || client !== running) {
                     running.send(TdApi.CancelDownloadFile(remote.id, false)) {}
-                    throw CancellationSignal()
+                    if (isCancelled()) throw CancellationSignal()
+                    throw SourceError(Tr.get(if (stalled) "telegramNoAnswer" else "telegramErrSession"))
                 }
             }
             val result = answer.get()
-            if (result is TdApi.Error) throw SourceError("Telegram: ${result.message}")
+            if (result is TdApi.Error) throw errorOf(result)
             val local = (result as TdApi.File).local
             if (!local.isDownloadingCompleted || local.path.isNullOrEmpty()) throw SourceError(Tr.get("telegramNoAnswer"))
+            // Copied under another name first, so that a copy cut short is never taken for the file.
             destination.parentFile?.mkdirs()
-            File(local.path).copyTo(destination, overwrite = true)
+            val partial = File(destination.path + ".part")
+            File(local.path).copyTo(partial, overwrite = true)
+            if (!partial.renameTo(destination)) {
+                destination.delete()
+                if (!partial.renameTo(destination)) throw SourceError(Tr.get("telegramNoAnswer"))
+            }
             // TDLib's own copy is of no further use.
             running.send(TdApi.DeleteFile(remote.id)) {}
             return destination
