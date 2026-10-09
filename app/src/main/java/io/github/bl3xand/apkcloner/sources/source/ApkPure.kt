@@ -10,6 +10,7 @@ import io.github.bl3xand.apkcloner.sources.core.SourceEnv
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.Url
 import io.github.bl3xand.apkcloner.sources.core.effectiveMinUpdateAgeDays
+import io.github.bl3xand.apkcloner.sources.core.htmlToText
 import io.github.bl3xand.apkcloner.sources.core.isReleaseTooYoung
 import io.github.bl3xand.apkcloner.sources.core.rethrowOrWrap
 import io.github.bl3xand.apkcloner.sources.core.sourceRegex
@@ -31,6 +32,7 @@ class APKPure : AppSource("APKPure") {
         naiveStandardVersionDetection = true
         showReleaseDateAsVersionToggle = true
         inferAppIdFromUrlPath = true
+        changeLogIfAnyIsMarkDown = false
     }
 
     override val additionalSourceAppSpecificSettingFormItems: List<List<SettingItem>>
@@ -85,7 +87,8 @@ class APKPure : AppSource("APKPure") {
             apkUrls,
             AppNames(first["developer"]?.toString() ?: name, first["title"]?.toString() ?: Tr.get("app")),
             releaseDate = Dates.tryParse(first["update_date"]?.toString()),
-            changeLog = (first["whatsnew"] as? String)?.takeIf { it.isNotEmpty() },
+            // The notes come as a piece of the store's page, <br> and all.
+            changeLog = (first["whatsnew"] as? String)?.let(::htmlToText)?.takeIf { it.isNotEmpty() },
         )
     }
 
