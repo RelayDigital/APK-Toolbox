@@ -332,25 +332,21 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
     }
 
     /**
-     * For a signer conflict: removes the differently-signed build already on the device, then
-     * installs this source's build. Crossing signers means the data of the old one cannot be kept,
-     * so this is a clean replacement, not an in-place update.
+     * For a signer conflict: removes the differently-signed build already on the device, showing
+     * progress for the wait. Once it is gone the conflict clears and the card becomes an ordinary
+     * install, so the user installs the added build with the normal button.
      */
-    fun replaceConflicting(id: String) = launchReporting {
+    fun uninstallConflicting(id: String) = launchReporting {
         _uninstalling.update { it + id }
         val removed = try {
             installer.uninstallApp(id)
         } finally {
             _uninstalling.update { it - id }
         }
-        if (!removed) return@launchReporting
-        repo.entry(id)?.app?.let {
-            repo.saveApps(listOf(it.copy(installedVersion = null)), attemptToCorrectInstallStatus = false)
-        }
-        val installed = installer.downloadAndInstallLatestApps(listOf(id), prompts)
-        if (installed.isNotEmpty()) {
-            _events.tryEmit(SourcesEvent.Message(Tr.get("msgInstalledOne")))
-            SourcesNotifications.cancel(getApplication(), SourcesNotifications.ID_UPDATES)
+        if (removed) {
+            repo.entry(id)?.app?.let {
+                repo.saveApps(listOf(it.copy(installedVersion = null)), attemptToCorrectInstallStatus = false)
+            }
         }
     }
 

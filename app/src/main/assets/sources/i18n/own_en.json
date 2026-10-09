@@ -154,5 +154,6 @@
   },
   "msgInstalledOne": "Installed",
   "detSignerConflict": "Another build of this app is installed - it is signed with a different key, so this one cannot be installed over it. Remove the installed app first.",
-  "detSignerReplace": "Reinstall (removes the installed one)"
+  "detSignerConflictMark": "conflict",
+  "detSignerRemoveCurrent": "Delete current"
 }

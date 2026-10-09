@@ -166,7 +166,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
     }
 
     /** A "name — value" line of the info card, in the style of the clone details. */
-    private fun infoRow(name: String, value: CharSequence, first: Boolean, onClick: (() -> Unit)? = null) {
+    private fun infoRow(name: String, value: CharSequence, first: Boolean, highlight: Boolean = false, onClick: (() -> Unit)? = null) {
         val context = requireContext()
         if (!first) binding.infoRows.addView(MaterialDivider(context))
         val row = LinearLayout(context).apply { setPadding(0, context.dp(10), 0, context.dp(10)) }
@@ -177,6 +177,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         row.addView(
             context.label(value, com.google.android.material.R.attr.textAppearanceBodyLarge).apply {
                 textAlignment = View.TEXT_ALIGNMENT_VIEW_END
+                if (highlight) setTextColor(context.themeColor(androidx.appcompat.R.attr.colorError))
                 if (onClick != null) {
                     setTextColor(context.themeColor(androidx.appcompat.R.attr.colorPrimary))
                     setOnClickListener { onClick() }
@@ -195,10 +196,11 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         val trackOnly = app.settings.getBool(SettingKeys.TRACK_ONLY)
         val installed = app.installedVersion
 
-        // The same card as everywhere else; a tap opens the app's page in the system settings.
-        binding.appCard.bindTracked(entry)
-
         val conflict = viewModel.installer.hasSignerConflict(entry)
+
+        // The same card as everywhere else; a tap opens the app's page in the system settings. On a
+        // signer conflict it is the build being added, not the differently-signed one installed.
+        binding.appCard.bindTracked(entry, treatAsNotInstalled = conflict)
         binding.cardNotice.isVisible = app.hasPendingRepoRename || conflict
         binding.buttonNotice.isVisible = app.hasPendingRepoRename || conflict
         // A signer conflict is a hard block, so it gets the bright error colours; the repo-rename
@@ -217,13 +219,13 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         binding.textNotice.setTextColor(context.themeColor(noticeFg))
         if (conflict) {
             binding.textNotice.text = Tr.get("detSignerConflict")
-            // The only way forward is to drop the installed build and put this one in its place.
-            // Inverted error colours so the button stands out on the error-coloured card.
-            binding.buttonNotice.text = Tr.get("detSignerReplace")
+            // Removing the installed build is the way forward; once it is gone the card becomes an
+            // ordinary install. Inverted error colours so the button reads on the error card.
+            binding.buttonNotice.text = Tr.get("detSignerRemoveCurrent")
             binding.buttonNotice.backgroundTintList =
                 ColorStateList.valueOf(context.themeColor(com.google.android.material.R.attr.colorOnErrorContainer))
             binding.buttonNotice.setTextColor(context.themeColor(com.google.android.material.R.attr.colorErrorContainer))
-            binding.buttonNotice.setOnClickListener { viewModel.replaceConflicting(appId) }
+            binding.buttonNotice.setOnClickListener { viewModel.uninstallConflicting(appId) }
         } else if (app.hasPendingRepoRename) {
             binding.textNotice.text = "${Tr.get("repoRenamedExplanation")}\n\n${app.pendingRepoRenameUrl}"
             binding.buttonNotice.text = Tr.get("updateUrl")
@@ -242,11 +244,13 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         infoRow(
             Tr.get("detInstalled"),
             when {
+                conflict -> "$installed · ${Tr.get("detSignerConflictMark")}"
                 installed == null -> Tr.get("notInstalled")
                 trackOnly -> "$installed · ${Tr.get("trackOnly")}"
                 else -> installed
             },
             first = false,
+            highlight = conflict,
         )
         infoRow(Tr.get("detLatest"), app.latestVersion, first = false)
         // Only while there is something to download.
@@ -272,15 +276,18 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         }
 
         val canAct = !busy && !conflict && (installed == null || installed != app.latestVersion) && !repo.areDownloadsRunning()
+        // A conflict is shown as a fresh install of the added build (the installed one must go
+        // first), so the action reads "Install" and is blocked until the clashing build is removed.
+        val asInstall = installed == null || conflict
         val label = when {
-            installed == null -> Tr.get(if (trackOnly) "markInstalled" else "install")
+            asInstall -> Tr.get(if (trackOnly) "markInstalled" else "install")
             else -> Tr.get(if (trackOnly) "markUpdated" else "update")
         }
         // The two buttons share a group that animates their widths, so they are only touched
         // when something about them really changes - not on every tick of a download.
         val cancellable = download != null && download.progress in 0.0..99.0
         val look = if (cancellable) Tr.get("cancel") to R.drawable.ic_close
-        else label to (if (installed == null) R.drawable.ic_download else R.drawable.ic_update)
+        else label to (if (asInstall) R.drawable.ic_download else R.drawable.ic_update)
         if (buttonLook != look) {
             buttonLook = look
             binding.buttonUpdate.text = look.first

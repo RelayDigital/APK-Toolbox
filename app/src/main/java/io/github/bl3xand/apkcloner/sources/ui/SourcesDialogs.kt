@@ -741,14 +741,19 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
 fun Context.appCard(entry: AppEntry): View =
     io.github.bl3xand.apkcloner.databinding.ViewAppCardBinding.inflate(android.view.LayoutInflater.from(this)).also { it.bindTracked(entry) }.root
 
-/** Fills the shared app card for a tracked app; a tap opens its page in the system settings. */
-fun io.github.bl3xand.apkcloner.databinding.ViewAppCardBinding.bindTracked(entry: AppEntry) {
+/**
+ * Fills the shared app card for a tracked app; a tap opens its page in the system settings.
+ * With [treatAsNotInstalled] the installed copy is ignored - used for a signer conflict, where the
+ * card is about the build being added, not the differently-signed one already on the device.
+ */
+fun io.github.bl3xand.apkcloner.databinding.ViewAppCardBinding.bindTracked(entry: AppEntry, treatAsNotInstalled: Boolean = false) {
     val context = root.context
     val app = entry.app
-    val info = entry.installedInfo?.applicationInfo
+    val info = entry.installedInfo?.applicationInfo?.takeUnless { treatAsNotInstalled }
+    val version = if (treatAsNotInstalled) app.latestVersion else app.installedVersion ?: app.latestVersion
     bind(
         label = entry.name,
-        subtitle = listOfNotNull(app.id.takeIf { !app.hasTempId }, app.installedVersion ?: app.latestVersion).joinToString(" · "),
+        subtitle = listOfNotNull(app.id.takeIf { !app.hasTempId }, version).joinToString(" · "),
         icon = info?.let { AppIcons.load(context.packageManager, it) } ?: context.getDrawable(io.github.bl3xand.apkcloner.R.drawable.ic_install),
         settingsPackage = app.id.takeIf { info != null },
     )
