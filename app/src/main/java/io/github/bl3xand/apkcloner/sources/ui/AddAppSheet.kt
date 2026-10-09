@@ -386,6 +386,21 @@ class AddAppSheet : BottomSheetDialogFragment() {
                         inferAppIdIfOptional = inferAppId,
                     )
                 }
+                // A source that offers several things side by side has the user choose one first.
+                source.trackingChoice(app)?.let { choice ->
+                    val picked = dialogs.pickFromList(
+                        choice.title, choice.options.map { PickItem(it.value, it.label, it.description, null) }, filterable = false,
+                    )?.firstOrNull() ?: return@launch
+                    settingsSnapshot[choice.settingKey] = picked
+                    app = withContext(Dispatchers.IO) {
+                        SourceRegistry.getApp(
+                            source, userInput, settingsSnapshot,
+                            trackOnlyOverride = trackOnly,
+                            sourceIsOverriden = overrideSource != null,
+                            inferAppIdIfOptional = inferAppId,
+                        )
+                    }
+                }
                 if (app.hasTempId && !app.settings.getBool(SettingKeys.TRACK_ONLY)) {
                     // The package name is still unknown: the APK itself has to tell. Any file of
                     // the release says it, so nothing is asked here - which file to install is

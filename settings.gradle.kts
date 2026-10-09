@@ -13,6 +13,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Prebuilt TDLib for Android; nothing else is taken from here.
+        maven("https://jitpack.io") {
+            content { includeGroup("com.github.tdlibx") }
+        }
     }
 }
 

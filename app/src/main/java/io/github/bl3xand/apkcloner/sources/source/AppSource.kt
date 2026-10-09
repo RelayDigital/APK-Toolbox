@@ -20,7 +20,9 @@ import io.github.bl3xand.apkcloner.sources.model.ApkDetails
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.sources.net.Http
 import io.github.bl3xand.apkcloner.sources.net.HttpResponse
+import io.github.bl3xand.apkcloner.sources.net.ProgressListener
 import io.github.bl3xand.apkcloner.sources.net.RequestOptions
+import java.io.File
 
 /** Day counts offered for the minimum update age; 0 turns the delay off. */
 val minimumUpdateAgeOptions = listOf(0, 1, 2, 3, 5, 7, 14, 30)
@@ -291,6 +293,23 @@ abstract class AppSource(
     ): Long? = null
 
     open fun getSourceNote(): String? = null
+
+    /**
+     * Fetches an asset in a way of the source's own instead of over HTTP, into [destination].
+     * Null - the default - leaves the asset to the downloader.
+     */
+    open fun downloadAsset(
+        assetUrl: String,
+        destination: File,
+        onProgress: ProgressListener?,
+        isCancelled: () -> Boolean,
+    ): File? = null
+
+    /** The size of an asset when the source knows it itself; null leaves it to be asked over HTTP. */
+    open fun assetSize(assetUrl: String, additionalSettings: Map<String, Any?>): Long? = null
+
+    /** What the user has to choose before [app] can be tracked, if anything. */
+    open fun trackingChoice(app: TrackedApp): TrackingChoice? = null
 
     /** Last-minute change of an asset URL right before it is downloaded. */
     open fun assetUrlPrefetchModifier(

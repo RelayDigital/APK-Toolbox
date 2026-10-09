@@ -53,6 +53,7 @@ object SourceRegistry {
         { APKCombo() },
         { RockMods() },
         { TelegramApp() },
+        { TelegramChannel() },
         { NeutronCode() },
         { DirectAPKLink() },
         { HTML() },

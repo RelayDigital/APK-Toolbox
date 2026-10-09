@@ -92,6 +92,10 @@ class SourcesSettingsSheet : BottomSheetDialogFragment() {
             },
         )
 
+        // ---- telegram ----
+        section(Tr.get("telegramTitle"))
+        root.addTelegramAccount(lifecycleScope)
+
         // ---- releases ----
         section(Tr.get("setReleases"))
         root.add(

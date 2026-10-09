@@ -31,6 +31,7 @@ import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.sources.net.CancellationToken
 import io.github.bl3xand.apkcloner.sources.net.Downloader
+import io.github.bl3xand.apkcloner.sources.net.ProgressListener
 import io.github.bl3xand.apkcloner.sources.work.SourcesNotifications
 import java.io.File
 import java.io.InputStream
@@ -201,11 +202,12 @@ class SourcesInstaller private constructor(private val context: Context) {
                 lastPercent = shown
             }
 
-            var file = Downloader.downloadFileWithRetry(
-                downloadUrl, fileName, source.urlsAlwaysHaveExtension, ::report, repo.apkDir, options, useExisting,
-                source.getRequestHeaders(app.additionalSettings, downloadUrl, forAPKDownload = true),
-                cancellationToken = token,
-            )
+            var file = source.downloadAsset(downloadUrl, File(repo.apkDir, fileName), ::report) { token.isCancelled }
+                ?: Downloader.downloadFileWithRetry(
+                    downloadUrl, fileName, source.urlsAlwaysHaveExtension, ::report, repo.apkDir, options, useExisting,
+                    source.getRequestHeaders(app.additionalSettings, downloadUrl, forAPKDownload = true),
+                    cancellationToken = token,
+                )
             completed = 1
             repo.setDownload(appId, DownloadState(90.0))
 
@@ -663,12 +665,14 @@ class SourcesInstaller private constructor(private val context: Context) {
                 val key = "${app.id}|$rawUrl"
                 try {
                     val url = source.assetUrlPrefetchModifier(source.generalReqPrefetchModifier(rawUrl, merged), app.url, merged)
-                    Downloader.downloadFileWithRetry(
+                    val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    val progress: ProgressListener = { percent, received, total ->
+                        SourcesNotifications.download(context, key, fileName, percent?.let { ceil(it).toInt() } ?: 0, received, total)
+                    }
+                    source.downloadAsset(url, File(downloads, fileName), progress) { false } ?: Downloader.downloadFileWithRetry(
                         url, fileName, true,
-                        { percent, received, total ->
-                            SourcesNotifications.download(context, key, fileName, percent?.let { ceil(it).toInt() } ?: 0, received, total)
-                        },
-                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                        progress,
+                        downloads,
                         source.requestOptions(app.additionalSettings),
                         useExisting = false,
                         headers = source.getRequestHeaders(

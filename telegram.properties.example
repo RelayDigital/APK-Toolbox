@@ -1,0 +1,4 @@
+# Copy to telegram.properties and fill in the values from https://my.telegram.org -> API development tools.
+# Without this file the app builds, but Telegram channels cannot be used as a source.
+apiId=
+apiHash=

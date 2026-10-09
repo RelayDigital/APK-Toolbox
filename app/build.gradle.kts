@@ -13,6 +13,15 @@ val keystoreProperties = Properties().apply {
     }
 }
 
+// The app's own Telegram API id and hash (my.telegram.org). Kept out of git like the release
+// key; without the file the app still builds, and Telegram channels are simply not available.
+val telegramPropertiesFile = rootProject.file("telegram.properties")
+val telegramProperties = Properties().apply {
+    if (telegramPropertiesFile.exists()) {
+        telegramPropertiesFile.inputStream().use { load(it) }
+    }
+}
+
 android {
     namespace = "io.github.bl3xand.apkcloner"
     compileSdk = 36
@@ -23,6 +32,12 @@ android {
         targetSdk = 36
         versionCode = 6
         versionName = "1.0.1"
+
+        buildConfigField("int", "TELEGRAM_API_ID", (telegramProperties.getProperty("apiId")?.trim()?.toIntOrNull() ?: 0).toString())
+        buildConfigField("String", "TELEGRAM_API_HASH", "\"${telegramProperties.getProperty("apiHash")?.trim().orEmpty()}\"")
+
+        // Android 15 and up runs on 64-bit ARM only; TDLib's other builds would be dead weight.
+        ndk { abiFilters += "arm64-v8a" }
     }
 
     signingConfigs {
@@ -103,6 +118,8 @@ dependencies {
     // Tarballs offered as release assets: tar itself plus bzip2 and xz.
     implementation(libs.commons.compress)
     implementation(libs.xz)
+    // Telegram channels as a source: reading a channel's files takes a signed-in client.
+    implementation(libs.tdlib)
 
     testImplementation(libs.junit)
     // The org.json classes in android.jar are stubs; unit tests need a real implementation.

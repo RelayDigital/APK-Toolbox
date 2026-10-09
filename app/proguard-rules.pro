@@ -43,3 +43,6 @@
 -dontwarn org.apache.commons.compress.**
 -dontwarn org.tukaani.xz.**
 -dontwarn org.jspecify.**
+
+# TDLib's native code finds the Java classes of its API, their fields and constructors by name.
+-keep class org.drinkless.tdlib.** { *; }

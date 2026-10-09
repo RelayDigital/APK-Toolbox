@@ -143,7 +143,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
                     if (chosen != null && chosen.url != "placeholder") {
                         ApkFilter.splitMultiApkUrl(chosen.url).mapNotNull { raw ->
                             val url = source.assetUrlPrefetchModifier(raw, app.url, app.additionalSettings)
-                            Downloader.getDownloadSize(
+                            source.assetSize(url, app.additionalSettings) ?: Downloader.getDownloadSize(
                                 url, source.getRequestHeaders(app.additionalSettings, url, forAPKDownload = true),
                                 source.requestOptions(app.additionalSettings),
                             )

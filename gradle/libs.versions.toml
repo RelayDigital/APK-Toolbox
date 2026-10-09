@@ -17,6 +17,7 @@ orgJson = "20250517"
 jbcrypt = "0.4"
 commonsCompress = "1.27.1"
 xz = "1.10"
+tdlib = "1.8.56"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -38,6 +39,7 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 jbcrypt = { group = "org.mindrot", name = "jbcrypt", version.ref = "jbcrypt" }
 commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commonsCompress" }
 xz = { group = "org.tukaani", name = "xz", version.ref = "xz" }
+tdlib = { group = "com.github.tdlibx", name = "td", version.ref = "tdlib" }
 org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
 
 [plugins]
