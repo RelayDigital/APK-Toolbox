@@ -436,9 +436,18 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     val picked = installer.confirmAppFileUrl(app, prompts = null, pickAnyAsset = false)
                         ?: throw SourceError(Tr.get("cancelled"))
                     app = app.copy(preferredApkIndex = app.apkUrls.indexOfFirst { it.url == picked.url })
-                    val downloaded = withContext(Dispatchers.IO) { installer.downloadApp(app, background = false) }
-                    app = app.copy(id = downloaded.appId)
-                    apkHashes = withContext(Dispatchers.IO) { installer.signerHashesOf(downloaded) }
+                    // Some sources can tell from a small part of the file; the others have it downloaded.
+                    val peek = withContext(Dispatchers.IO) {
+                        runCatching { source.peekAsset(picked.url, app.additionalSettings) }.getOrNull()
+                    }
+                    if (peek != null) {
+                        app = app.copy(id = peek.packageName)
+                        apkHashes = peek.certHashes
+                    } else {
+                        val downloaded = withContext(Dispatchers.IO) { installer.downloadApp(app, background = false) }
+                        app = app.copy(id = downloaded.appId)
+                        apkHashes = withContext(Dispatchers.IO) { installer.signerHashesOf(downloaded) }
+                    }
                 }
                 // The very same source already tracked just opens its page.
                 val existing = repo.entry(app.id)

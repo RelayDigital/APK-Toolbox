@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.sources.telegram
 
+import io.github.bl3xand.apkcloner.sources.core.RangeReader
 import io.github.bl3xand.apkcloner.sources.net.ProgressListener
 import java.io.File
 
@@ -20,6 +21,9 @@ interface TelegramGateway {
 
     /** The file of one message, or null if the message has none. */
     fun file(channel: String, messageId: Long): TelegramFile?
+
+    /** The size of the file of a message and a way to read parts of it, or null if it has none. */
+    fun reader(channel: String, messageId: Long): Pair<Long, RangeReader>?
 
     /** Downloads the file of a message to [destination]; throws a cancellation when [isCancelled]. */
     fun download(

@@ -276,8 +276,13 @@ class SourcesRepository private constructor(private val context: Context) {
         }
     }
 
+    /**
+     * Whether the latest release is one to offer. A release that looks older than what is
+     * installed is normally not - unless the two versions are not of one kind, as with an app
+     * whose version is read from a file name or was set by hand: there "older" means nothing.
+     */
     fun isAppUpdateable(app: TrackedApp): Boolean =
-        isUpdateable(app.installedVersion, app.latestVersion, settings.hideDowngrades)
+        isUpdateable(app.installedVersion, app.latestVersion, settings.hideDowngrades && !app.isVersionPseudo)
 
     /**
      * Apps that are not installed, or whose installed version is behind the latest one. An app

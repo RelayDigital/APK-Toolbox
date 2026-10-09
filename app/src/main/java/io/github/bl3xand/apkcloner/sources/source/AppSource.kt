@@ -1,6 +1,7 @@
 package io.github.bl3xand.apkcloner.sources.source
 
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
+import io.github.bl3xand.apkcloner.sources.core.ApkPeek
 import io.github.bl3xand.apkcloner.sources.core.CertHashes
 import io.github.bl3xand.apkcloner.sources.core.InvalidUrlError
 import io.github.bl3xand.apkcloner.sources.core.NotImplementedSourceError
@@ -307,6 +308,12 @@ abstract class AppSource(
         onProgress: ProgressListener?,
         isCancelled: () -> Boolean,
     ): File? = null
+
+    /**
+     * What an APK says about itself - its package and signer - when the source can find that out
+     * without downloading the file. Null leaves it to be learnt from a download.
+     */
+    open fun peekAsset(assetUrl: String, additionalSettings: Map<String, Any?>): ApkPeek? = null
 
     /** The size of an asset when the source knows it itself; null leaves it to be asked over HTTP. */
     open fun assetSize(assetUrl: String, additionalSettings: Map<String, Any?>): Long? = null

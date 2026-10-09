@@ -1,10 +1,12 @@
 package io.github.bl3xand.apkcloner.sources.source
 
 import io.github.bl3xand.apkcloner.log.AppLog
+import io.github.bl3xand.apkcloner.sources.core.ApkPeek
 import io.github.bl3xand.apkcloner.sources.core.CredsNeededError
 import io.github.bl3xand.apkcloner.sources.core.InvalidUrlError
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
+import io.github.bl3xand.apkcloner.sources.core.RemoteApk
 import io.github.bl3xand.apkcloner.sources.core.SourceEnv
 import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.Tr
@@ -130,7 +132,7 @@ class TelegramChannel : AppSource("TelegramChannel") {
 
     /** The newest file of every kind the channel has posted lately, for the user to choose from. */
     private fun everyKind(gateway: TelegramGateway, channel: String): Pair<String, List<TelegramFile>> {
-        val info = gateway.channel(channel, SCAN_LIMIT)
+        val info = gateway.channel(channel, CHOICE_LIMIT)
         val newestByKind = LinkedHashMap<String, TelegramFile>()
         // The files come newest first, so the first of a kind is its newest.
         val counts = HashMap<String, Int>()
@@ -184,6 +186,16 @@ class TelegramChannel : AppSource("TelegramChannel") {
         return gateway().download(channel, messageId, destination, onProgress, isCancelled)
     }
 
+    /** An APK is read in parts for what it says about itself; a bundle of several is not. */
+    override fun peekAsset(assetUrl: String, additionalSettings: Map<String, Any?>): ApkPeek? {
+        val (channel, messageId) = messageOf(assetUrl) ?: return null
+        if (lastSeen[assetUrl]?.name?.endsWith(".apk", ignoreCase = true) == false) return null
+        val (size, reader) = gateway().reader(channel, messageId) ?: return null
+        return RemoteApk.peek(size, reader)?.also {
+            AppLog.debug("Telegram: read ${it.packageName} out of $channel/$messageId without downloading it")
+        }
+    }
+
     override fun assetSize(assetUrl: String, additionalSettings: Map<String, Any?>): Long? {
         val (channel, messageId) = messageOf(assetUrl) ?: return null
         return gatewayOrNull()?.file(channel, messageId)?.size
@@ -193,7 +205,10 @@ class TelegramChannel : AppSource("TelegramChannel") {
         /** The per-app setting that holds the kind of file to follow, as [TelegramFileName.family] gives it. */
         const val SETTING_KIND = "telegramFilePattern"
 
-        /** How many of the latest files are looked at when every kind is wanted, or the search finds none. */
+        /** How many of the latest files are looked at for the kinds a channel has. */
+        private const val CHOICE_LIMIT = 1000
+
+        /** How many of the latest files are looked through for one kind when the search by name finds none. */
         private const val SCAN_LIMIT = 300
 
         /** How many files Telegram's search is asked for, and how many of the latest are checked beside it. */

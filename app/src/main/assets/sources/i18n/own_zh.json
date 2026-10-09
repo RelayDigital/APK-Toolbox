@@ -199,5 +199,5 @@
   "telegramLastPosted": "最近发布：{}",
   "telegramChannelsNote": "以文件形式发布应用的频道",
   "telegramFilesFound": "找到的文件：{}",
-  "telegramErrArch": "此文件为 {} 构建，而本设备支持 {}。请选择频道中的其他文件。"
+  "telegramErrArch": "此文件为 {} 构建，而本设备支持 {}。请选择其他文件。"
 }

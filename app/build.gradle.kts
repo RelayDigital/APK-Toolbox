@@ -30,8 +30,8 @@ android {
         applicationId = "io.github.bl3xand.apkcloner"
         minSdk = 35
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.0.1"
+        versionCode = 7
+        versionName = "1.1.0"
 
         buildConfigField("int", "TELEGRAM_API_ID", (telegramProperties.getProperty("apiId")?.trim()?.toIntOrNull() ?: 0).toString())
         buildConfigField("String", "TELEGRAM_API_HASH", "\"${telegramProperties.getProperty("apiHash")?.trim().orEmpty()}\"")

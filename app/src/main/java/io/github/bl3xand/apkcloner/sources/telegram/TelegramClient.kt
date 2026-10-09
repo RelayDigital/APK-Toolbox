@@ -6,6 +6,7 @@ import io.github.bl3xand.apkcloner.BuildConfig
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.CancellationSignal
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
+import io.github.bl3xand.apkcloner.sources.core.RangeReader
 import io.github.bl3xand.apkcloner.sources.core.RateLimitError
 import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.Tr
@@ -34,8 +35,13 @@ import org.drinkless.tdlib.TdApi
 object TelegramClient : TelegramGateway {
     private const val PREFS = "telegram"
     private const val KEY_SIGNED_IN = "signed_in"
+    private const val KEY_ENCRYPTED = "encrypted"
+
+    /** The file TDLib keeps the session in. */
+    private const val DATABASE_FILE = "td.binlog"
     private const val SESSION_DIR = "telegram"
     private const val REQUEST_TIMEOUT_S = 30L
+    private const val PART_TIMEOUT_S = 90L
     private const val START_TIMEOUT_MS = 20_000L
     private const val POLL_MS = 300L
     private const val DOWNLOAD_PRIORITY = 32
@@ -112,12 +118,7 @@ object TelegramClient : TelegramGateway {
 
     private fun onAuthorization(state: TdApi.AuthorizationState) {
         when (state) {
-            is TdApi.AuthorizationStateWaitTdlibParameters -> client?.send(parameters()) { result ->
-                if (result is TdApi.Error) {
-                    AppLog.error("Telegram: the client did not start: ${result.message}")
-                    _auth.value = TelegramAuth.Unsupported(result.message)
-                }
-            }
+            is TdApi.AuthorizationStateWaitTdlibParameters -> open()
             is TdApi.AuthorizationStateWaitPhoneNumber -> _auth.value = TelegramAuth.WaitPhone
             is TdApi.AuthorizationStateWaitOtherDeviceConfirmation -> _auth.value = TelegramAuth.WaitOtherDevice(state.link)
             is TdApi.AuthorizationStateWaitCode -> _auth.value = TelegramAuth.WaitCode(
@@ -139,6 +140,8 @@ object TelegramClient : TelegramGateway {
 
     /** A closed client is of no further use; a new one starts from the beginning of signing in. */
     private fun onClosed() {
+        // A session that was dropped has its new client running already.
+        if (client == null && _auth.value !is TelegramAuth.Starting) return
         val hadSession = prefs.getBoolean(KEY_SIGNED_IN, false)
         prefs.edit().putBoolean(KEY_SIGNED_IN, false).apply()
         if (startingOver) {
@@ -156,10 +159,62 @@ object TelegramClient : TelegramGateway {
         start()
     }
 
-    private fun parameters(): TdApi.SetTdlibParameters {
-        val dir = File(appContext.filesDir, SESSION_DIR).apply { mkdirs() }
+    private fun sessionDir(): File = File(appContext.filesDir, SESSION_DIR)
+
+    /**
+     * Opens the session, encrypted with a key of this device (see [SessionKey]). A session left
+     * by a version that did not encrypt it is opened the old way once and encrypted then.
+     */
+    private fun open() {
+        val running = client ?: return
+        val leftUnencrypted = !prefs.getBoolean(KEY_ENCRYPTED, false) && File(sessionDir(), DATABASE_FILE).exists()
+        val key = try {
+            SessionKey.get(appContext, PREFS)
+        } catch (e: Exception) {
+            // The keystore's key is gone, and with it any way to open what it locked.
+            AppLog.error("Telegram: the session key cannot be read; the session is dropped", e)
+            dropSession()
+            return
+        }
+        running.send(parameters(if (leftUnencrypted) ByteArray(0) else key)) { result ->
+            when {
+                result is TdApi.Error && !leftUnencrypted && prefs.getBoolean(KEY_ENCRYPTED, false) -> {
+                    AppLog.error("Telegram: the session cannot be opened (${result.message}); it is dropped")
+                    dropSession()
+                }
+                result is TdApi.Error -> {
+                    AppLog.error("Telegram: the client did not start: ${result.message}")
+                    _auth.value = TelegramAuth.Unsupported(result.message)
+                }
+                leftUnencrypted -> running.send(TdApi.SetDatabaseEncryptionKey(key)) { changed ->
+                    if (changed is TdApi.Error) {
+                        AppLog.warn("Telegram: the session could not be encrypted: ${changed.message}")
+                    } else {
+                        prefs.edit().putBoolean(KEY_ENCRYPTED, true).apply()
+                        AppLog.info("Telegram: the session is now encrypted")
+                    }
+                }
+                else -> prefs.edit().putBoolean(KEY_ENCRYPTED, true).apply()
+            }
+        }
+    }
+
+    /** Throws away a session that cannot be opened; the client then starts from signing in. */
+    private fun dropSession() {
+        val running = client
+        client = null
+        runCatching { running?.send(TdApi.Close()) {} }
+        sessionDir().deleteRecursively()
+        SessionKey.forget(appContext, PREFS)
+        prefs.edit().putBoolean(KEY_SIGNED_IN, false).putBoolean(KEY_ENCRYPTED, false).apply()
+        _auth.value = TelegramAuth.Starting
+        start()
+    }
+
+    private fun parameters(key: ByteArray): TdApi.SetTdlibParameters {
+        val dir = sessionDir().apply { mkdirs() }
         return TdApi.SetTdlibParameters(
-            false, dir.path, File(appContext.cacheDir, SESSION_DIR).path, null,
+            false, dir.path, File(appContext.cacheDir, SESSION_DIR).path, key,
             // Nothing of the account is kept but the session itself: no chats, no messages, no files.
             false, false, false, false,
             BuildConfig.TELEGRAM_API_ID, BuildConfig.TELEGRAM_API_HASH,
@@ -275,6 +330,20 @@ object TelegramClient : TelegramGateway {
             file.size.takeIf { it > 0 } ?: file.expectedSize,
             Instant.ofEpochSecond(message.date.toLong()), document.caption?.text.orEmpty(),
         )
+    }
+
+    /**
+     * A way to read parts of the file of a message without fetching all of it, and the file's
+     * size. What is read stays with the client, so a later download of the whole goes on from it.
+     */
+    override fun reader(channel: String, messageId: Long): Pair<Long, RangeReader>? {
+        val remote = (message(channel, messageId)?.content as? TdApi.MessageDocument)?.document?.document ?: return null
+        val size = remote.size.takeIf { it > 0 } ?: return null
+        return size to RangeReader { offset, length ->
+            // Answers once this stretch is there; then it can be read back.
+            request(TdApi.DownloadFile(remote.id, DOWNLOAD_PRIORITY, offset, length.toLong(), true), PART_TIMEOUT_S)
+            request(TdApi.ReadFilePart(remote.id, offset, length.toLong())).data
+        }
     }
 
     /**

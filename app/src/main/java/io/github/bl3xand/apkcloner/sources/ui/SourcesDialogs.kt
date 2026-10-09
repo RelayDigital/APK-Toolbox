@@ -767,6 +767,6 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
 private const val CHOICE_PADDING = 12
 
 /** How many choices a list holds before it gets a search field. */
-private const val SEARCH_FROM = 6
+private const val SEARCH_FROM = 10
 private const val PREVIEW_DOT = 40
 private const val PREVIEW_FRAME = 72

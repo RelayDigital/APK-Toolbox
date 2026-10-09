@@ -5,8 +5,9 @@ Track, clone, install and merge Android apps — right on the phone, no root.
 APK Toolbox started as a way to get a second copy of an app next to the
 original and grew into a small set of tools for APK files:
 
-- **Sources** — track apps from GitHub, GitLab, F-Droid, app stores and other
-  sites, and install their new versions straight from the source.
+- **Sources** — track apps from GitHub, GitLab, F-Droid, app stores, Telegram
+  channels and other sites, and install their new versions straight from the
+  source.
 - **Cloning** — make a copy of an app under a new package name and app name,
   and keep the clone in step with the original as it gets updated.
 - **SAI** — install split APKs (APKS, XAPK, APKM, ZIP) and export installed
@@ -54,7 +55,8 @@ permission to install apps. After that the four tabs are ready to use. The
 ## Sources — apps straight from where they are published
 
 Add an app by the link to its page — a GitHub or GitLab repository, an
-F-Droid package, a store page, a direct link to an APK — or find it by name
+F-Droid package, a store page, a Telegram channel, a direct link to an APK —
+or find it by name
 in the sources that can be searched. APK Toolbox then knows which version is
 the latest, shows what is new in it, and installs or updates the app on
 request or in the background.
@@ -75,6 +77,38 @@ export live under **Sources settings**. Lists are stored in the format of
 between the two apps in either direction, and `obtainium://` links open in
 APK Toolbox.
 
+### An app that is installed from somewhere else
+
+When the build on the device is signed by someone else than the one being
+added — a fork next to the original, say — the new one cannot go over it.
+APK Toolbox says so on the app's page and tracks nothing yet: the list, and
+whatever was tracked under that package before, stays as it was. **Delete
+current** removes the installed build, after which the page is an ordinary
+install. A different link for a package that is tracked already asks before
+it replaces the source.
+
+### Telegram channels
+
+Channels that post apps as files can be tracked like any other source: add
+the link to the channel (`https://t.me/name`), or to a message with the file.
+
+- The files of a channel cannot be read anonymously, so this needs an
+  account: **Sources settings → Telegram → Sign in**, with a phone number or
+  with a QR code scanned from another device. The session stays on the
+  device, encrypted with a key of the Android Keystore, and **Sign out**
+  removes it.
+- A channel may post one app or hundreds. What is tracked is one kind of
+  file: the releases that agree in the app's name and in the words that say
+  which build it is (a clone, a beta, an architecture). The version is read
+  from the file's name. A channel with several kinds asks which one to
+  follow, in a list that can be searched; a link to a message says so by
+  itself.
+- A file named some other way is not taken for a release of the app. When an
+  author starts naming files differently, the kind to follow can be changed
+  in **App options**.
+- Only a small part of a file is fetched to learn what app it is; the whole
+  file is downloaded when it is installed.
+
 ## Cloning — a second copy of an app
 
 1. On the **Installed** side pick an app, or tap **Choose APK**.
@@ -93,7 +127,9 @@ the original. An app can be cloned as many times as you like.
 
 The **Clones** side lists every clone you have installed. Tap one to see
 which app and version it was made from, to **Update** it to the original's
-current version or to **Delete** it. Updating keeps the clone's data and its
+current version or to **Delete** it. **Permissions** takes permissions away
+from a clone, or gives them back, after it was made: the clone is built again
+and installed over itself, so its data is kept. Updating keeps the clone's data and its
 icon mark. **Refresh** looks at every clone and its original again and
 brings the clones that are behind up to date one after another.
 
@@ -188,6 +224,13 @@ uninstalled. Clones made with the built-in key keep updating with it.
   not work in a clone.
 - A cloned app made of split APKs is saved as a single `.apks` archive.
 
+## Log
+
+**Settings → Show log** tells what the app did and what failed: checks,
+downloads, clones, merges, installs, changes of settings. It is kept for 30
+days, can be narrowed to a period and to any set of levels, and **Save**
+writes what is shown to a `.log` file.
+
 ## Building
 
 ```
@@ -197,6 +240,11 @@ uninstalled. Clones made with the built-in key keep updating with it.
 A release build is shrunk and obfuscated with R8. It is signed if a
 `keystore.properties` file (`storeFile`, `storePassword`, `keyAlias`,
 `keyPassword`) is present in the project root, and left unsigned otherwise.
+
+Telegram channels need the app's own API id and hash from
+[my.telegram.org](https://my.telegram.org). Copy `telegram.properties.example`
+to `telegram.properties` and fill them in; the file stays out of git. Without
+it the app builds and the Telegram source says it is not available.
 
 ## Used projects
 
@@ -212,6 +260,8 @@ If one of these tools does all you need, use it and support its author.
 - [APKEditor](https://github.com/REAndroid/APKEditor) and [ARSCLib](https://github.com/REAndroid/ARSCLib) by REAndroid — the merge itself
 - [SAI](https://github.com/Aefyr/SAI) by Aefyr — the model for installing split APKs and the `.apks` export format
 - [Shizuku](https://github.com/RikkaApps/Shizuku) by RikkaApps — installing without prompts
+- [TDLib](https://github.com/tdlib/td), in the Android build by [tdlibx](https://github.com/tdlibx/td) — reading and downloading the files of Telegram channels
+- [ZXing](https://github.com/zxing/zxing) — the QR code of a Telegram sign-in
 - [apksig](https://android.googlesource.com/platform/tools/apksig/) from the Android Open Source Project — signing APKs
 - [jsoup](https://jsoup.org/), [jBCrypt](https://www.mindrot.org/projects/jBCrypt/), [Apache Commons Compress](https://commons.apache.org/proper/commons-compress/) and [XZ for Java](https://tukaani.org/xz/java.html) — reading what the sources publish
 

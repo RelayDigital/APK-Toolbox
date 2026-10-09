@@ -200,5 +200,5 @@
   "telegramLastPosted": "Last posted {}",
   "telegramChannelsNote": "channels that post apps as files",
   "telegramFilesFound": "Files found: {}",
-  "telegramErrArch": "This file is built for {}, and this device runs {}. Choose another file of the channel."
+  "telegramErrArch": "This file is built for {}, and this device runs {}. Choose another file."
 }
