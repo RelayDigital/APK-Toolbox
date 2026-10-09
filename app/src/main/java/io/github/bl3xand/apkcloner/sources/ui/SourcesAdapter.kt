@@ -114,9 +114,15 @@ class SourcesAdapter(
         // The package is not known until an APK has been seen; until then the id is a made-up one.
         binding.textAuthor.text =
             listOfNotNull(row.entry.author.takeIf { it.isNotBlank() }, app.id.takeIf { !app.hasTempId }).joinToString(" · ")
-        val note = if (app.hasPendingRepoRename) Tr.get("repoRenamed") else row.signInNote
+        // What stands in the way of the app, most pressing first. A repository that moved is a
+        // thing to know; the rest are things that are wrong, and are said in the colour of an error.
+        val trouble = row.signInNote ?: row.checkError?.let { Tr.get("srcCheckFailedShort") }
+        val note = if (app.hasPendingRepoRename) Tr.get("repoRenamed") else trouble
         binding.textNote.isVisible = note != null
         binding.textNote.text = note
+        binding.textNote.setTextColor(
+            context.themeColor(if (app.hasPendingRepoRename) AppCompatR.attr.colorPrimary else AppCompatR.attr.colorError),
+        )
 
         // Selected, pinned, or neither.
         binding.card.setCardBackgroundColor(
@@ -196,7 +202,7 @@ class SourcesAdapter(
 
         override fun areContentsTheSame(old: ListRow, new: ListRow): Boolean = when {
             old is ListRow.App && new is ListRow.App -> old.entry.app == new.entry.app && old.download == new.download &&
-                old.selected == new.selected && old.updatable == new.updatable && old.conflict == new.conflict && old.signInNote == new.signInNote &&
+                old.selected == new.selected && old.updatable == new.updatable && old.conflict == new.conflict && old.signInNote == new.signInNote && old.checkError == new.checkError &&
                 (old.entry.installedInfo == null) == (new.entry.installedInfo == null)
             else -> old == new
         }

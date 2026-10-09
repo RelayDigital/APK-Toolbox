@@ -9,6 +9,7 @@ import io.github.bl3xand.apkcloner.data.ApkSource
 import io.github.bl3xand.apkcloner.data.AppRepository
 import io.github.bl3xand.apkcloner.clone.CloneRequest
 import io.github.bl3xand.apkcloner.data.CloneInfo
+import io.github.bl3xand.apkcloner.data.InstalledApps
 import io.github.bl3xand.apkcloner.install.Installer
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.install.InstallReceiver
@@ -115,9 +116,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 AppLog.info("Uninstalling clone ${clone.app.packageName}")
                 Installer.uninstall(getApplication(), clone.app.packageName)
             } finally {
-                val installed = withContext(Dispatchers.IO) { repository.installed() }
-                allApps = installed.apps
-                allClones = installed.clones
+                readInstalled()?.let {
+                    allApps = it.apps
+                    allClones = it.clones
+                }
                 _uiState.update { it.copy(uninstallingClone = null) }
                 publishApps()
             }
@@ -132,10 +134,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (_uiState.value.updatingClone != null) return
         viewModelScope.launch {
             _uiState.update { it.copy(loading = true) }
-            val installed = withContext(Dispatchers.IO) { repository.installed() }
+            val installed = readInstalled()
+            _uiState.update { it.copy(loading = false) }
+            if (installed == null) return@launch
             allApps = installed.apps
             allClones = installed.clones
-            _uiState.update { it.copy(loading = false) }
             publishApps()
             val outdated = allClones.filter { it.updateAvailable }
             AppLog.info("Clones checked: ${allClones.size}, behind: ${outdated.size}")
@@ -175,13 +178,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             // Later refreshes replace the lists silently instead of flashing the progress bar.
             if (!loaded) _uiState.update { it.copy(loading = true) }
-            val installed = withContext(Dispatchers.IO) { repository.installed() }
+            val installed = readInstalled()
+            _uiState.update { it.copy(loading = false) }
+            if (installed == null) return@launch
             loaded = true
             allApps = installed.apps
             allClones = installed.clones
-            _uiState.update { it.copy(loading = false) }
             publishApps()
         }
+    }
+
+    /**
+     * What is installed, read off the main thread. The system can fail to answer - too many
+     * packages for one reply, or a package that goes away while it is read - and then the lists
+     * stay as they were rather than the app going down.
+     */
+    private suspend fun readInstalled(): InstalledApps? = withContext(Dispatchers.IO) {
+        runCatching { repository.installed() }
+            .onFailure { AppLog.error("Reading the installed apps failed", it) }
+            .getOrNull()
     }
 
     private fun publishApps() {

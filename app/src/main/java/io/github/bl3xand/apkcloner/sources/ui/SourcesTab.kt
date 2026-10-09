@@ -339,7 +339,7 @@ class SourcesTab(private val activity: AppCompatActivity, private val binding: A
         }
         intent.getStringExtra(SourcesNotifications.EXTRA_APP_ID)?.let { id ->
             activity.lifecycleScope.launch {
-                withContext(Dispatchers.IO) { if (viewModel.repo.entry(id) == null) viewModel.repo.loadApps() }
+                withContext(Dispatchers.IO) { if (viewModel.repo.entry(id) == null) runCatching { viewModel.repo.loadApps() } }
                 openApp(id)
             }
             return true

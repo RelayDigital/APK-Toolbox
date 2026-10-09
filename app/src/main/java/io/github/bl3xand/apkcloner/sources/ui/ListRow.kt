@@ -18,5 +18,7 @@ sealed interface ListRow {
         val conflict: Boolean = false,
         /** What its source needs before it can be asked, if anything; see AppSource.signInNote. */
         val signInNote: String? = null,
+        /** Why the last check of the app failed, when it did. */
+        val checkError: String? = null,
     ) : ListRow
 }

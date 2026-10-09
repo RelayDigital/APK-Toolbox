@@ -81,6 +81,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 // Signing in or out changes what the page of an app of that source offers.
                 launch { TelegramClient.auth.collect { rerender() } }
+                launch { viewModel.repo.checkErrors.collect { rerender() } }
                 combine(
                     viewModel.repo.apps, viewModel.repo.downloads, viewModel.uninstalling, viewModel.candidate,
                 ) { _, downloads, uninstalling, _ ->
@@ -222,52 +223,44 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         // The same card as everywhere else; a tap opens the app's page in the system settings. On a
         // signer conflict it is the build being added, not the differently-signed one installed.
         binding.appCard.bindTracked(entry, treatAsNotInstalled = conflict)
-        // What the source needs before it can be asked for this app, if anything.
+        // What the source needs before it can be asked for this app, if anything; and why the
+        // last check failed, if it did.
         val signInNote = source?.signInNote?.takeUnless { conflict }
-        binding.cardNotice.isVisible = app.hasPendingRepoRename || conflict || signInNote != null
+        val checkError = repo.checkErrors.value[appId]?.takeUnless { conflict || signInNote != null }
+        val trouble = conflict || signInNote != null || checkError != null
+        binding.cardNotice.isVisible = app.hasPendingRepoRename || trouble
         binding.buttonNotice.isVisible = binding.cardNotice.isVisible
-        binding.buttonNotice.minimumHeight = if (signInNote != null) resources.getDimensionPixelSize(R.dimen.action_button_height) else 0
+        // Something wrong gets the bright error colours and a button as wide as the card; a
+        // repository that moved is only worth knowing and keeps the quieter secondary ones.
+        binding.buttonNotice.minimumHeight = if (trouble) resources.getDimensionPixelSize(R.dimen.action_button_height) else 0
         binding.buttonNotice.updateLayoutParams<ViewGroup.LayoutParams> {
-            width = if (signInNote != null) ViewGroup.LayoutParams.MATCH_PARENT else ViewGroup.LayoutParams.WRAP_CONTENT
+            width = if (trouble) ViewGroup.LayoutParams.MATCH_PARENT else ViewGroup.LayoutParams.WRAP_CONTENT
         }
-        // A signer conflict is a hard block, so it gets the bright error colours; the repo-rename
-        // notice is only informational and keeps the quieter secondary colours.
-        val noticeBg = if (conflict) {
-            MaterialR.attr.colorErrorContainer
-        } else {
-            MaterialR.attr.colorSecondaryContainer
-        }
-        val noticeFg = if (conflict) {
-            MaterialR.attr.colorOnErrorContainer
-        } else {
-            MaterialR.attr.colorOnSecondaryContainer
-        }
+        val noticeBg = if (trouble) MaterialR.attr.colorErrorContainer else MaterialR.attr.colorSecondaryContainer
+        val noticeFg = if (trouble) MaterialR.attr.colorOnErrorContainer else MaterialR.attr.colorOnSecondaryContainer
         binding.cardNotice.setCardBackgroundColor(context.themeColor(noticeBg))
         binding.textNotice.setTextColor(context.themeColor(noticeFg))
+        // On the error card the button is the card's colours the other way round, so that it reads.
+        binding.buttonNotice.backgroundTintList = ColorStateList.valueOf(context.themeColor(if (trouble) noticeFg else noticeBg))
+        binding.buttonNotice.setTextColor(context.themeColor(if (trouble) noticeBg else noticeFg))
         if (conflict) {
             binding.textNotice.text = Tr.get("detSignerConflict")
             // Removing the installed build is the way forward; once it is gone the card becomes an
-            // ordinary install. Inverted error colours so the button reads on the error card.
+            // ordinary install.
             binding.buttonNotice.text = Tr.get("detSignerRemoveCurrent")
-            binding.buttonNotice.backgroundTintList =
-                ColorStateList.valueOf(context.themeColor(MaterialR.attr.colorOnErrorContainer))
-            binding.buttonNotice.setTextColor(context.themeColor(MaterialR.attr.colorErrorContainer))
             binding.buttonNotice.setOnClickListener { viewModel.uninstallConflicting(appId) }
         } else if (signInNote != null) {
             // What is shown of the app is what was known when it was last checked.
             binding.textNotice.text = Tr.get("telegramSignInFirst")
-            // The way out is the one thing to do here, so it is the app's main button: filled, as
-            // wide as the card, as tall as the buttons at the bottom of a sheet.
             binding.buttonNotice.text = Tr.get("telegramSignIn")
-            binding.buttonNotice.backgroundTintList = ColorStateList.valueOf(context.themeColor(AppCompatR.attr.colorPrimary))
-            binding.buttonNotice.setTextColor(context.themeColor(MaterialR.attr.colorOnPrimary))
             binding.buttonNotice.setOnClickListener { context.showTelegramSignIn(viewLifecycleOwner.lifecycleScope) }
+        } else if (checkError != null) {
+            binding.textNotice.text = Tr.get("srcCheckFailed", checkError)
+            binding.buttonNotice.text = Tr.get("srcCheckAgain")
+            binding.buttonNotice.setOnClickListener { viewModel.refresh(appId) }
         } else if (app.hasPendingRepoRename) {
             binding.textNotice.text = "${Tr.get("repoRenamedExplanation")}\n\n${app.pendingRepoRenameUrl}"
             binding.buttonNotice.text = Tr.get("updateUrl")
-            binding.buttonNotice.backgroundTintList =
-                ColorStateList.valueOf(context.themeColor(MaterialR.attr.colorSecondaryContainer))
-            binding.buttonNotice.setTextColor(context.themeColor(MaterialR.attr.colorOnSecondaryContainer))
             binding.buttonNotice.setOnClickListener {
                 viewModel.update(listOf(appId)) { it.copy(url = it.pendingRepoRenameUrl ?: it.url, pendingRepoRenameUrl = null) }
             }

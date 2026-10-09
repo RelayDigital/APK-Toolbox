@@ -88,6 +88,8 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         repo.onAppsRemoved = { SourcesNotifications.appsRemoved(application, it) }
         // Signing in or out changes what the rows of its apps say.
         viewModelScope.launch { TelegramClient.auth.collect { settingsVersion.value++ } }
+        // So does a check that failed, or went through after one that had.
+        viewModelScope.launch { repo.checkErrors.collect { settingsVersion.value++ } }
         reload()
     }
 
@@ -205,6 +207,7 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
             entry, downloads[entry.app.id], entry.app.id in selected,
             repo.isAppUpdateable(entry.app) && entry.app.id !in conflicts, group, entry.app.id in conflicts,
             runCatching { repo.sourceOf(entry.app).signInNote }.getOrNull(),
+            repo.checkErrors.value[entry.app.id],
         )
         val groupBy = settings.groupBy
         if (groupBy == "none") {

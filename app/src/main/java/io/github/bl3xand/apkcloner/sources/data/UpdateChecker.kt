@@ -73,8 +73,11 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
             fetchUpdate(id)
         } catch (e: Exception) {
             AppLog.warn("Check of $id failed: ${e.message ?: e}")
+            // A repository that moved has a notice of its own.
+            if (e !is RepositoryRenamedError) repo.setCheckError(id, errorText(e))
             throw e
         } ?: return null
+        repo.setCheckError(id, null)
         repo.saveApps(listOf(fresh))
         if (fresh.latestVersion != current.latestVersion) {
             AppLog.info("$id: new version ${fresh.latestVersion} (was ${current.latestVersion})")
@@ -130,6 +133,7 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
                         val current = repo.entry(id)?.app
                         try {
                             val fresh = fetchUpdateWithHandshakeRetry(id)
+                            repo.setCheckError(id, null)
                             if (fresh != null) {
                                 fetched.add(fresh)
                                 if (current != null && fresh.latestVersion != current.latestVersion &&
@@ -146,6 +150,7 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
                             } else {
                                 synchronized(errors) { errors.add(id, e, appName = repo.entry(id)?.name) }
                                 AppLog.warn("Update check failed for $id: ${errorText(e)}")
+                                repo.setCheckError(id, errorText(e))
                                 // Still counts as checked, or the background task would retry it
                                 // every time it runs.
                                 current?.let { failed.add(it.copy(lastUpdateCheck = Instant.now())) }

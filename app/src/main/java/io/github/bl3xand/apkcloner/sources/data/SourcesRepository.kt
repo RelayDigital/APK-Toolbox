@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import org.json.JSONException
 
 /** Tracked apps: their files, their state, update checks, import and export. */
@@ -37,6 +38,19 @@ class SourcesRepository private constructor(private val context: Context) {
 
     private val _downloads = MutableStateFlow<Map<String, DownloadState>>(emptyMap())
     val downloads: StateFlow<Map<String, DownloadState>> = _downloads
+
+    private val _checkErrors = MutableStateFlow<Map<String, String>>(emptyMap())
+
+    /**
+     * Why the last check of an app failed, by app; an app that was checked without trouble since
+     * is not in it. Kept for as long as the app runs: the next check says anew.
+     */
+    val checkErrors: StateFlow<Map<String, String>> = _checkErrors
+
+    /** Notes that the check of [id] failed with [error], or - with null - that it went through. */
+    fun setCheckError(id: String, error: String?) {
+        _checkErrors.update { if (error == null) it - id else it + (id to error) }
+    }
 
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading
@@ -270,6 +284,7 @@ class SourcesRepository private constructor(private val context: Context) {
         for (id in ids) {
             File(appsDir, "$id.json").delete()
             forgetApkCertHashes(id)
+            setCheckError(id, null)
             downloads.filter { it.name.startsWith("$id-") }.forEach { it.deleteRecursively() }
             synchronized(lock) { entries.remove(id) }
         }

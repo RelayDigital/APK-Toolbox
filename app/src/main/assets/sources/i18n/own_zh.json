@@ -205,5 +205,8 @@
   "telegramCheckAgain": "再次检查登录状态",
   "telegramNoAnswerState": "Telegram 无响应，无法检查登录状态。",
   "telegramSignOutTitle": "退出 Telegram？",
-  "srcNeedsSignIn": "需要登录"
+  "srcNeedsSignIn": "需要登录",
+  "srcCheckFailed": "上次检查失败：\n{}",
+  "srcCheckFailedShort": "检查失败",
+  "srcCheckAgain": "再次检查"
 }

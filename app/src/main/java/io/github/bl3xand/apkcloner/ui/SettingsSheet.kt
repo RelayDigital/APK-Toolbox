@@ -175,7 +175,7 @@ class SettingsSheet : BottomSheetDialogFragment() {
             if (enabled) {
                 // Asking right away brings up the grant prompt of the root manager.
                 viewLifecycleOwner.lifecycleScope.launch {
-                    val granted = withContext(Dispatchers.IO) { Root.isAvailable() }
+                    val granted = withContext(Dispatchers.IO) { runCatching { Root.isAvailable() }.getOrDefault(false) }
                     if (!granted) {
                         // Without root the switch would only pretend; say so and turn it back off.
                         Messages.show(getString(R.string.root_not_granted))

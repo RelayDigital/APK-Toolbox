@@ -206,5 +206,8 @@
   "telegramCheckAgain": "Check the sign-in again",
   "telegramNoAnswerState": "Telegram does not answer, so the sign-in could not be checked.",
   "telegramSignOutTitle": "Sign out of Telegram?",
-  "srcNeedsSignIn": "Sign-in needed"
+  "srcNeedsSignIn": "Sign-in needed",
+  "srcCheckFailed": "The last check of this app failed:\n{}",
+  "srcCheckFailedShort": "Could not be checked",
+  "srcCheckAgain": "Check again"
 }

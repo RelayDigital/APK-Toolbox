@@ -28,7 +28,9 @@ class IconLoader(private val scope: CoroutineScope, private val packageManager: 
         view.setImageDrawable(cached?.constantState?.newDrawable() ?: cached ?: placeholder)
         if (cached != null) return null
         return scope.launch {
-            val icon = withContext(Dispatchers.IO) { AppIcons.load(packageManager, appInfo) }
+            // An app can be gone by the time its icon is asked for; the row then keeps what it shows.
+            val icon = withContext(Dispatchers.IO) { runCatching { AppIcons.load(packageManager, appInfo) }.getOrNull() }
+                ?: return@launch
             cache.put(key, icon)
             view.setImageDrawable(icon.constantState?.newDrawable() ?: icon)
         }

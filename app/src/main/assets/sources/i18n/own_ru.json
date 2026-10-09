@@ -207,5 +207,8 @@
   "telegramCheckAgain": "Проверить вход ещё раз",
   "telegramNoAnswerState": "Telegram не отвечает, проверить вход не удалось.",
   "telegramSignOutTitle": "Выйти из Telegram?",
-  "srcNeedsSignIn": "Нужен вход"
+  "srcNeedsSignIn": "Нужен вход",
+  "srcCheckFailed": "Последняя проверка не удалась:\n{}",
+  "srcCheckFailedShort": "Не удалось проверить",
+  "srcCheckAgain": "Проверить снова"
 }
