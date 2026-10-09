@@ -576,7 +576,8 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     Tr.get(if (source.enforceTrackOnly) "traitTrack" else "traitInstall"),
                     Tr.get("traitSearch").takeIf { source.canSearch },
                 ).joinToString(" · ")
-                PickItem(source.sourceIdentifier, source.name, source.hosts.firstOrNull() ?: Tr.get("addAnyHost"), traits)
+                val site = listOfNotNull(source.hosts.firstOrNull() ?: Tr.get("addAnyHost"), source.supportedNote).joinToString(" · ")
+                PickItem(source.sourceIdentifier, source.name, site, traits)
             }
             val chosen = dialogs.pickFromList(Tr.get("addSupported"), items, filterable = false)?.firstOrNull() ?: return@launch
             SourceRegistry.sources.first { it.sourceIdentifier == chosen }.hosts.firstOrNull()?.let { context.openUrl("https://$it") }

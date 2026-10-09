@@ -159,7 +159,7 @@
   "detSignerConflict": "На устройстве установлена другая сборка этого приложения — она подписана другим ключом, и эта поверх неё не установится. Сначала удалите установленное приложение.",
   "detSignerConflictMark": "конфликт",
   "detSignerRemoveCurrent": "Удалить текущую",
-  "telegramChannel": "Telegram-канал",
+  "telegramChannel": "Telegram",
   "telegramFilePattern": "Какой файл канала отслеживать (приложение | сборка)",
   "telegramChooseFile": "За каким файлом следить",
   "telegramSignInFirst": "Сначала войдите в Telegram в настройках источников: файлы канала доступны только аккаунту.",
@@ -198,5 +198,8 @@
   "telegramErrFileGone": "Файла в канале больше нет.",
   "telegramErrSession": "Сессия Telegram завершена: её закрыли с другого устройства, или аккаунт больше недоступен. Войдите снова в настройках источников.",
   "telegramViaQr": "Войти по QR-коду",
-  "telegramLastPosted": "Последний файл: {}"
+  "telegramLastPosted": "Последний файл: {}",
+  "telegramChannelsNote": "каналы, где приложения выкладывают файлами",
+  "telegramFilesFound": "Найдено файлов: {}",
+  "telegramErrArch": "Этот файл собран для {}, а устройство поддерживает {}. Выберите другой файл канала."
 }

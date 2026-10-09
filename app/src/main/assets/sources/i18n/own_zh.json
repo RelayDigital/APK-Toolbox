@@ -157,7 +157,7 @@
   "detSignerConflict": "设备上安装的是此应用的另一个构建版本——签名密钥不同，无法覆盖安装。请先卸载已安装的应用。",
   "detSignerConflictMark": "冲突",
   "detSignerRemoveCurrent": "删除当前",
-  "telegramChannel": "Telegram 频道",
+  "telegramChannel": "Telegram",
   "telegramFilePattern": "跟踪频道中的哪个文件（应用 | 版本类型）",
   "telegramChooseFile": "跟踪哪个文件",
   "telegramSignInFirst": "请先在来源设置中登录 Telegram：频道的文件只有账号才能读取。",
@@ -196,5 +196,8 @@
   "telegramErrFileGone": "该文件已不在频道中。",
   "telegramErrSession": "Telegram 会话已结束：已在其他设备上被关闭，或账号不再可用。请在来源设置中重新登录。",
   "telegramViaQr": "扫码登录",
-  "telegramLastPosted": "最近发布：{}"
+  "telegramLastPosted": "最近发布：{}",
+  "telegramChannelsNote": "以文件形式发布应用的频道",
+  "telegramFilesFound": "找到的文件：{}",
+  "telegramErrArch": "此文件为 {} 构建，而本设备支持 {}。请选择频道中的其他文件。"
 }

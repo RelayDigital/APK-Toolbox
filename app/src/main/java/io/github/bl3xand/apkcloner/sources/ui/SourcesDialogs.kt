@@ -649,9 +649,11 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                         },
                     )
                 }
-                if (filterable && items.size > 6) {
+                // A handful is read at a glance; more than that is looked through by typing.
+                if (filterable && items.size > SEARCH_FROM) {
                     val layout = TextInputLayout(context, null, MaterialR.attr.textInputOutlinedStyle).apply {
-                        hint = Tr.get("filter")
+                        hint = Tr.get("search")
+                        setStartIconDrawable(R.drawable.ic_search)
                         endIconMode = TextInputLayout.END_ICON_CLEAR_TEXT
                     }
                     layout.addView(TextInputEditText(layout.context).apply {
@@ -763,5 +765,8 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
 }
 
 private const val CHOICE_PADDING = 12
+
+/** How many choices a list holds before it gets a search field. */
+private const val SEARCH_FROM = 6
 private const val PREVIEW_DOT = 40
 private const val PREVIEW_FRAME = 72

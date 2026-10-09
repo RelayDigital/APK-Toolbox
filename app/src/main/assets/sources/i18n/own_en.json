@@ -158,7 +158,7 @@
   "detSignerConflict": "Another build of this app is installed - it is signed with a different key, so this one cannot be installed over it. Remove the installed app first.",
   "detSignerConflictMark": "conflict",
   "detSignerRemoveCurrent": "Delete current",
-  "telegramChannel": "Telegram channel",
+  "telegramChannel": "Telegram",
   "telegramFilePattern": "Which file of the channel to follow (app | build)",
   "telegramChooseFile": "Which file to follow",
   "telegramSignInFirst": "Sign in to Telegram in the Sources settings first: the files of a channel can only be read by an account.",
@@ -197,5 +197,8 @@
   "telegramErrFileGone": "The file is no longer in the channel.",
   "telegramErrSession": "The Telegram session has ended: it was closed from another device, or the account is no longer available. Sign in again in the Sources settings.",
   "telegramViaQr": "Sign in with a QR code",
-  "telegramLastPosted": "Last posted {}"
+  "telegramLastPosted": "Last posted {}",
+  "telegramChannelsNote": "channels that post apps as files",
+  "telegramFilesFound": "Files found: {}",
+  "telegramErrArch": "This file is built for {}, and this device runs {}. Choose another file of the channel."
 }

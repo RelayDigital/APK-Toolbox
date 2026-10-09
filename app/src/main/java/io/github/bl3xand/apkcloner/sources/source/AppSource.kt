@@ -37,6 +37,9 @@ abstract class AppSource(
     var hostChanged = false
     var hostIdenticalDespiteAnyChange = false
     open val name: String get() = fixedName ?: sourceIdentifier
+
+    /** What of the site is supported, where its name alone does not say; shown in the list of sources. */
+    open val supportedNote: String? get() = null
     protected var fixedName: String? = null
     var enforceTrackOnly = false
     var changeLogIfAnyIsMarkDown = true

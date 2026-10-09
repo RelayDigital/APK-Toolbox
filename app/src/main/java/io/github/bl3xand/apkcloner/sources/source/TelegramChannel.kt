@@ -5,6 +5,8 @@ import io.github.bl3xand.apkcloner.sources.core.CredsNeededError
 import io.github.bl3xand.apkcloner.sources.core.InvalidUrlError
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
+import io.github.bl3xand.apkcloner.sources.core.SourceEnv
+import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.rethrowOrWrap
 import io.github.bl3xand.apkcloner.sources.form.SettingItem
@@ -32,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class TelegramChannel : AppSource("TelegramChannel") {
     override val name: String get() = Tr.get("telegramChannel")
+    override val supportedNote: String get() = Tr.get("telegramChannelsNote")
 
     init {
         hosts = listOf("t.me", "telegram.me")
@@ -41,12 +44,16 @@ class TelegramChannel : AppSource("TelegramChannel") {
         urlsAlwaysHaveExtension = true
         changeLogIfAnyIsMarkDown = false
         // Which file is meant goes by its kind; names seldom say an architecture, and filtering
-        // by one would throw away every file that does not.
+        // by one would throw away every file that does not. A kind that does say a foreign one
+        // is refused instead (see refuseForeignArchitecture).
         excludeCommonSettingKeys = listOf("autoApkFilterByArch")
     }
 
     /** The files offered by the last look at a channel, by their links: what a choice is described from. */
     private val lastSeen = ConcurrentHashMap<String, TelegramFile>()
+
+    /** How many files of each kind that look found, by the link of the kind's newest file. */
+    private val filesOfKind = ConcurrentHashMap<String, Int>()
 
     override val additionalSourceAppSpecificSettingFormItems: List<List<SettingItem>>
         get() = listOf(listOf(TextItem(SETTING_KIND, "telegramFilePattern", required = false, hint = "instander | clone")))
@@ -74,6 +81,7 @@ class TelegramChannel : AppSource("TelegramChannel") {
         val channel = channelOf(standardUrl)
         val gateway = gateway()
         val kind = kindOf(additionalSettings)
+        if (kind != null) refuseForeignArchitecture(kind)
         val (title, offered) = if (kind != null) releasesOf(gateway, channel, kind) else everyKind(gateway, channel)
         val newest = offered.maxByOrNull { it.date } ?: throw NoApkError()
         offered.forEach { lastSeen[it.url] = it }
@@ -88,6 +96,18 @@ class TelegramChannel : AppSource("TelegramChannel") {
         )
     } catch (e: Throwable) {
         rethrowOrWrap(e)
+    }
+
+    /**
+     * A kind that names an architecture this device does not run cannot be installed here; that is
+     * said at once rather than found out by a failed install.
+     */
+    private fun refuseForeignArchitecture(kind: String) {
+        val named = kind.substringAfter(KIND_BAR, "").split(' ').mapNotNull { ARCHITECTURES[it] }
+        val supported = SourceEnv.platform.supportedAbis
+        if (named.isNotEmpty() && named.none { it == ANY_ARCHITECTURE || it in supported }) {
+            throw SourceError(Tr.get("telegramErrArch", named.joinToString(), supported.joinToString()))
+        }
     }
 
     /**
@@ -113,7 +133,13 @@ class TelegramChannel : AppSource("TelegramChannel") {
         val info = gateway.channel(channel, SCAN_LIMIT)
         val newestByKind = LinkedHashMap<String, TelegramFile>()
         // The files come newest first, so the first of a kind is its newest.
-        for (file in info.files.filter(::isRelease)) newestByKind.putIfAbsent(TelegramFileName.family(file.name), file)
+        val counts = HashMap<String, Int>()
+        for (file in info.files.filter(::isRelease)) {
+            val kind = TelegramFileName.family(file.name)
+            newestByKind.putIfAbsent(kind, file)
+            counts.merge(kind, 1, Int::plus)
+        }
+        newestByKind.forEach { (kind, newest) -> filesOfKind[newest.url] = counts.getValue(kind) }
         return info.title to newestByKind.values.toList()
     }
 
@@ -138,8 +164,12 @@ class TelegramChannel : AppSource("TelegramChannel") {
             app.apkUrls.reversed().map { file ->
                 TrackingChoice.Option(
                     TelegramFileName.family(file.name), TelegramFileName.title(file.name),
-                    lastSeen[file.url]?.let { Tr.get("telegramLastPosted", POSTED.format(it.date.atZone(ZoneId.systemDefault()))) }
-                        ?: file.name.substringAfterLast('.').uppercase(),
+                    // When it was last posted, and how many releases of it were found: both tell a
+                    // kind that is kept up from a file that was posted once.
+                    listOfNotNull(
+                        lastSeen[file.url]?.let { Tr.get("telegramLastPosted", POSTED.format(it.date.atZone(ZoneId.systemDefault()))) },
+                        filesOfKind[file.url]?.let { Tr.get("telegramFilesFound", it.toString()) },
+                    ).joinToString("\n").ifEmpty { file.name.substringAfterLast('.').uppercase() },
                 )
             },
             chosen = linked,
@@ -175,6 +205,16 @@ class TelegramChannel : AppSource("TelegramChannel") {
 
         /** First parts of a t.me path that are not channel names. */
         private val NOT_CHANNELS = setOf("joinchat", "addstickers", "addemoji", "share", "proxy", "socks", "login", "iv", "addlist", "boost")
+
+        private const val KIND_BAR = " | "
+        private const val ANY_ARCHITECTURE = "any"
+
+        /** The words a file name says an architecture with, and the ABI each of them means. */
+        private val ARCHITECTURES = mapOf(
+            "arm64-v8a" to "arm64-v8a", "arm64" to "arm64-v8a", "armv8" to "arm64-v8a",
+            "armeabi-v7a" to "armeabi-v7a", "armv7" to "armeabi-v7a",
+            "x86-64" to "x86_64", "x86" to "x86", "universal" to ANY_ARCHITECTURE,
+        )
 
         /** What stands in for a version when the name of a file has none. */
         private val DATE_VERSION = DateTimeFormatter.ofPattern("yyyy.MM.dd.HHmm")
