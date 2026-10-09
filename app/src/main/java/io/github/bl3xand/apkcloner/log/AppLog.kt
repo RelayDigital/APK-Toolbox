@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.sources.data
+package io.github.bl3xand.apkcloner.log
 
 import android.content.ContentValues
 import android.content.Context
@@ -9,8 +9,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** The log of the Sources tab: what was checked, downloaded and installed, and what failed. */
-object SourcesLog {
+/**
+ * The app's log: what was checked, downloaded, cloned, merged and installed, and what failed.
+ * Every tool writes here, so one place tells what happened and when.
+ */
+object AppLog {
     enum class Level { DEBUG, INFO, WARNING, ERROR }
 
     class Entry(val level: Level, val message: String, val timestamp: Long) {
@@ -19,7 +22,7 @@ object SourcesLog {
                 "${level.name.lowercase()}: $message"
     }
 
-    private const val TAG = "Sources"
+    private const val TAG = "ApkToolbox"
     private const val TABLE = "logs"
     private const val MAX_AGE_MS = 7L * 24 * 60 * 60 * 1000
 

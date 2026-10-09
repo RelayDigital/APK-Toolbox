@@ -18,7 +18,7 @@ import io.github.bl3xand.apkcloner.install.InstallOutcome
 import io.github.bl3xand.apkcloner.install.Installer
 import io.github.bl3xand.apkcloner.settings.AppSettings
 import io.github.bl3xand.apkcloner.shizuku.ShizukuBridge
-import io.github.bl3xand.apkcloner.sources.data.SourcesLog
+import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import io.github.bl3xand.apkcloner.sources.work.SourcesBackground
 import java.io.File
@@ -44,6 +44,7 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
             // been started yet. Come back later instead of settling for the standard installer.
             return@withContext Result.retry()
         }
+        AppLog.init(context)
         val cloner = ApkCloner(context)
         val installer = Installer.choose(context, background = true)
         val output = File(context.cacheDir, "auto-update")
@@ -77,7 +78,13 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 } catch (e: Exception) {
                     InstallOutcome.Failed(e.message.orEmpty())
                 }
-                if (outcome is InstallOutcome.Failed) failed += clone.app.label else updated++
+                if (outcome is InstallOutcome.Failed) {
+                    AppLog.error("Background update of clone ${clone.app.packageName} failed: ${outcome.reason}")
+                    failed += clone.app.label
+                } else {
+                    AppLog.info("Clone ${clone.app.packageName} updated in the background")
+                    updated++
+                }
             }
         } finally {
             UpdateNotifications.cancelProgress(context)
@@ -92,7 +99,7 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
             try {
                 sourcesHadSomething = SourcesBackground.run(context, forceAll = manual)
             } catch (e: Exception) {
-                SourcesLog.error("Background check of sources failed", e)
+                AppLog.error("Background check of sources failed", e)
                 sourcesHadSomething = true
             }
         }

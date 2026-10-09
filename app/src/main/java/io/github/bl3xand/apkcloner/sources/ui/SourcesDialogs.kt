@@ -20,7 +20,7 @@ import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.ui.bind
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
-import io.github.bl3xand.apkcloner.sources.data.SourcesLog
+import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import io.github.bl3xand.apkcloner.sources.install.InstallPrompts
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
@@ -717,45 +717,6 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         }
         context.showSheet(Tr.get("importErrors"), content = view, positive = Tr.get("close"))
     }
-
-    fun showLogs() {
-        var days = LOG_PERIODS_DAYS.last()
-        val text = TextView(context).apply {
-            setTextIsSelectable(true)
-            setTextAppearance(context.textAppearance(com.google.android.material.R.attr.textAppearanceBodySmall))
-            typeface = Typeface.MONOSPACE
-        }
-        fun entries() = SourcesLog.query(after = System.currentTimeMillis() - days * 24L * 60 * 60 * 1000)
-        fun load() {
-            text.text = entries().joinToString("\n\n").ifEmpty { Tr.get("noLogs") }
-        }
-        load()
-        val group = ChipGroup(context).apply { isSingleSelection = true }
-        for (option in LOG_PERIODS_DAYS) {
-            group.addView(
-                context.filterChip(Tr.plural("day", option), option == days) { checked ->
-                    if (checked) {
-                        days = option
-                        load()
-                    }
-                },
-            )
-        }
-        group.isSelectionRequired = true
-        val view = body().apply {
-            add(group)
-            add(text, topMargin = 8)
-        }
-        context.showSheet(Tr.get("setLog"), content = view, positive = Tr.get("share"), negative = Tr.get("close")) {
-            context.startActivity(
-                Intent.createChooser(
-                    Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, entries().joinToString("\n\n")),
-                    Tr.get("appLogs"),
-                ),
-            )
-            false
-        }
-    }
 }
 
 /** The framed card of a tracked app, as every screen shows an app. */
@@ -779,9 +740,6 @@ fun io.github.bl3xand.apkcloner.databinding.ViewAppCardBinding.bindTracked(entry
 private const val PALETTE_HEIGHT = 200
 private const val PREVIEW_DOT = 40
 private const val PREVIEW_FRAME = 72
-
-/** Periods the log can be narrowed to. */
-private val LOG_PERIODS_DAYS = listOf(1, 3, 7)
 
 /** A field of colours: hue runs left to right, top is pale and bottom is deep. */
 private class PaletteView(context: Context, private val onPick: (Int) -> Unit) : View(context) {

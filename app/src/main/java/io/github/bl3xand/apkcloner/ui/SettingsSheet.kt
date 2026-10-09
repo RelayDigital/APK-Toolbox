@@ -31,6 +31,7 @@ import io.github.bl3xand.apkcloner.settings.AppSettings.InstallMethod
 import io.github.bl3xand.apkcloner.shizuku.ShizukuBridge
 import io.github.bl3xand.apkcloner.install.Root
 import io.github.bl3xand.apkcloner.sources.ui.SourcesSettingsSheet
+import io.github.bl3xand.apkcloner.sources.ui.showLogSheet
 import io.github.bl3xand.apkcloner.update.AutoUpdateWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -166,6 +167,7 @@ class SettingsSheet : BottomSheetDialogFragment() {
                 }
             }
         }
+        binding.buttonShowLog.setOnClickListener { requireContext().showLogSheet() }
         binding.buttonSourcesSettings.setOnClickListener {
             if (parentFragmentManager.findFragmentByTag(SourcesSettingsSheet.TAG) == null) {
                 SourcesSettingsSheet().show(parentFragmentManager, SourcesSettingsSheet.TAG)

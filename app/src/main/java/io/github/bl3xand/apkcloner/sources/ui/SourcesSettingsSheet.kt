@@ -157,10 +157,6 @@ class SourcesSettingsSheet : BottomSheetDialogFragment() {
             createExportFile.launch("${SourcesRepository.EXPORT_FILE_PREFIX}-${Instant.now().toString().take(10)}.json")
         }
 
-        section(Tr.get("setLog"))
-        root.add(context.label(Tr.get("setLogDesc"), colorAttr = com.google.android.material.R.attr.colorOnSurfaceVariant), topMargin = 4)
-        button(Tr.get("setShowLog"), R.drawable.ic_notes, topMargin = Spacing.UNDER_LABEL - Spacing.BUTTON_INSET) { dialogs.showLogs() }
-
         root.add(
             context.label(
                 CREDIT_LINE,

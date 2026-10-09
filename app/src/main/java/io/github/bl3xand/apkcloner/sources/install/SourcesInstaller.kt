@@ -25,7 +25,7 @@ import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.Url
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
 import io.github.bl3xand.apkcloner.sources.data.DownloadState
-import io.github.bl3xand.apkcloner.sources.data.SourcesLog
+import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import io.github.bl3xand.apkcloner.sources.data.certHashesOf
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
@@ -365,7 +365,7 @@ class SourcesInstaller private constructor(private val context: Context) {
                 val target = File(Environment.getExternalStorageDirectory(), "Android/obb/$appId").apply { mkdirs() }
                 obb.copyTo(File(target, obb.name), overwrite = true)
             } catch (e: Exception) {
-                SourcesLog.info("Failed to place OBB file for $appId: ${e.message}")
+                AppLog.info("Failed to place OBB file for $appId: ${e.message}")
             }
         }
     }
@@ -384,7 +384,7 @@ class SourcesInstaller private constructor(private val context: Context) {
                 ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             )
         } catch (e: Exception) {
-            SourcesLog.info("Could not share with a verifier app: ${e.message}")
+            AppLog.info("Could not share with a verifier app: ${e.message}")
         }
     }
 
@@ -397,7 +397,7 @@ class SourcesInstaller private constructor(private val context: Context) {
             throw SourceError(Tr.get("badDownload")).also { it.url = entry.app.url }
         }
         val installed = repo.installedInfo(appId)
-        SourcesLog.info(
+        AppLog.info(
             "Installing \"${newInfo.packageName}\" version \"${newInfo.versionName}\" (${newInfo.longVersionCode})" +
                 (installed?.let { " over \"${it.versionName}\" (${it.longVersionCode})" } ?: ""),
         )
@@ -585,7 +585,7 @@ class SourcesInstaller private constructor(private val context: Context) {
                 // A cancelled download is not a failure.
                 if (e !is CancellationSignal) {
                     synchronized(errors) { errors.add(id, e, appName = repo.entry(id)?.name) }
-                    SourcesLog.error("Download failed for $id", e)
+                    AppLog.error("Download failed for $id", e)
                 }
                 return
             }
@@ -603,7 +603,7 @@ class SourcesInstaller private constructor(private val context: Context) {
                 if (installDownloaded(downloaded, prompts, background)) installed.add(resolvedId)
             } catch (e: Exception) {
                 synchronized(errors) { errors.add(resolvedId, e, appName = repo.entry(resolvedId)?.name) }
-                SourcesLog.error("Install failed for $resolvedId", e)
+                AppLog.error("Install failed for $resolvedId", e)
             } finally {
                 installLock.unlock()
                 repo.setDownload(resolvedId, null)

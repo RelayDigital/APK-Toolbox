@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.util.DisplayMetrics
 import android.util.TypedValue
 import com.reandroid.arsc.chunk.xml.ResXmlDocument
 import com.reandroid.arsc.chunk.xml.ResXmlElement
@@ -42,12 +43,18 @@ class IconBadger(private val context: Context) {
 
         val result = HashMap<String, ByteArray>()
         for (icon in (listOf(app.icon) + activityIcons).filter { it != 0 }.distinct()) {
-            runCatching {
-                // Resolved the way the system will resolve it on this device.
-                val path = TypedValue().also { resources.getValue(icon, it, true) }.string?.toString() ?: return@runCatching
-                if (path in result) return@runCatching
-                val replacement = if (path.endsWith(".xml")) adaptiveIcon(resources, icon, color) else bitmapIcon(resources, icon, color)
-                if (replacement != null) result[path] = replacement
+            // A launcher asks for the icon at a density of its own choosing, usually a higher
+            // one than the screen's, and so may be handed a different file than the settings
+            // are. Every file the icon can resolve to is replaced.
+            for (density in DENSITIES) {
+                runCatching {
+                    val value = TypedValue()
+                    if (density == 0) resources.getValue(icon, value, true) else resources.getValueForDensity(icon, density, value, true)
+                    val path = value.string?.toString() ?: return@runCatching
+                    if (path in result) return@runCatching
+                    val replacement = if (path.endsWith(".xml")) adaptiveIcon(resources, icon, color) else bitmapIcon(resources, icon, density, color)
+                    if (replacement != null) result[path] = replacement
+                }
             }
         }
         return result
@@ -81,37 +88,49 @@ class IconBadger(private val context: Context) {
         root.newElement("background").reference(background)
         val stack = root.newElement("foreground").newElement("layer-list")
         stack.newElement("item").reference(foreground)
-        // Insets are fractions of the layer, so the dot keeps its place at any icon size.
-        val dot = stack.newElement("item").newElement("inset").apply {
-            fraction("insetLeft", android.R.attr.insetLeft, DOT_START)
-            fraction("insetTop", android.R.attr.insetTop, DOT_START)
-            fraction("insetRight", android.R.attr.insetRight, DOT_END)
-            fraction("insetBottom", android.R.attr.insetBottom, DOT_END)
-        }.newElement("shape")
-        dot.value("shape", android.R.attr.shape, ValueType.DEC, SHAPE_OVAL)
+        val dot = stack.newElement("item").dot()
         dot.newElement("solid").value("color", android.R.attr.color, ValueType.COLOR_ARGB8, color)
         dot.newElement("stroke").apply {
             value("width", android.R.attr.width, ValueType.DIMENSION, complex(RING_DP, TypedValue.COMPLEX_UNIT_DIP))
             value("color", android.R.attr.color, ValueType.COLOR_ARGB8, Color.WHITE)
         }
-        layers["monochrome"]?.takeIf { it != 0 }?.let { root.newElement("monochrome").reference(it) }
+        // Themed icons are drawn from this layer alone, in one colour: the dot goes here too,
+        // or a clone on a themed home screen would look exactly like the original.
+        layers["monochrome"]?.takeIf { it != 0 }?.let { monochrome ->
+            val themed = root.newElement("monochrome").newElement("layer-list")
+            themed.newElement("item").reference(monochrome)
+            themed.newElement("item").dot().newElement("solid").value("color", android.R.attr.color, ValueType.COLOR_ARGB8, Color.WHITE)
+        }
         document.refreshFull()
         return document.bytes
     }
 
+    /**
+     * An oval inside an inset that puts it where the dot belongs. Insets are fractions of the
+     * layer, so the dot keeps its place and size at any icon size.
+     */
+    private fun ResXmlElement.dot(): ResXmlElement = newElement("inset").apply {
+        fraction("insetLeft", android.R.attr.insetLeft, LAYER_DOT_START)
+        fraction("insetTop", android.R.attr.insetTop, LAYER_DOT_START)
+        fraction("insetRight", android.R.attr.insetRight, LAYER_DOT_END)
+        fraction("insetBottom", android.R.attr.insetBottom, LAYER_DOT_END)
+    }.newElement("shape").also { it.value("shape", android.R.attr.shape, ValueType.DEC, SHAPE_OVAL) }
+
     /** A plain bitmap icon: the same picture, redrawn with the dot on it. */
-    private fun bitmapIcon(resources: Resources, icon: Int, color: Int): ByteArray {
-        val drawable = resources.getDrawable(icon, null)
-        val size = drawable.intrinsicWidth.coerceIn(48, 512)
+    private fun bitmapIcon(resources: Resources, icon: Int, density: Int, color: Int): ByteArray {
+        val drawable = if (density == 0) resources.getDrawable(icon, null) else resources.getDrawableForDensity(icon, density, null)!!
+        val size = drawable.intrinsicWidth.coerceIn(MIN_BITMAP, MAX_BITMAP)
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         drawable.setBounds(0, 0, size, size)
         drawable.draw(canvas)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val radius = size * 0.14f
-        val center = size - radius * 1.25f
+        val ring = size * RING_SHARE / LEGACY_SCALE
+        val radius = size * BITMAP_DOT_SHARE / 2
+        // As far down and to the right as the picture allows.
+        val center = size - radius - ring
         paint.color = Color.WHITE
-        canvas.drawCircle(center, center, radius * 1.2f, paint)
+        canvas.drawCircle(center, center, radius + ring, paint)
         paint.color = color
         canvas.drawCircle(center, center, radius, paint)
         return ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
@@ -155,10 +174,36 @@ class IconBadger(private val context: Context) {
         const val COMPLEX_RADIX_8P15 = 2
         const val COMPLEX_RADIX_0P23 = 3
 
-        // The dot sits in the lower right of the 108dp layer, inside the 66dp area every
-        // launcher mask keeps: centred at two thirds, 17dp across.
-        const val DOT_START = 0.588f
-        const val DOT_END = 0.255f
+        // An adaptive layer is 108dp, of which the middle 72dp is seen.
+        const val LAYER_DP = 108f
+        const val VISIBLE_DP = 72f
+
+        // One dot for every kind of icon, measured against the part of the icon that is seen:
+        // a little under a quarter of it across, centred three quarters of the way down and
+        // to the right, with a thin white ring.
+        const val DOT_SHARE = 0.236f
+        const val DOT_CENTER = 0.75f
         const val RING_DP = 1.5f
+        const val RING_SHARE = RING_DP / VISIBLE_DP
+
+        // The same dot expressed as insets from the edges of the whole adaptive layer.
+        private const val LAYER_MARGIN = (LAYER_DP - VISIBLE_DP) / 2
+        const val LAYER_DOT_START = (LAYER_MARGIN + VISIBLE_DP * (DOT_CENTER - DOT_SHARE / 2)) / LAYER_DP
+        const val LAYER_DOT_END = 1f - (LAYER_MARGIN + VISIBLE_DP * (DOT_CENTER + DOT_SHARE / 2)) / LAYER_DP
+
+        // A plain picture is shown smaller than an adaptive icon: launchers and the settings
+        // shrink it to about this share to fit it inside their mask. The dot is drawn larger
+        // by as much, so that on screen it comes out the size of every other clone's.
+        const val LEGACY_SCALE = 0.62f
+        const val BITMAP_DOT_SHARE = DOT_SHARE / LEGACY_SCALE
+
+        const val MIN_BITMAP = 48
+        const val MAX_BITMAP = 512
+
+        /** The screen's own density first, then every bucket a launcher may ask for. */
+        val DENSITIES = intArrayOf(
+            0, DisplayMetrics.DENSITY_LOW, DisplayMetrics.DENSITY_MEDIUM, DisplayMetrics.DENSITY_HIGH,
+            DisplayMetrics.DENSITY_XHIGH, DisplayMetrics.DENSITY_XXHIGH, DisplayMetrics.DENSITY_XXXHIGH,
+        )
     }
 }

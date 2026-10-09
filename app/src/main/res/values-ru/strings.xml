@@ -113,7 +113,6 @@
     <string name="files_action_install">Установить</string>
     <string name="files_action_merge">Объединить в один APK</string>
 
-    <string name="button_update_all">Обновить все (%1$d)</string>
     <string name="button_check_now">Проверить сейчас</string>
     <string name="check_now_started">Проверяю; результат придёт уведомлением</string>
     <string name="notification_up_to_date">Обновлений нет</string>
@@ -176,4 +175,18 @@
     <string name="hint_tab_sources">Отслеживает приложения с GitHub, F-Droid, магазинов и других сайтов: добавьте приложение по ссылке или по названию, и новые версии будут находиться, скачиваться и устанавливаться отсюда.</string>
     <string name="hint_tab_apps">Делает вторую копию установленного приложения с другим именем пакета: обе живут рядом, у каждой свои данные. Выберите приложение из списка или файл APK.</string>
     <string name="hint_tab_clones">Клоны, сделанные здесь. Клон устаревает, когда обновляется его оригинал; пересобрать его из новой версии можно здесь или автоматически.</string>
+    <string name="settings_log">Журнал</string>
+    <string name="settings_log_description">Что проверялось, скачивалось, клонировалось, объединялось и устанавливалось и что не удалось. Хранится неделю.</string>
+    <string name="button_show_log">Показать журнал</string>
+    <string name="log_empty">В журнале пока пусто.</string>
+    <string name="log_share">Поделиться</string>
+    <string name="log_close">Закрыть</string>
+    <string name="button_refresh">Обновить</string>
+    <string name="clones_up_to_date">Все клоны актуальны</string>
+    <plurals name="log_days">
+        <item quantity="one">%d день</item>
+        <item quantity="few">%d дня</item>
+        <item quantity="many">%d дней</item>
+        <item quantity="other">%d дня</item>
+    </plurals>
 </resources>

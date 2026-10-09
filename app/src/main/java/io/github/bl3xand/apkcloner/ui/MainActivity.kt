@@ -115,6 +115,7 @@ class MainActivity : AppCompatActivity() {
             viewModel.setQuery(it?.toString().orEmpty())
             sourcesTab.onQuery(it?.toString().orEmpty())
         }
+        binding.chipClonesRefresh.setOnClickListener { viewModel.refreshClones() }
         binding.chipSystem.setOnCheckedChangeListener { _, checked -> viewModel.setShowSystem(checked) }
         // Every tab has a button that says what the tab is for.
         val showTabInfo = { _: android.view.View ->
@@ -133,7 +134,6 @@ class MainActivity : AppCompatActivity() {
         binding.buttonPickApk.setOnClickListener {
             // Bundles have no MIME type of their own, so the pickers for them accept anything.
             when (viewModel.tab) {
-                TAB_CLONES -> viewModel.updateAll()
                 TAB_SOURCES -> sourcesTab.onBarButton()
                 TAB_INSTALL -> pickToInstall.launch(arrayOf("*/*"))
                 TAB_SPLIT -> pickToMerge.launch(arrayOf("*/*"))
@@ -237,21 +237,23 @@ class MainActivity : AppCompatActivity() {
         binding.toggleCloning.isVisible = tab == TAB_APPS || tab == TAB_CLONES
         binding.systemRow.isVisible = tab != TAB_SOURCES
         binding.chipSystem.isVisible = tab != TAB_CLONES
+        // The Clones side has the same Refresh as Sources: check everything, update what is behind.
+        binding.chipClonesRefresh.isVisible = tab == TAB_CLONES
+        binding.chipClonesRefresh.isEnabled = state.updatingClone == null
         binding.listApps.isVisible = appsTab
         binding.listClones.isVisible = tab == TAB_CLONES
         binding.listInstall.isVisible = tab == TAB_INSTALL
         binding.listSplit.isVisible = tab == TAB_SPLIT
-        // On the Clones tab the bar only appears when there is something to update.
-        binding.bottomBar.isVisible = ready && (tab != TAB_CLONES || state.outdatedClones > 0)
-        binding.buttonPickApk.isEnabled = tab != TAB_CLONES || state.updatingClone == null
-        binding.buttonPickApk.setIconResource(if (tab == TAB_CLONES) R.drawable.ic_update else R.drawable.ic_folder)
+        // The Clones side has nothing to pick; its one action is the Refresh chip.
+        binding.bottomBar.isVisible = ready && tab != TAB_CLONES
+        binding.buttonPickApk.isEnabled = true
+        binding.buttonPickApk.setIconResource(R.drawable.ic_folder)
         binding.buttonPickApk.text = when (tab) {
-            TAB_CLONES -> getString(R.string.button_update_all, state.outdatedClones)
             TAB_INSTALL -> getString(R.string.button_pick_install)
             TAB_SPLIT -> getString(R.string.button_pick_split)
             else -> getString(R.string.button_pick_apk)
         }
-        binding.progress.isVisible = state.loading
+        binding.progress.isVisible = state.loading || (tab == TAB_CLONES && state.updatingClone != null)
 
         val empty = when (tab) {
             TAB_CLONES -> state.clones.isEmpty()

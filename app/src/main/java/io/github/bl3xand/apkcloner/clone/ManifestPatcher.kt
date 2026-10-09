@@ -11,7 +11,7 @@ import java.nio.ByteOrder
  * values at strings appended to the end of the pool. Existing pool entries are never changed, so
  * the resource-id map (which is indexed by pool position) stays valid.
  */
-class ManifestPatcher(private val newPackage: String, private val newLabel: String?) {
+class ManifestPatcher(val newPackage: String, private val newLabel: String?) {
 
     var oldPackage: String = ""
         private set

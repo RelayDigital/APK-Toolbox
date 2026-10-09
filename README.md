@@ -94,8 +94,8 @@ the original. An app can be cloned as many times as you like.
 The **Clones** side lists every clone you have installed. Tap one to see
 which app and version it was made from, to **Update** it to the original's
 current version or to **Delete** it. Updating keeps the clone's data and its
-icon mark. When several clones are behind, **Update all** brings them up to
-date one after another.
+icon mark. **Refresh** looks at every clone and its original again and
+brings the clones that are behind up to date one after another.
 
 ## Updates in the background
 
@@ -182,9 +182,10 @@ uninstalled. Clones made with the built-in key keep updating with it.
 - Google Play Protect treats re-signed apps as unknown and may block them,
   including installs you start by hand. It may also object to APK Toolbox
   itself, as an app that installs other apps.
-- Cloning changes only the manifest. Apps that check their own package name
-  or signature, and services bound to them (Google sign-in, Firebase, in-app
-  purchases), may not work in a clone.
+- Cloning changes the manifest and the package name in the resource table,
+  nothing else. Apps that check their own package name or signature, and
+  services bound to them (Google sign-in, Firebase, in-app purchases), may
+  not work in a clone.
 - A cloned app made of split APKs is saved as a single `.apks` archive.
 
 ## Building

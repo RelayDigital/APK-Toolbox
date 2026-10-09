@@ -113,7 +113,6 @@
     <string name="files_action_install">安装</string>
     <string name="files_action_merge">合并为单个 APK</string>
 
-    <string name="button_update_all">全部更新（%1$d）</string>
     <string name="button_check_now">立即检查</string>
     <string name="check_now_started">正在检查，结果将以通知形式显示</string>
     <string name="notification_up_to_date">没有更新</string>
@@ -176,4 +175,15 @@
     <string name="hint_tab_sources">跟踪来自 GitHub、F-Droid、应用商店和其他网站的应用：通过链接或名称添加应用，新版本将在此处被发现、下载并安装。</string>
     <string name="hint_tab_apps">用另一个包名为已安装的应用制作第二个副本：两者并存，数据各自独立。从列表中选择应用或选择 APK 文件。</string>
     <string name="hint_tab_clones">在此制作的克隆。原应用更新后克隆即过期；可在此处或自动用新版本重新构建。</string>
+    <string name="settings_log">日志</string>
+    <string name="settings_log_description">检查、下载、克隆、合并和安装的记录，以及失败的操作。保留一周。</string>
+    <string name="button_show_log">显示日志</string>
+    <string name="log_empty">暂无日志。</string>
+    <string name="log_share">分享</string>
+    <string name="log_close">关闭</string>
+    <string name="button_refresh">刷新</string>
+    <string name="clones_up_to_date">所有克隆均为最新</string>
+    <plurals name="log_days">
+        <item quantity="other">%d 天</item>
+    </plurals>
 </resources>

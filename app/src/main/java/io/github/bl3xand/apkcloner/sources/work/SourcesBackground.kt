@@ -13,7 +13,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import io.github.bl3xand.apkcloner.sources.core.MultiAppMultiError
 import io.github.bl3xand.apkcloner.sources.core.RateLimitError
-import io.github.bl3xand.apkcloner.sources.data.SourcesLog
+import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import io.github.bl3xand.apkcloner.sources.install.SourcesInstaller
 import io.github.bl3xand.apkcloner.sources.model.CheckUpdatesException
@@ -50,7 +50,7 @@ object SourcesBackground {
         repo.loadApps()
         val capabilities = network(context)
         if (capabilities == null || !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
-            SourcesLog.info("BG update task: No network.")
+            AppLog.info("BG update task: No network.")
             return false
         }
         val toCheck = retry ?: repo.getAppsSortedByUpdateCheckTime(
@@ -67,7 +67,7 @@ object SourcesBackground {
         var reported = false
 
         if (toCheck.isNotEmpty()) {
-            SourcesLog.info("BG update task: Started (${toCheck.size}).")
+            AppLog.info("BG update task: Started (${toCheck.size}).")
             var updates: List<TrackedApp> = emptyList()
             var errors: MultiAppMultiError? = null
             val toReport = MultiAppMultiError()
@@ -120,7 +120,7 @@ object SourcesBackground {
                 }
             }
         } else {
-            SourcesLog.info("BG update task: No apps due for checking.")
+            AppLog.info("BG update task: No apps due for checking.")
         }
 
         if (retry != null) return reported
@@ -133,7 +133,7 @@ object SourcesBackground {
             }
         }
         if (silentlyInstallable.isEmpty()) return reported
-        SourcesLog.info("BG install task: Installing ${silentlyInstallable.size} apps silently.")
+        AppLog.info("BG install task: Installing ${silentlyInstallable.size} apps silently.")
         try {
             installer.downloadAndInstallLatestApps(silentlyInstallable, prompts = null, forceSerialDownloads = true)
         } catch (e: MultiAppMultiError) {
@@ -146,7 +146,7 @@ object SourcesBackground {
 
     private fun scheduleRetry(context: Context, toRetry: List<Pair<String, Int>>, afterSeconds: Int) {
         val settings = SourcesRepository.get(context).settings
-        SourcesLog.info("BG update task: Scheduling retry in ${afterSeconds}s (${toRetry.size} to retry).")
+        AppLog.info("BG update task: Scheduling retry in ${afterSeconds}s (${toRetry.size} to retry).")
         val request = OneTimeWorkRequestBuilder<SourcesRetryWorker>()
             .setInitialDelay(afterSeconds.toLong(), TimeUnit.SECONDS)
             .setConstraints(
@@ -175,7 +175,7 @@ class SourcesRetryWorker(context: Context, params: WorkerParameters) : Coroutine
             SourcesBackground.run(applicationContext, retry = ids.mapIndexed { i, id -> id to attempts.getOrElse(i) { 1 } })
             Result.success()
         } catch (e: Exception) {
-            SourcesLog.error("Retry of the background check failed", e)
+            AppLog.error("Retry of the background check failed", e)
             Result.failure()
         }
     }

@@ -120,7 +120,6 @@
     <string name="files_action_install">Install</string>
     <string name="files_action_merge">Merge into a single APK</string>
 
-    <string name="button_update_all">Update all (%1$d)</string>
     <string name="button_check_now">Check now</string>
     <string name="check_now_started">Checking; the result will come as a notification</string>
     <string name="notification_up_to_date">No updates</string>
@@ -183,4 +182,16 @@
     <string name="hint_tab_sources">Tracks apps from GitHub, F-Droid, stores and other sites: add an app by link or by name, and new versions are found, downloaded and installed from here.</string>
     <string name="hint_tab_apps">Makes a second copy of an installed app under another package name, so both live side by side with separate data. Pick an app from the list or an APK file.</string>
     <string name="hint_tab_clones">The clones made here. A clone becomes outdated when its original is updated; it can be rebuilt from the new version here or automatically.</string>
+    <string name="settings_log">Log</string>
+    <string name="settings_log_description">What was checked, downloaded, cloned, merged and installed, and what failed. Kept for a week.</string>
+    <string name="button_show_log">Show the log</string>
+    <string name="log_empty">Nothing has been logged yet.</string>
+    <string name="log_share">Share</string>
+    <string name="log_close">Close</string>
+    <string name="button_refresh">Refresh</string>
+    <string name="clones_up_to_date">All clones are up to date</string>
+    <plurals name="log_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
 </resources>

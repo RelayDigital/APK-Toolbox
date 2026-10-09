@@ -13,6 +13,7 @@ import io.github.bl3xand.apkcloner.data.AppRepository
 import io.github.bl3xand.apkcloner.data.CloneInfo
 import io.github.bl3xand.apkcloner.install.InstallOutcome
 import io.github.bl3xand.apkcloner.install.Installer
+import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.merge.MergeResult
 import io.github.bl3xand.apkcloner.merge.SplitStep
 import io.github.bl3xand.apkcloner.merge.NotSplitException
@@ -89,6 +90,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private companion object {
         /** How long to keep showing progress for an install the system never reports back on. */
         const val INSTALL_TIMEOUT_MS = 120_000L
+        const val BYTES_IN_MB = 1024 * 1024
     }
 
     private val cloner = ApkCloner(application)
@@ -218,10 +220,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _cloneState.value = withContext(Dispatchers.IO) {
                 try {
+                    AppLog.info("Cloning ${source.packageName} ${source.versionName.orEmpty()} as $newPackage (${source.apkPaths.size} files)")
                     CloneState.Done(cloner.clone(source.cloneRequest(newPackage, newLabel, badgeIcon), sheetOutput) { file, index, total ->
                         _cloneState.value = CloneState.Running(file, index, total)
-                    })
+                    }).also { AppLog.info("Cloned $newPackage: ${it.apks.sumOf(File::length) / BYTES_IN_MB} MB") }
                 } catch (e: Exception) {
+                    AppLog.error("Cloning ${source.packageName} as $newPackage failed", e)
                     sheetOutput.deleteRecursively()
                     CloneState.Failed(e.message ?: e.javaClass.simpleName)
                 }
@@ -342,8 +346,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 _splitState.value = SplitState.Idle
                 _installing.value = true
+                AppLog.info("Installing ${source.packageName}: ${files.size} files" + if (sign) ", re-signed" else "")
                 install(files)
             } catch (e: Throwable) {
+                AppLog.error("Installing ${source.packageName} from files failed", e)
                 _splitState.value = SplitState.Failed(e.message ?: e.javaClass.simpleName)
             } finally {
                 _installing.value = false
@@ -364,6 +370,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 SplitExporter(getApplication()).export(source, files, checkNotNull(output) { "Cannot open destination" })
             }
             _splitState.value = SplitState.Idle
+            result.fold(
+                { AppLog.info("Exported ${source.packageName} as APKS (${selected.size} files)") },
+                { AppLog.error("Exporting ${source.packageName} as APKS failed", it) },
+            )
             if (result.isSuccess) {
                 // The sheet is still open and hides the main screen's messages, so say it here.
                 withContext(Dispatchers.Main) {
@@ -386,14 +396,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _splitState.value = withContext(Dispatchers.IO) {
                 try {
+                    AppLog.info("Merging ${source.packageName}: ${selected.size} splits" + if (force) ", mismatches allowed" else "")
                     SplitState.Done(merger.merge(source, selected, sign, force, mergeWork) { step ->
                         _splitState.value = SplitState.Running(step)
-                    })
+                    }).also { AppLog.info("Merged ${source.packageName}: ${it.result.apk.length() / BYTES_IN_MB} MB") }
                 } catch (e: SplitMismatchException) {
+                    AppLog.warn("Merging ${source.packageName} refused: splits do not match the base (${e.splits.size})")
                     SplitState.Mismatch(e.splits.map { it.substringAfterLast('/') })
                 } catch (e: TablesTooLargeException) {
+                    AppLog.warn("Merging ${source.packageName} refused: resource tables of ${e.megabytes} MB do not fit in memory")
                     SplitState.TooLarge(e.megabytes)
                 } catch (e: Throwable) {
+                    AppLog.error("Merging ${source.packageName} failed", e)
                     // Malformed APKs can blow up deep inside the resource parser, not only with exceptions.
                     mergeWork.deleteRecursively()
                     SplitState.Failed(e.message ?: e.javaClass.simpleName)
@@ -438,7 +452,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun updateClone(clone: CloneInfo) = updateClones(listOf(clone))
 
     /** Brings every outdated clone up to date, one after another. */
-    fun updateAll() = updateClones(allClones.filter { it.updateAvailable })
+    /**
+     * The Refresh of the Clones side: looks at every clone and its original again and updates
+     * the clones that are behind. Says so when there is nothing to do.
+     */
+    fun refreshClones() {
+        if (_uiState.value.updatingClone != null) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(loading = true) }
+            val installed = withContext(Dispatchers.IO) { repository.installed() }
+            allApps = installed.apps
+            allClones = installed.clones
+            _uiState.update { it.copy(loading = false) }
+            publishApps()
+            val outdated = allClones.filter { it.updateAvailable }
+            AppLog.info("Clones checked: ${allClones.size}, behind: ${outdated.size}")
+            if (outdated.isEmpty()) _events.tryEmit(MainEvent.Message(R.string.clones_up_to_date)) else updateClones(outdated)
+        }
+    }
 
     private fun updateClones(clones: List<CloneInfo>) {
         if (clones.isEmpty() || _uiState.value.updatingClone != null) return
@@ -447,8 +478,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val request = clone.updateRequest() ?: continue
                 _uiState.update { it.copy(updatingClone = clone.app.packageName) }
                 try {
+                    AppLog.info("Updating clone ${clone.app.packageName}")
                     install(cloner.clone(request, updateOutput) { _, _, _ -> })
                 } catch (e: Exception) {
+                    AppLog.error("Updating clone ${clone.app.packageName} failed", e)
                     _events.tryEmit(MainEvent.Message(R.string.status_failed, e.message ?: e.javaClass.simpleName))
                 } finally {
                     // The installer session holds its own copy by now.
@@ -484,7 +517,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // The system installer reports its own result later, as a toast.
             InstallOutcome.Pending -> finished.await()
             InstallOutcome.Success -> Unit
-            is InstallOutcome.Failed -> _events.tryEmit(MainEvent.Message(R.string.install_failed, outcome.reason))
+            is InstallOutcome.Failed -> {
+                AppLog.error("Install failed: ${outcome.reason}")
+                _events.tryEmit(MainEvent.Message(R.string.install_failed, outcome.reason))
+            }
         }
         finished.cancel()
     }

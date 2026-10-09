@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.DocumentsContract
 import io.github.bl3xand.apkcloner.BuildConfig
+import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.settings.AppSettings
 import io.github.bl3xand.apkcloner.sources.core.CertHashes
 import io.github.bl3xand.apkcloner.sources.core.MultiAppMultiError
@@ -175,7 +176,7 @@ class SourcesRepository private constructor(private val context: Context) {
         // Version formats that cannot be compared: stop pretending they can.
         if (info != null && standard && !isVersionDetectionPossible(app, info)) {
             app = app.withSetting(SettingKeys.VERSION_DETECTION, false)
-            SourcesLog.info("Could not reconcile version formats for: ${app.id}")
+            AppLog.info("Could not reconcile version formats for: ${app.id}")
             modified = true
         }
         return if (modified) app else null
@@ -195,11 +196,11 @@ class SourcesRepository private constructor(private val context: Context) {
                     appFromStoredJson(JsonValues.parseObject(file.readText()))
                 } catch (e: org.json.JSONException) {
                     // Broken beyond reading: set it aside so that it stops failing.
-                    SourcesLog.error("Corrupt JSON, renaming ${file.name}", e)
+                    AppLog.error("Corrupt JSON, renaming ${file.name}", e)
                     file.renameTo(File(file.path + ".corrupt"))
                     continue
                 } catch (e: Exception) {
-                    SourcesLog.warn("Error loading app ${file.name} (skipped, file kept): $e")
+                    AppLog.warn("Error loading app ${file.name} (skipped, file kept): $e")
                     continue
                 }
                 try {
@@ -220,7 +221,7 @@ class SourcesRepository private constructor(private val context: Context) {
                 entries.putAll(loaded)
             }
             if (invalid.isNotEmpty()) {
-                invalid.forEach { SourcesLog.error("Removing app ${it.first} (${it.second}) due to load error: ${it.third}") }
+                invalid.forEach { AppLog.error("Removing app ${it.first} (${it.second}) due to load error: ${it.third}") }
                 removeApps(invalid.map { it.first })
                 onAppsRemoved?.invoke(invalid.map { it.second to it.third })
             }
@@ -393,7 +394,7 @@ class SourcesRepository private constructor(private val context: Context) {
                                 current?.let { saveApps(listOf(it.copy(pendingRepoRenameUrl = e.newUrl))) }
                             } else {
                                 synchronized(errors) { errors.add(id, e, appName = entry(id)?.name) }
-                                SourcesLog.warn("Update check failed for $id: ${errorText(e)}")
+                                AppLog.warn("Update check failed for $id: ${errorText(e)}")
                                 // Still counts as checked, or the background task would retry it
                                 // every time it runs.
                                 current?.let { failed.add(it.copy(lastUpdateCheck = Instant.now())) }
@@ -627,7 +628,7 @@ class SourcesRepository private constructor(private val context: Context) {
         synchronized(scheduler) {
             pendingAutoExport?.cancel(false)
             pendingAutoExport = scheduler.schedule(
-                { runCatching { export(isAuto = true) }.onFailure { SourcesLog.warn("Auto-export failed: $it") } },
+                { runCatching { export(isAuto = true) }.onFailure { AppLog.warn("Auto-export failed: $it") } },
                 2, TimeUnit.SECONDS,
             )
         }
@@ -644,7 +645,7 @@ class SourcesRepository private constructor(private val context: Context) {
             instance ?: run {
                 val app = context.applicationContext
                 SourcesEnvironment.init(app)
-                SourcesLog.init(app)
+                AppLog.init(app)
                 SourcesRepository(app).also { instance = it }
             }
         }
