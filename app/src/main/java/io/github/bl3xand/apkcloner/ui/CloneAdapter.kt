@@ -2,10 +2,12 @@ package io.github.bl3xand.apkcloner.ui
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.appcompat.R as AppCompatR
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.R as MaterialR
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.data.CloneInfo
 import io.github.bl3xand.apkcloner.databinding.ItemAppBinding
@@ -37,16 +39,25 @@ class CloneAdapter(
         val context = binding.root.context
 
         binding.textLabel.text = clone.app.label
+        // The same lines as a tracked app: the name, the package, the version - with the one it
+        // can be updated to when there is one - and a note, which here says where updates come from.
         binding.textPackage.text = clone.app.packageName
-        binding.textStatus.text = when {
-            clone.original == null -> context.getString(R.string.clone_original_missing, clone.originalPackage)
-            clone.updateAvailable -> context.getString(
-                R.string.clone_update_available,
-                clone.app.versionName.orEmpty(),
-                clone.original.versionName.orEmpty(),
-            )
-            else -> context.getString(R.string.clone_up_to_date, clone.app.versionName.orEmpty())
+        val version = clone.app.versionName.orEmpty()
+        val newer = clone.tracked?.app?.latestVersion ?: clone.original?.versionName.orEmpty()
+        binding.textStatus.text = if (clone.updateAvailable) "$version → $newer" else version
+        binding.textStatus.setTextColor(
+            context.themeColor(if (clone.updateAvailable) AppCompatR.attr.colorPrimary else MaterialR.attr.colorOnSurfaceVariant),
+        )
+        binding.textNote.isVisible = true
+        binding.textNote.text = when {
+            clone.tracked != null -> context.getString(R.string.clone_from_source, clone.tracked.sourceName())
+            clone.original != null -> context.getString(R.string.clone_from_original)
+            // Nothing to rebuild it from: it stays at this version.
+            else -> context.getString(R.string.clone_no_updates)
         }
+        binding.textNote.setTextColor(
+            context.themeColor(if (clone.canRebuild) MaterialR.attr.colorOnSurfaceVariant else AppCompatR.attr.colorError),
+        )
         binding.progress.isVisible = updating == clone.app.packageName
         binding.root.setOnClickListener { onClick(clone) }
 
@@ -58,6 +69,6 @@ class CloneAdapter(
         override fun areItemsTheSame(old: CloneInfo, new: CloneInfo) = old.app.packageName == new.app.packageName
         override fun areContentsTheSame(old: CloneInfo, new: CloneInfo) =
             old.app.label == new.app.label && old.app.versionCode == new.app.versionCode &&
-                old.original?.versionCode == new.original?.versionCode
+                old.original?.versionCode == new.original?.versionCode && old.tracked?.app == new.tracked?.app
     }
 }

@@ -56,9 +56,19 @@
                 android:id="@+id/textStatus"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 tools:text="Version 2.22" />
+
+            <!-- Where a clone gets its updates from. Only clones have this line. -->
+            <TextView
+                android:id="@+id/textNote"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone"
+                tools:text="From the original" />
 
         </LinearLayout>
 

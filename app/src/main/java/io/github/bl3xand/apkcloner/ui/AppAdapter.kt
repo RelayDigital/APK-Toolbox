@@ -1,11 +1,11 @@
 package io.github.bl3xand.apkcloner.ui
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.data.ApkSource
 import io.github.bl3xand.apkcloner.databinding.ItemAppBinding
 import kotlinx.coroutines.Job
@@ -26,9 +26,9 @@ class AppAdapter(
         val app = getItem(position)
         holder.binding.textLabel.text = app.label
         holder.binding.textPackage.text = app.packageName
-        // The same third line as a clone has, minus its "up to date" part.
-        holder.binding.textStatus.text =
-            holder.binding.root.context.getString(R.string.app_version, app.versionName ?: app.versionCode.toString())
+        // The same third line every list of apps has: the version, with nothing around it.
+        holder.binding.textStatus.text = app.versionName ?: app.versionCode.toString()
+        holder.binding.textNote.visibility = View.GONE
         holder.binding.root.setOnClickListener { onClick(app) }
         holder.iconJob?.cancel()
         holder.iconJob = icons.load(app, holder.binding.imageIcon)

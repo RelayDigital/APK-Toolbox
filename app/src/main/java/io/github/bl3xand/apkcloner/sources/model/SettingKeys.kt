@@ -18,6 +18,7 @@ object SettingKeys {
 
     // Installing an app as a clone of itself. These are this app's own: the reference app ignores them.
     const val CLONE_PACKAGE = "clonePackage"
+    const val CLONE_ACTIVE = "cloneActive"
     const val CLONE_NAME = "cloneName"
     const val CLONE_BADGE = "cloneBadge"
     const val CLONE_REMOVED_PERMISSIONS = "cloneRemovedPermissions"

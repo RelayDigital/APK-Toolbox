@@ -20,6 +20,7 @@ import io.github.bl3xand.apkcloner.sources.net.Http
 
 class VivoAppStore : AppSource("VivoAppStore") {
     override val name: String get() = Tr.get("vivoAppStore")
+    override val shortName: String get() = "vivo"
 
     init {
         hosts = listOf("h5.appstore.vivo.com.cn", "h5coml.vivo.com.cn", "detail-browser.vivo.com.cn")

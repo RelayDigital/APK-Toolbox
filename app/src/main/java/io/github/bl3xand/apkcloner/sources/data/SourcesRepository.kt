@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Color
+import io.github.bl3xand.apkcloner.clone.ApkCloner
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.doStringsMatchUnderRegEx
@@ -72,6 +73,16 @@ class SourcesRepository private constructor(private val context: Context) {
 
     fun all(): List<AppEntry> = synchronized(lock) { entries.values.toList() }
 
+    /**
+     * The tracked apps that are installed as clones of themselves, by the clone's package. Such a
+     * clone is kept up to date from the app's source, not from an installed original.
+     */
+    fun installedAsClones(): Map<String, AppEntry> {
+        // Asked from outside the tab too, where nothing may have been read yet.
+        if (!loadedOnce) runCatching { loadApps() }
+        return all().mapNotNull { entry -> entry.app.clonePackage?.let { it to entry } }.toMap()
+    }
+
     private fun publish() {
         _apps.value = all()
     }
@@ -90,6 +101,25 @@ class SourcesRepository private constructor(private val context: Context) {
             )
         } catch (e: Exception) {
             null
+        }
+    }
+
+    /**
+     * Brings "installed as a clone" in line with the device. A clone that is set up and is there
+     * is what the app is installed as; one that is not there (never installed, or removed since)
+     * is not, and the app is again what is installed under its own package, if anything.
+     */
+    private fun settleClone(app: TrackedApp): TrackedApp {
+        val target = app.cloneTarget ?: return app
+        val info = installedInfo(target)
+        val isClone = info != null && (
+            app.clonePackage != null ||
+                info.applicationInfo?.sourceDir?.let(ApkCloner::readMetadata)?.originalPackage == app.id
+            )
+        return when {
+            isClone == (app.clonePackage != null) -> app
+            isClone -> app.withSetting(SettingKeys.CLONE_ACTIVE, true)
+            else -> app.withSetting(SettingKeys.CLONE_ACTIVE, false).withSetting(SettingKeys.CLONE_SOURCE_SIGNER, "")
         }
     }
 
@@ -189,8 +219,12 @@ class SourcesRepository private constructor(private val context: Context) {
         return if (modified) app else null
     }
 
+    @Volatile
+    private var loadedOnce = false
+
     fun loadApps() {
         _loading.value = true
+        loadedOnce = true
         try {
             val removedIds = ArrayList<String>()
             val corrected = ArrayList<TrackedApp>()
@@ -212,6 +246,10 @@ class SourcesRepository private constructor(private val context: Context) {
                 }
                 try {
                     val sourceType = sourceOf(app).sourceIdentifier
+                    settleClone(app).takeIf { it != app }?.let {
+                        app = it
+                        corrected.add(it)
+                    }
                     val info = installedInfo(app.devicePackage)
                     reconcileInstallStatus(app, info)?.let {
                         app = it
@@ -267,7 +305,7 @@ class SourcesRepository private constructor(private val context: Context) {
         reuseInstalledInfo: Boolean = false,
     ) {
         for (input in apps) {
-            var app = input
+            var app = settleClone(input)
             val existing = entry(app.id)
             // Not when the app has just been told to live under another package.
             val canReuse = reuseInstalledInfo && existing != null && existing.app.devicePackage == app.devicePackage

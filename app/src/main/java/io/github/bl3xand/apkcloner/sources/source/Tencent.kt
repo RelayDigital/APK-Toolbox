@@ -16,6 +16,7 @@ import io.github.bl3xand.apkcloner.sources.net.Http
 
 class Tencent : AppSource("Tencent") {
     override val name: String get() = Tr.get("tencentAppStore")
+    override val shortName: String get() = "Tencent"
 
     init {
         hosts = listOf("sj.qq.com")

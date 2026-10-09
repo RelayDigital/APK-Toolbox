@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import io.github.bl3xand.apkcloner.clone.ApkCloner
 import io.github.bl3xand.apkcloner.clone.CloneMetadata
+import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import java.io.File
 
 class AppRepository(private val context: Context, private val cloner: ApkCloner) {
@@ -20,12 +21,13 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
 
         // Clones are recognised by the key they are signed with rather than by a local database,
         // so the list survives this app's data being cleared.
+        val tracked = runCatching { SourcesRepository.get(context).installedAsClones() }.getOrDefault(emptyMap())
         val clones = packages.mapNotNull { info ->
             val signers = info.signingInfo?.apkContentsSigners ?: return@mapNotNull null
             val key = signers.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) } ?: return@mapNotNull null
             val source = sources.getValue(info.packageName)
             val metadata = ApkCloner.readMetadata(source.apkPaths.first()) ?: return@mapNotNull null
-            CloneInfo(source, metadata.originalPackage, sources[metadata.originalPackage], key, metadata.badged, metadata.removedPermissions)
+            CloneInfo(source, metadata.originalPackage, sources[metadata.originalPackage], key, metadata.badged, metadata.removedPermissions, tracked[info.packageName])
         }
         return InstalledApps(
             apps = sources.values.sortedBy { it.label.lowercase() },

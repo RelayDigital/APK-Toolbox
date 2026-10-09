@@ -11,6 +11,7 @@ import io.github.bl3xand.apkcloner.sources.data.DownloadState
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import io.github.bl3xand.apkcloner.clone.ApkCloner
 import io.github.bl3xand.apkcloner.data.AppRepository
+import io.github.bl3xand.apkcloner.sources.data.certHashesOf
 import io.github.bl3xand.apkcloner.sources.install.InstallPrompts
 import io.github.bl3xand.apkcloner.sources.install.SourcesInstaller
 import io.github.bl3xand.apkcloner.sources.model.CheckUpdatesException
@@ -309,28 +310,76 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
 
     /**
      * Switches installing [id] as a clone of itself on or off. Switched on, a clone of the app
-     * that is already on the device - made from the installed original, say - is taken over with
-     * what it was made with: it is the one kept up to date from the source from then on.
+     * that is already on the device - [existingClone], or else any that was made from the
+     * installed original - is taken over with what it was made with: it is the one kept up to
+     * date from the source from then on.
      */
-    fun setCloneMode(id: String, on: Boolean) = saving {
-        val app = repo.entry(id)?.app ?: return@saving
-        if (on == (app.clonePackage != null)) return@saving
-        // Under another package nothing of this source is installed yet.
-        var updated = app.withSetting(SettingKeys.CLONE_SOURCE_SIGNER, "")
+    fun setCloneMode(id: String, on: Boolean, existingClone: String? = null) = saving { applyCloneMode(id, on, existingClone) }
+
+    private fun applyCloneMode(id: String, on: Boolean, existingClone: String? = null) {
+        val app = repo.entry(id)?.app ?: return
+        if (on == (app.cloneTarget != null)) return
+        var updated = app.withSetting(SettingKeys.CLONE_SOURCE_SIGNER, "").withSetting(SettingKeys.CLONE_ACTIVE, false)
         if (on) {
             val context = getApplication<Application>()
-            val existing = runCatching { AppRepository(context, ApkCloner(context)).clonesOf(id) }.getOrDefault(emptyMap()).entries.firstOrNull()
+            val clones = runCatching { AppRepository(context, ApkCloner(context)).clonesOf(id) }.getOrDefault(emptyMap())
+            val existing = clones.entries.firstOrNull { it.key == existingClone } ?: clones.entries.firstOrNull()
+            // Without a clone to take over this only sets one up: nothing about the app changes
+            // until the clone is installed.
             updated = updated.withSetting(SettingKeys.CLONE_PACKAGE, existing?.key ?: "$id.clone")
             if (existing != null) {
-                updated = updated.withSetting(SettingKeys.CLONE_BADGE, existing.value.badged)
+                updated = updated.withSetting(SettingKeys.CLONE_ACTIVE, true)
+                    .withSetting(SettingKeys.CLONE_BADGE, existing.value.badged)
                     .withSetting(SettingKeys.CLONE_REMOVED_PERMISSIONS, existing.value.removedPermissions.sorted().joinToString(","))
+                    // The clone was made from the original that is installed: what the source
+                    // offers has to be signed as that one is, or it is not the same app.
+                    .withSetting(SettingKeys.CLONE_SOURCE_SIGNER, certHashesOf(repo.installedInfo(id)).joinToString(","))
             }
         } else {
             updated = updated.withSetting(SettingKeys.CLONE_PACKAGE, "")
         }
         repo.saveApps(listOf(updated))
-        AppLog.info("$id is now installed ${updated.clonePackage?.let { "as the clone $it" } ?: "as it is"}")
+        AppLog.info("$id: ${updated.clonePackage?.let { "installed as the clone $it" } ?: updated.cloneTarget?.let { "set up to be installed as the clone $it" } ?: "installed as it is"}")
     }
+
+    /**
+     * Finds a source for a clone whose original came from somewhere this app cannot fetch from -
+     * Google Play above all - and has the clone kept up to date from there, so that it goes on
+     * without the original. The stores that carry the builds of other stores are asked by the
+     * app's package; the first that has it is tracked, with [clonePackage] as what it is installed as.
+     */
+    fun trackClone(originalPackage: String, clonePackage: String) = launchReporting {
+        if (clonePackage in _lookingUp.value) return@launchReporting
+        _lookingUp.update { it + clonePackage }
+        val found = try {
+            findSourceFor(originalPackage, clonePackage)
+        } finally {
+            _lookingUp.update { it - clonePackage }
+        }
+        _events.tryEmit(SourcesEvent.Message(Tr.get(if (found) "cloneTracked" else "cloneNoSource")))
+    }
+
+    private val _lookingUp = MutableStateFlow<Set<String>>(emptySet())
+
+    /** The clones, by package, a source is being looked for right now. */
+    val lookingUp: StateFlow<Set<String>> = _lookingUp
+
+    private suspend fun findSourceFor(originalPackage: String, clonePackage: String): Boolean =
+        withContext(Dispatchers.IO) {
+            if (repo.entry(originalPackage) == null) {
+                for (url in MIRRORS.map { it.replace("{}", originalPackage) }) {
+                    val app = SourceRegistry.getAppsByUrlNaive(listOf(url)).first.firstOrNull { it.id == originalPackage } ?: continue
+                    repo.saveApps(listOf(app), onlyIfExists = false)
+                    AppLog.info("The clone $clonePackage of $originalPackage is tracked from $url")
+                    break
+                }
+            }
+            if (repo.entry(originalPackage) != null) applyCloneMode(originalPackage, true, clonePackage)
+            repo.entry(originalPackage)?.app?.clonePackage == clonePackage
+        }
+
+    /** Removes [packageName] through the system prompt; true when it is gone afterwards. */
+    suspend fun uninstallPackage(packageName: String): Boolean = installer.uninstallApp(packageName)
 
     /** What the clone [id] is installed as is made with; with [install] it is then installed. */
     fun setCloneOptions(id: String, packageName: String, name: String, badge: Boolean, install: Boolean = false) = saving {
@@ -341,7 +390,10 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
                     .withSetting(SettingKeys.CLONE_BADGE, badge),
             ),
         )
-        if (install) obtain(listOf(id))
+        if (install) {
+            installer.installAsClone(id)
+            obtain(listOf(id))
+        }
     }
 
     /**
@@ -357,7 +409,8 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
                     .withSetting(SettingKeys.CLONE_KNOWN_PERMISSIONS, (app.cloneKnownPermissions + seen).sorted().joinToString(",")),
             ),
         )
-        if (removed != app.cloneRemovedPermissions && repo.entry(id)?.installedInfo != null) obtain(listOf(id))
+        // A clone that is only set up is made when it is installed.
+        if (removed != app.cloneRemovedPermissions && app.clonePackage != null) obtain(listOf(id))
     }
 
     /** Whether [packageName] cannot be the clone of [id]: another app has it, tracked or installed. */
@@ -515,6 +568,24 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         if (app.installedVersion != null && !repo.isVersionDetectionPossible(app, entry?.installedInfo)) {
             app.copy(installedVersion = app.latestVersion)
         } else app
+    }
+
+    private companion object {
+        /** Stores that hand out, by package name, the builds other stores publish. */
+        /**
+         * Asked in this order, the ones that carry what Google Play has first. Only stores are
+         * here: a repository or a channel found by a package name could be anybody's.
+         */
+        val MIRRORS = listOf(
+            "https://apkpure.net/app/{}",
+            "https://apkcombo.com/app/{}",
+            "https://www.rustore.ru/catalog/app/{}",
+            "https://galaxystore.samsung.com/detail/{}",
+            "https://sj.qq.com/appdetail/{}",
+            "https://www.coolapk.com/apk/{}",
+            "https://f-droid.org/packages/{}",
+            "https://apt.izzysoft.de/fdroid/index/apk/{}",
+        )
     }
 
     fun emit(event: SourcesEvent) {

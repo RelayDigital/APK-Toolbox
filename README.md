@@ -155,9 +155,10 @@ clones that are behind up to date one after another.
 
 An app that asks for more than you want to give it — and cannot be denied
 the network, say — does not have to be installed at all. The page of a
-tracked app has a switch, **Install as a clone**. Switched on, it shows what
-a clone is always made with — the package, the name, the mark on the icon
-and **Permissions** — and **Install** does the rest:
+tracked app that is not installed has a switch, **Install as a clone**.
+Switched on, it shows what a clone is always made with — the package, the
+name, the mark on the icon and **Permissions** — and **Install** does the
+rest:
 
 - Every release is downloaded, rebuilt as a clone — under the clone's
   package, without the permissions you switched off — and only the clone is
@@ -171,12 +172,27 @@ and **Permissions** — and **Install** does the rest:
   page as **New permissions**, and comes first in the list, marked as new.
 - If the publisher's signing key changes between releases, the update is
   refused the way the system would refuse it for the app itself.
-- A clone you made earlier from an installed app is picked up when the
-  switch is turned on: it becomes the one that is updated from the source,
-  with its data, and the original can be removed. This is also the way to
-  keep a clone of an app from Google Play current without the original:
-  Google Play hands out no files, so track the app from a source that
-  carries it.
+
+An app that is installed already has **Reinstall as a clone** instead. A
+clone is a separate app that starts empty — data and sign-ins do not move
+over — so this asks first. Nothing about the app changes until the clone is
+really installed: set up and left at that, the app stays what it was. The
+original and the clone can live side by side; **Delete the original app**
+removes the former, **Back to the original** returns to it.
+
+### Clones that outlive their original
+
+A clone made from an installed app is rebuilt from that app, so it stops
+being updated when the original is removed. The **Clones** list says where
+each clone gets its updates: *From the original*, *From a source*, or *Not
+updated*. Google Play hands its files to nobody else, but the same builds
+are carried by other stores: **Update from a source** on a clone's page
+looks the app up by its package in APKPure, APKCombo, RuStore, Galaxy Store
+and others, one after another, and has the clone kept up to date from the
+first that has it, in the Sources tab. The original can then be removed. A
+clone of an app you track already is picked up the same way when its switch
+is turned on. An update signed by someone else than the installed original
+is refused.
 
 A clone is signed with APK Toolbox's key, not the publisher's: sign-in with
 Google, payments and integrity checks may not work in it.

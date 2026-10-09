@@ -49,6 +49,7 @@ class FDroidRepo : AppSource("FDroidRepo") {
     private class Index(val baseUrl: String, val entries: List<IndexEntry>)
 
     override val name: String get() = Tr.get("fdroidThirdPartyRepo")
+    override val shortName: String get() = "F-Droid repo"
 
     init {
         canSearch = true

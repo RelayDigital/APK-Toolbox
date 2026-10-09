@@ -47,10 +47,17 @@ data class TrackedApp(
             (installedVersion != null && !settings.getBool(SettingKeys.VERSION_DETECTION))
 
     /**
-     * The package this app is installed under when it is installed as a clone - rebuilt under
-     * another name, without the permissions the user took away - instead of as it is. Null otherwise.
+     * The package of the clone this app is set up to be installed as - rebuilt under another
+     * name, without the permissions the user took away - whether or not that has happened yet.
      */
-    val clonePackage: String? get() = settings.getStringOrNull(SettingKeys.CLONE_PACKAGE)?.takeIf { it.isNotBlank() }
+    val cloneTarget: String? get() = settings.getStringOrNull(SettingKeys.CLONE_PACKAGE)?.takeIf { it.isNotBlank() }
+
+    /**
+     * The package this app is installed under as a clone, once it is: null while the clone is
+     * only set up. Until the clone is on the device nothing about the app changes - what is
+     * installed as the app itself stays what is shown, checked and updated.
+     */
+    val clonePackage: String? get() = cloneTarget?.takeIf { settings.getBool(SettingKeys.CLONE_ACTIVE) }
 
     /** The package to look for on the device: the clone's when the app is installed as one. */
     val devicePackage: String get() = clonePackage ?: id

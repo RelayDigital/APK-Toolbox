@@ -19,6 +19,8 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 
 class SamsungGalaxyStore : AppSource("SamsungGalaxyStore") {
+    override val shortName: String get() = "Galaxy Store"
+
     init {
         fixedName = "Samsung Galaxy Store"
         hosts = listOf(

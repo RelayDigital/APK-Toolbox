@@ -15,6 +15,8 @@ import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.install.InstallReceiver
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -69,6 +71,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         tempDir.deleteRecursively()
         tempDir.mkdirs()
         viewModelScope.launch { InstallReceiver.sessionFinished.collect { refresh() } }
+        viewModelScope.launch { SourcesRepository.get(application).apps.drop(1).collect { onTrackedAppsChanged() } }
+    }
+
+    /**
+     * A clone can be one that a source keeps current, and what the Sources tab does to it shows
+     * here too. Who tracks which clone is cheap to tell again; what is installed is only read
+     * again when a tracked clone was installed, updated or removed.
+     */
+    private fun onTrackedAppsChanged() {
+        if (!loaded) return
+        val tracked = SourcesRepository.get(getApplication()).installedAsClones()
+        val known = allClones.mapTo(HashSet()) { it.app.packageName }
+        val reinstalled = allClones.any { tracked[it.app.packageName]?.app?.installedVersion != it.tracked?.app?.installedVersion } ||
+            tracked.any { (packageName, entry) -> packageName !in known && entry.installedInfo != null }
+        if (reinstalled) {
+            refresh()
+        } else if (allClones.any { tracked[it.app.packageName]?.app != it.tracked?.app }) {
+            allClones = allClones.map { it.withTracked(tracked[it.app.packageName]) }
+            publishApps()
+        }
     }
 
     fun setPermissions(fileAccess: Boolean, canInstall: Boolean) {
@@ -140,7 +162,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             allApps = installed.apps
             allClones = installed.clones
             publishApps()
-            val outdated = allClones.filter { it.updateAvailable }
+            // A clone that a source keeps current is updated from there, with the rest of the tracked apps.
+            val outdated = allClones.filter { it.updateAvailable && it.tracked == null }
             AppLog.info("Clones checked: ${allClones.size}, behind: ${outdated.size}")
             if (outdated.isEmpty()) _events.tryEmit(MainEvent.Message(R.string.clones_up_to_date)) else updateClones(outdated)
         }

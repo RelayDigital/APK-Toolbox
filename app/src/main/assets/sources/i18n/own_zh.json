@@ -211,5 +211,12 @@
   "srcCheckAgain": "再次检查",
   "actCloneInstall": "以克隆方式安装",
   "cloneInstallTaken": "{} 已被其他应用占用,它不是此应用的克隆",
-  "cloneNewPermissions": "新增权限"
+  "cloneNewPermissions": "新增权限",
+  "cloneTracked": "克隆现在通过“来源”标签更新",
+  "cloneNoSource": "在各商店中均未找到。请在“来源”中从其发布处添加该应用:其克隆会被接管。",
+  "cloneReinstall": "重新安装为克隆",
+  "cloneReinstallMessage": "应用目前按原样安装。克隆是一个从零开始的独立应用:已安装应用的数据、登录状态和设置不会转移。已安装的应用会保留,直到你将其移除。克隆使用 APK Toolbox 的密钥签名,因此 Google 登录、支付及类似校验可能无法使用。",
+  "cloneBackToApp": "恢复原应用",
+  "cloneBackToAppMessage": "应用将按发布者的原样安装,包含全部权限,作为从零开始的独立应用:克隆的数据不会转移。克隆会保留,直到你将其移除。",
+  "cloneDeleteOriginal": "删除原应用"
 }

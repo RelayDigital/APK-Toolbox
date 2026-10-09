@@ -23,6 +23,7 @@ import org.mindrot.jbcrypt.BCrypt
  */
 class CoolApk : AppSource("CoolApk") {
     override val name: String get() = Tr.get("coolApk")
+    override val shortName: String get() = "CoolApk"
 
     init {
         hosts = listOf("coolapk.com")

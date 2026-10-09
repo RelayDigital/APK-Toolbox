@@ -82,6 +82,35 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="2"
+                        android:text="@string/detail_updated_from"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    <TextView
+                        android:id="@+id/textUpdatedFrom"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="3"
+                        android:textAlignment="viewEnd"
+                        android:textAppearance="?attr/textAppearanceBodyLarge"
+                        tools:text="GitHub" />
+
+                </LinearLayout>
+                <com.google.android.material.divider.MaterialDivider
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingVertical="10dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="2"
+                        android:id="@+id/textOriginalVersionTitle"
                         android:text="@string/detail_original_version"
                         android:textAppearance="?attr/textAppearanceBodyMedium"
                         android:textColor="?attr/colorOnSurfaceVariant" />
@@ -164,6 +193,16 @@
             layout="@layout/view_clone_permissions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
+
+        <!-- For a clone that only an installed original keeps current. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonTrack"
+            style="@style/Widget.ApkCloner.Button.Action"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/clone_track"
+            app:icon="@drawable/ic_search" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

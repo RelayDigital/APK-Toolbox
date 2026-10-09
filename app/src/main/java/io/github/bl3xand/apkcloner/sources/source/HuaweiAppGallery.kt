@@ -36,6 +36,7 @@ class HuaweiAppGallery : AppSource("HuaweiAppGallery") {
     }
 
     override val name: String get() = Tr.get("huaweiAppGallery")
+    override val shortName: String get() = "AppGallery"
 
     init {
         hosts = listOf("appgallery.huawei.com", "appgallery.cloud.huawei.com", "appgallery.huawei.ru")

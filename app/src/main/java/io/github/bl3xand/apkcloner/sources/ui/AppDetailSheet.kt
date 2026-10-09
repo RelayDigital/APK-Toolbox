@@ -35,6 +35,7 @@ import io.github.bl3xand.apkcloner.sources.telegram.TelegramClient
 import io.github.bl3xand.apkcloner.ui.add
 import io.github.bl3xand.apkcloner.ui.clonePermissionsLabel
 import io.github.bl3xand.apkcloner.ui.column
+import io.github.bl3xand.apkcloner.ui.confirm
 import io.github.bl3xand.apkcloner.ui.dp
 import io.github.bl3xand.apkcloner.ui.expandFully
 import io.github.bl3xand.apkcloner.ui.label
@@ -237,24 +238,53 @@ class AppDetailSheet : BottomSheetDialogFragment() {
     private fun renderClone(entry: AppEntry, offered: Boolean, busy: Boolean) {
         val context = requireContext()
         val app = entry.app
+        // Installed as a clone, or only set up to be: until the clone is on the device the page
+        // stays about the app that is there.
         val active = offered && app.clonePackage != null
-        val installed = active && entry.installedInfo != null
-        binding.switchClone.isVisible = offered
+        val draft = offered && !active && app.cloneTarget != null
+        val originalInstalled = offered && (if (active) viewModel.repo.installedInfo(app.id) else entry.installedInfo) != null
+        // The switch is for an install that is still ahead. For an app that is there already,
+        // going over to a clone is a reinstall: a button says so and asks first, and only then
+        // is there a clone to set up.
+        binding.switchClone.isVisible = draft || (offered && !active && !originalInstalled)
         binding.switchClone.text = Tr.get("actCloneInstall")
         binding.switchClone.setOnCheckedChangeListener(null)
-        binding.switchClone.isChecked = active
+        binding.switchClone.isChecked = draft
         binding.switchClone.isEnabled = !busy
         binding.switchClone.setOnCheckedChangeListener { _, on -> switchClone(app, on) }
 
+        val reinstall = active || (offered && !draft && originalInstalled)
+        binding.buttonCloneMode.isVisible = reinstall
+        binding.buttonCloneMode.isEnabled = !busy
+        binding.buttonCloneMode.text = Tr.get(if (active) "cloneBackToApp" else "cloneReinstall")
+        // Under the info card it is the first button; under the clone's own buttons, one more of them.
+        binding.buttonCloneMode.updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = context.dp(if (active) 4 else 12) }
+        binding.buttonCloneMode.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch {
+                val message = Tr.get(if (active) "cloneBackToAppMessage" else "cloneReinstallMessage")
+                if (context.confirm(binding.buttonCloneMode.text, message)) viewModel.setCloneMode(appId, !active)
+            }
+        }
+        binding.buttonDeleteOriginal.isVisible = active && originalInstalled
+        binding.buttonDeleteOriginal.isEnabled = !busy
+        binding.buttonDeleteOriginal.text = Tr.get("cloneDeleteOriginal")
+        binding.buttonDeleteOriginal.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewModel.uninstallPackage(app.id)
+                rerender()
+            }
+        }
+        binding.cloneButtonsEnd.isVisible = reinstall
+
         val options = binding.cloneOptions
-        options.root.isVisible = active && !installed
+        options.root.isVisible = draft
         if (options.root.isVisible) {
             // What is being typed is left alone: a save in between must not move the cursor.
             fun show(edit: TextInputEditText, value: String) {
                 if (!edit.hasFocus() && edit.text?.toString() != value) edit.setText(value)
                 edit.setOnFocusChangeListener { _, focused -> if (!focused) saveCloneOptions(install = false) }
             }
-            show(options.editPackage, app.clonePackage.orEmpty())
+            show(options.editPackage, app.cloneTarget.orEmpty())
             // The app's own name unless another one was given.
             show(options.editName, app.settings.getString(SettingKeys.CLONE_NAME).ifEmpty { entry.name })
             options.editPackage.doAfterTextChanged { options.layoutPackage.error = null }
@@ -267,7 +297,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         }
 
         val permissions = binding.clonePermissions
-        permissions.root.isVisible = installed
+        permissions.root.isVisible = active
         permissions.buttonPermissions.text = context.clonePermissionsLabel(app.cloneRemovedPermissions.size)
         permissions.buttonPermissions.isEnabled = !busy
         permissions.buttonPermissions.setOnClickListener { pickClonePermissions() }
@@ -305,12 +335,12 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         val error = when {
             !CloneRequest.PACKAGE_NAME.matches(target) || target == app.id -> getString(R.string.error_invalid_package)
             // Free, or a clone of this very app: anything else there is someone else's.
-            target != app.clonePackage && viewModel.isTakenForClone(app.id, target) -> Tr.get("cloneInstallTaken", target)
+            target != app.cloneTarget && viewModel.isTakenForClone(app.id, target) -> Tr.get("cloneInstallTaken", target)
             else -> null
         }
         options.layoutPackage.error = error
         if (error != null) return
-        val changed = target != app.clonePackage || name != app.settings.getString(SettingKeys.CLONE_NAME) ||
+        val changed = target != app.cloneTarget || name != app.settings.getString(SettingKeys.CLONE_NAME) ||
             badge != app.settings.getBool(SettingKeys.CLONE_BADGE)
         if (changed || install) viewModel.setCloneOptions(appId, target, name, badge, install)
     }
@@ -386,7 +416,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
 
         binding.infoRows.removeAllViews()
         infoRow(
-            Tr.get("detSource"), listOfNotNull(source?.name, entry.author.takeIf { it.isNotBlank() && it != source?.name }).joinToString(" · "), first = true,
+            Tr.get("detSource"), listOfNotNull(source?.shortName, entry.author.takeIf { it.isNotBlank() && it != source?.name && it != source?.shortName }).joinToString(" · "), first = true,
         ) { context.openUrl(app.url) }
         infoRow(
             Tr.get("detInstalled"),
@@ -423,10 +453,14 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         renderClone(entry, offered = !candidate && !trackOnly, busy = busy)
         binding.actions.progress.show(busy, download?.progress.takeUnless { removing })
 
-        val canAct = !busy && !conflict && signInNote == null && (installed == null || installed != app.latestVersion) && !repo.areDownloadsRunning()
+        // A clone that is set up is installed next to whatever is there, so neither the version
+        // of that nor a clash of signers stands in its way.
+        val cloneAhead = binding.cloneOptions.root.isVisible
+        val canAct = !busy && signInNote == null && !repo.areDownloadsRunning() &&
+            (cloneAhead || (!conflict && (installed == null || installed != app.latestVersion)))
         // A conflict is shown as a fresh install of the added build (the installed one must go
         // first), so the action reads "Install" and is blocked until the clashing build is removed.
-        val asInstall = installed == null || conflict
+        val asInstall = installed == null || conflict || cloneAhead
         val label = when {
             asInstall -> Tr.get(if (trackOnly) "markInstalled" else "install")
             else -> Tr.get(if (trackOnly) "markUpdated" else "update")

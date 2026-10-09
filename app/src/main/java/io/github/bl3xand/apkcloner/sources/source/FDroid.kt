@@ -25,6 +25,7 @@ import org.jsoup.Jsoup
 
 class FDroid : AppSource("FDroid") {
     override val name: String get() = Tr.get("fdroid")
+    override val shortName: String get() = "F-Droid"
 
     init {
         hosts = listOf("f-droid.org")

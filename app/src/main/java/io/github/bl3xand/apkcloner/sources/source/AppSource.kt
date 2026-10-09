@@ -39,6 +39,9 @@ abstract class AppSource(
     var hostIdenticalDespiteAnyChange = false
     open val name: String get() = fixedName ?: sourceIdentifier
 
+    /** The name for where there is room for a word or two: next to an app in a list, in a table. */
+    open val shortName: String get() = name
+
     /**
      * What is missing before this source can be asked for anything - an account that has to be
      * signed in to - or null when nothing is. Answered at once, without asking the net: it is
