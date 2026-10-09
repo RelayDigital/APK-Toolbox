@@ -55,6 +55,7 @@ object TelegramClient : TelegramGateway {
     private const val RETRY_PAUSE_MS = 3_000L
     private const val PROGRESS_EVERY_MS = 250L
     private const val VERIFY_EVERY_MS = 60_000L
+    private const val VERIFY_TIMEOUT_S = 10L
 
     /** How TDLib counts messages against the numbers in their links. */
     private const val MESSAGE_ID_SHIFT = 20
@@ -70,6 +71,13 @@ object TelegramClient : TelegramGateway {
 
     @Volatile
     private var lastVerified = 0L
+
+    private val _answers = MutableStateFlow(true)
+
+    /** False while the last check of the session got no answer; says nothing about the session itself. */
+    val answers: StateFlow<Boolean> = _answers.asStateFlow()
+
+    private val watchdog = java.util.concurrent.Executors.newSingleThreadScheduledExecutor()
 
     /** Set while an unfinished sign-in is being dropped, which also ends in a closed client. */
     @Volatile
@@ -284,19 +292,35 @@ object TelegramClient : TelegramGateway {
     }
 
     /**
-     * Asks Telegram who is signed in. The answer does not matter: a session that was ended from
-     * another device is found out by asking, and the client then says so through [auth]. Left
-     * alone it may go on believing it is signed in until the next request it makes.
+     * Asks Telegram who is signed in, to find out whether the session still holds: one that was
+     * ended from another device is only noticed by asking, and the client then says so through
+     * [auth]. No answer at all - a bad connection, say - is told through [answers]; the session
+     * is left alone then, and the next check that gets through puts things right.
+     *
+     * Asked once a minute at most unless [force]d. Returns at once; what comes of it arrives later.
      */
-    fun verifySession() {
+    fun verifySession(force: Boolean = false) {
         val now = System.currentTimeMillis()
-        if (_auth.value !is TelegramAuth.Ready || now - lastVerified < VERIFY_EVERY_MS) return
+        if (_auth.value !is TelegramAuth.Ready || (!force && now - lastVerified < VERIFY_EVERY_MS)) return
         lastVerified = now
-        client?.send(TdApi.GetMe()) { result ->
-            if (result is TdApi.Error && TelegramErrors.isAccountRefused(result.code, result.message.orEmpty())) {
-                AppLog.warn("Telegram: the session is no longer accepted: ${result.message}")
+        val running = client ?: return
+        val answered = java.util.concurrent.atomic.AtomicBoolean(false)
+        running.send(TdApi.GetMe()) { result ->
+            answered.set(true)
+            if (result is TdApi.Error) {
+                AppLog.warn("Telegram: asked who is signed in, answered ${result.code} ${result.message}")
+                // A refused session is closed by the client itself, which is told through [auth].
+                _answers.value = TelegramErrors.isAccountRefused(result.code, result.message.orEmpty())
+            } else {
+                _answers.value = true
             }
         }
+        watchdog.schedule({
+            if (!answered.get()) {
+                AppLog.warn("Telegram: no answer to the check of the session")
+                _answers.value = false
+            }
+        }, VERIFY_TIMEOUT_S, TimeUnit.SECONDS)
     }
 
     fun signOut() {

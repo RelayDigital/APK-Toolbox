@@ -202,5 +202,7 @@
   "telegramFilesFound": "Files found: {}",
   "telegramErrArch": "This file is built for {}, and this device runs {}. Choose another file.",
   "removeFromObtainium": "Remove from APK Toolbox",
-  "uninstallFromDevice": "Uninstall from the device"
+  "uninstallFromDevice": "Uninstall from the device",
+  "telegramCheckAgain": "Check the sign-in again",
+  "telegramNoAnswerState": "Telegram does not answer, so the sign-in could not be checked."
 }

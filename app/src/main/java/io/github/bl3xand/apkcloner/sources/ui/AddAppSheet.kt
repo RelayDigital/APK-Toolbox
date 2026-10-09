@@ -56,6 +56,7 @@ import io.github.bl3xand.apkcloner.ui.showError
 import io.github.bl3xand.apkcloner.ui.switchRow
 import io.github.bl3xand.apkcloner.ui.themeColor
 import io.github.bl3xand.apkcloner.ui.toast
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -507,6 +508,10 @@ class AddAppSheet : BottomSheetDialogFragment() {
                 dismissAllowingStateLoss()
             } catch (e: CancellationSignal) {
                 AppLog.info("Adding $userInput was cancelled")
+            } catch (e: CancellationException) {
+                // The link was cleared or the sheet left: nothing went wrong, and nothing is said.
+                AppLog.debug("Adding $userInput was dropped")
+                throw e
             } catch (e: Exception) {
                 AppLog.error("Adding $userInput failed", e)
                 context.showError(e)
@@ -585,6 +590,8 @@ class AddAppSheet : BottomSheetDialogFragment() {
                 val chosen = dialogs.pickFromList("${Tr.get("search")}: $query", merged.values.toList())?.firstOrNull() ?: return@launch
                 overrideSource = sourceOf[chosen]
                 urlEdit.setText(chosen)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 context.showError(e)
             } finally {

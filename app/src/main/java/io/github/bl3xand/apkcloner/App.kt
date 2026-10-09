@@ -18,6 +18,7 @@ class App : Application() {
         Telegram.gateway = TelegramClient
         TelegramClient.onSessionEnded = { Messages.show(this, Tr.get("telegramErrSession")) }
         clearDownloads()
+        checkTelegram()
         AppLog.info("APK Toolbox ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) started")
         // A crash is the one thing the log must not miss; the system still gets to handle it.
         val previous = Thread.getDefaultUncaughtExceptionHandler()
@@ -39,6 +40,12 @@ class App : Application() {
                 TelegramClient.downloadsDir(this).deleteRecursively()
             }
         }
+    }
+
+    /** A session left by an earlier run is opened and asked whether it still holds. */
+    private fun checkTelegram() {
+        if (!TelegramClient.hasSession) return
+        thread(name = "telegram-check") { TelegramClient.isSignedIn }
     }
 
     private companion object {

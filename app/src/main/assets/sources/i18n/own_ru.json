@@ -203,5 +203,7 @@
   "telegramFilesFound": "Найдено файлов: {}",
   "telegramErrArch": "Этот файл собран для {}, а устройство поддерживает {}. Выберите другой файл.",
   "removeFromObtainium": "Удалить из APK Toolbox",
-  "uninstallFromDevice": "Удалить с устройства"
+  "uninstallFromDevice": "Удалить с устройства",
+  "telegramCheckAgain": "Проверить вход ещё раз",
+  "telegramNoAnswerState": "Telegram не отвечает, проверить вход не удалось."
 }
