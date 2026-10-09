@@ -370,8 +370,10 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     )
                 }
                 if (app.hasTempId && !app.settings.getBool(SettingKeys.TRACK_ONLY)) {
-                    // The package name is still unknown: the APK itself has to tell.
-                    val picked = installer.confirmAppFileUrl(app, dialogs, pickAnyAsset = false)
+                    // The package name is still unknown: the APK itself has to tell. Any file of
+                    // the release says it, so nothing is asked here - which file to install is
+                    // asked when the app is installed.
+                    val picked = installer.confirmAppFileUrl(app, prompts = null, pickAnyAsset = false)
                         ?: throw SourceError(Tr.get("cancelled"))
                     app = app.copy(preferredApkIndex = app.apkUrls.indexOfFirst { it.url == picked.url })
                     val downloaded = withContext(Dispatchers.IO) { installer.downloadApp(app, background = false) }

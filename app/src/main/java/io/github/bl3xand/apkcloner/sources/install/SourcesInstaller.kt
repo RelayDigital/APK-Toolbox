@@ -510,13 +510,6 @@ class SourcesInstaller private constructor(private val context: Context) {
                 choices, app.settings.getStringOrNull("apkFilterRegEx"), app.settings.getBool("invertAPKFilter"),
             ).takeIf { app.settings.getStringOrNull("apkFilterRegEx") != null }?.firstOrNull()?.let { chosen = it }
         }
-        // A file picked for this very release - when the app was added, or on an earlier try -
-        // is not asked for again; the question returns with the next release.
-        val choiceKey = "$CHOSEN_FILE_PREFIX${app.url}"
-        val remembered = settings.getString(choiceKey)?.split('\n')
-            ?.takeIf { !pickAnyAsset && it.size == 2 && it[0] == app.latestVersion }
-            ?.let { saved -> choices.firstOrNull { it.name == saved[1] } }
-        if (remembered != null) return remembered
         if ((choices.size > 1 || evenIfSingleChoice) && prompts != null) {
             chosen = prompts.pickFile(app, choices, chosen, pickAnyAsset)
         }
@@ -532,7 +525,6 @@ class SourcesInstaller private constructor(private val context: Context) {
                 return null
             }
         }
-        if (!pickAnyAsset && choices.size > 1) settings.setString(choiceKey, "${app.latestVersion}\n${picked.name}")
         return picked
     }
 
@@ -685,9 +677,6 @@ class SourcesInstaller private constructor(private val context: Context) {
     }
 
     companion object {
-        /** Setting that remembers, per app address, which file of which release was picked. */
-        private const val CHOSEN_FILE_PREFIX = "chosenFile:"
-
         private const val BACKGROUND_CONFIRM_ATTEMPTS = 20
         private const val INSTALL_CONFIRM_POLLS = 300
         private const val INSTALL_CONFIRM_TIMEOUT_MS = 10 * 60_000L
