@@ -544,13 +544,17 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 for (item in items) {
                     val haystack = "${item.title} ${item.description} ${item.key}".lowercase()
                     if (words.any { !haystack.contains(it) }) continue
+                    // Every choice is a card of its own, so that it is clear where one ends and
+                    // the next begins.
+                    val card = com.google.android.material.card.MaterialCardView(
+                        context, null, com.google.android.material.R.attr.materialCardViewOutlinedStyle,
+                    )
                     val row = LinearLayout(context).apply {
                         gravity = android.view.Gravity.CENTER_VERTICAL
-                        setPadding(context.dp(Spacing.SHEET), context.dp(12), context.dp(Spacing.SHEET), context.dp(12))
-                        val outValue = android.util.TypedValue()
-                        context.theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
-                        setBackgroundResource(outValue.resourceId)
+                        minimumHeight = context.dp(Spacing.ROW)
+                        setPadding(context.dp(Spacing.BLOCK), context.dp(CHOICE_PADDING), context.dp(Spacing.BLOCK), context.dp(CHOICE_PADDING))
                     }
+                    card.addView(row)
                     val texts = context.column().apply {
                         add(context.label(item.title, com.google.android.material.R.attr.textAppearanceTitleMedium))
                         if (item.description.isNotBlank()) {
@@ -576,11 +580,16 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                             setOnCheckedChangeListener { _, checked -> if (checked) chosen.add(item.key) else chosen.remove(item.key) }
                         }
                         row.addView(box)
-                        row.setOnClickListener { box.toggle() }
+                        card.setOnClickListener { box.toggle() }
                     } else {
-                        row.setOnClickListener { finish(listOf(item.key)) }
+                        card.setOnClickListener { finish(listOf(item.key)) }
                     }
-                    list.addView(row)
+                    list.addView(
+                        card,
+                        LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                            setMargins(context.dp(Spacing.SHEET), 0, context.dp(Spacing.SHEET), context.dp(Spacing.BLOCK / 2))
+                        },
+                    )
                 }
             }
             rebuild("")
@@ -743,6 +752,7 @@ fun io.github.bl3xand.apkcloner.databinding.ViewAppCardBinding.bindTracked(entry
 }
 
 private const val PALETTE_HEIGHT = 200
+private const val CHOICE_PADDING = 12
 private const val PREVIEW_DOT = 40
 private const val PREVIEW_FRAME = 72
 
