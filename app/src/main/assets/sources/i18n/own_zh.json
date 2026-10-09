@@ -164,8 +164,8 @@
   "telegramNoAnswer": "Telegram 未及时响应。",
   "telegramTitle": "Telegram",
   "telegramDesc": "跟踪 Telegram 频道发布的应用需要账号。会话仅保存在此设备上。",
-  "telegramSignIn": "登录 Telegram",
-  "telegramSignOut": "退出 Telegram",
+  "telegramSignIn": "登录",
+  "telegramSignOut": "退出",
   "telegramSignedIn": "已登录。",
   "telegramSignedOut": "未登录。",
   "telegramNotConfigured": "此构建不含 Telegram API 密钥，因此无法使用 Telegram 频道。",
@@ -203,5 +203,7 @@
   "removeFromObtainium": "从 APK Toolbox 中移除",
   "uninstallFromDevice": "从设备卸载",
   "telegramCheckAgain": "再次检查登录状态",
-  "telegramNoAnswerState": "Telegram 无响应，无法检查登录状态。"
+  "telegramNoAnswerState": "Telegram 无响应，无法检查登录状态。",
+  "telegramSignOutTitle": "退出 Telegram？",
+  "srcNeedsSignIn": "需要登录"
 }

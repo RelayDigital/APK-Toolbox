@@ -28,6 +28,7 @@ import io.github.bl3xand.apkcloner.sources.data.DownloadState
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.sources.net.Downloader
+import io.github.bl3xand.apkcloner.sources.telegram.TelegramClient
 import io.github.bl3xand.apkcloner.ui.dp
 import io.github.bl3xand.apkcloner.ui.expandFully
 import io.github.bl3xand.apkcloner.ui.label
@@ -78,6 +79,8 @@ class AppDetailSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // Signing in or out changes what the page of an app of that source offers.
+                launch { TelegramClient.auth.collect { rerender() } }
                 combine(
                     viewModel.repo.apps, viewModel.repo.downloads, viewModel.uninstalling, viewModel.candidate,
                 ) { _, downloads, uninstalling, _ ->
@@ -219,8 +222,14 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         // The same card as everywhere else; a tap opens the app's page in the system settings. On a
         // signer conflict it is the build being added, not the differently-signed one installed.
         binding.appCard.bindTracked(entry, treatAsNotInstalled = conflict)
-        binding.cardNotice.isVisible = app.hasPendingRepoRename || conflict
-        binding.buttonNotice.isVisible = app.hasPendingRepoRename || conflict
+        // What the source needs before it can be asked for this app, if anything.
+        val signInNote = source?.signInNote?.takeUnless { conflict }
+        binding.cardNotice.isVisible = app.hasPendingRepoRename || conflict || signInNote != null
+        binding.buttonNotice.isVisible = binding.cardNotice.isVisible
+        binding.buttonNotice.minimumHeight = if (signInNote != null) resources.getDimensionPixelSize(R.dimen.action_button_height) else 0
+        binding.buttonNotice.updateLayoutParams<ViewGroup.LayoutParams> {
+            width = if (signInNote != null) ViewGroup.LayoutParams.MATCH_PARENT else ViewGroup.LayoutParams.WRAP_CONTENT
+        }
         // A signer conflict is a hard block, so it gets the bright error colours; the repo-rename
         // notice is only informational and keeps the quieter secondary colours.
         val noticeBg = if (conflict) {
@@ -244,6 +253,15 @@ class AppDetailSheet : BottomSheetDialogFragment() {
                 ColorStateList.valueOf(context.themeColor(MaterialR.attr.colorOnErrorContainer))
             binding.buttonNotice.setTextColor(context.themeColor(MaterialR.attr.colorErrorContainer))
             binding.buttonNotice.setOnClickListener { viewModel.uninstallConflicting(appId) }
+        } else if (signInNote != null) {
+            // What is shown of the app is what was known when it was last checked.
+            binding.textNotice.text = Tr.get("telegramSignInFirst")
+            // The way out is the one thing to do here, so it is the app's main button: filled, as
+            // wide as the card, as tall as the buttons at the bottom of a sheet.
+            binding.buttonNotice.text = Tr.get("telegramSignIn")
+            binding.buttonNotice.backgroundTintList = ColorStateList.valueOf(context.themeColor(AppCompatR.attr.colorPrimary))
+            binding.buttonNotice.setTextColor(context.themeColor(MaterialR.attr.colorOnPrimary))
+            binding.buttonNotice.setOnClickListener { context.showTelegramSignIn(viewLifecycleOwner.lifecycleScope) }
         } else if (app.hasPendingRepoRename) {
             binding.textNotice.text = "${Tr.get("repoRenamedExplanation")}\n\n${app.pendingRepoRenameUrl}"
             binding.buttonNotice.text = Tr.get("updateUrl")
@@ -286,7 +304,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         val busy = download != null || removing
         binding.actions.progress.show(busy, download?.progress.takeUnless { removing })
 
-        val canAct = !busy && !conflict && (installed == null || installed != app.latestVersion) && !repo.areDownloadsRunning()
+        val canAct = !busy && !conflict && signInNote == null && (installed == null || installed != app.latestVersion) && !repo.areDownloadsRunning()
         // A conflict is shown as a fresh install of the added build (the installed one must go
         // first), so the action reads "Install" and is blocked until the clashing build is removed.
         val asInstall = installed == null || conflict

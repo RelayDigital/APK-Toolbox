@@ -165,8 +165,8 @@
   "telegramNoAnswer": "Telegram did not answer in time.",
   "telegramTitle": "Telegram",
   "telegramDesc": "An account is needed to track apps posted in Telegram channels. The session is kept on this device only.",
-  "telegramSignIn": "Sign in to Telegram",
-  "telegramSignOut": "Sign out of Telegram",
+  "telegramSignIn": "Sign in",
+  "telegramSignOut": "Sign out",
   "telegramSignedIn": "Signed in.",
   "telegramSignedOut": "Not signed in.",
   "telegramNotConfigured": "This build was made without Telegram API keys, so Telegram channels are not available.",
@@ -204,5 +204,7 @@
   "removeFromObtainium": "Remove from APK Toolbox",
   "uninstallFromDevice": "Uninstall from the device",
   "telegramCheckAgain": "Check the sign-in again",
-  "telegramNoAnswerState": "Telegram does not answer, so the sign-in could not be checked."
+  "telegramNoAnswerState": "Telegram does not answer, so the sign-in could not be checked.",
+  "telegramSignOutTitle": "Sign out of Telegram?",
+  "srcNeedsSignIn": "Sign-in needed"
 }

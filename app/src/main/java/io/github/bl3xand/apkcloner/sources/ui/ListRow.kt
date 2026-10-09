@@ -16,5 +16,7 @@ sealed interface ListRow {
         val groupKey: String?,
         /** The package is taken by a differently-signed build, so this app is not what is installed. */
         val conflict: Boolean = false,
+        /** What its source needs before it can be asked, if anything; see AppSource.signInNote. */
+        val signInNote: String? = null,
     ) : ListRow
 }

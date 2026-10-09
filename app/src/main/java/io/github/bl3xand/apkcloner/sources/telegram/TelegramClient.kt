@@ -342,6 +342,8 @@ object TelegramClient : TelegramGateway {
 
     // ---- the gateway -------------------------------------------------------------------------
 
+    override val hasAccount: Boolean get() = hasSession
+
     /** Starts the client for a session left earlier and waits until it is usable. */
     override val isSignedIn: Boolean
         get() {

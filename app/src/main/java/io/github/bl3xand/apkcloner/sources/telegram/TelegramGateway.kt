@@ -9,7 +9,10 @@ import java.io.File
  * here goes through the account the user signed in with.
  */
 interface TelegramGateway {
-    /** Whether there is an account to act for. */
+    /** Whether an account was signed in to, as far as is known without asking Telegram. */
+    val hasAccount: Boolean
+
+    /** Whether there is an account to act for; finds out by asking, so it may take a moment. */
     val isSignedIn: Boolean
 
     /**

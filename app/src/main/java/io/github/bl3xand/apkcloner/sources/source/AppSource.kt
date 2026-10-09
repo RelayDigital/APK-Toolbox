@@ -39,6 +39,13 @@ abstract class AppSource(
     var hostIdenticalDespiteAnyChange = false
     open val name: String get() = fixedName ?: sourceIdentifier
 
+    /**
+     * What is missing before this source can be asked for anything - an account that has to be
+     * signed in to - or null when nothing is. Answered at once, without asking the net: it is
+     * shown on rows and pages, and apps of such a source are left out of checks meanwhile.
+     */
+    open val signInNote: String? get() = null
+
     /** What of the site is supported, where its name alone does not say; shown in the list of sources. */
     open val supportedNote: String? get() = null
     protected var fixedName: String? = null

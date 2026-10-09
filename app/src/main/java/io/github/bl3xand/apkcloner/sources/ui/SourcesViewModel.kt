@@ -15,6 +15,7 @@ import io.github.bl3xand.apkcloner.sources.model.CheckUpdatesException
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.sources.source.SourceRegistry
+import io.github.bl3xand.apkcloner.sources.telegram.TelegramClient
 import io.github.bl3xand.apkcloner.sources.work.SourcesNotifications
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -85,6 +86,8 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
 
     init {
         repo.onAppsRemoved = { SourcesNotifications.appsRemoved(application, it) }
+        // Signing in or out changes what the rows of its apps say.
+        viewModelScope.launch { TelegramClient.auth.collect { settingsVersion.value++ } }
         reload()
     }
 
@@ -201,6 +204,7 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         fun appRow(entry: AppEntry, group: String?) = ListRow.App(
             entry, downloads[entry.app.id], entry.app.id in selected,
             repo.isAppUpdateable(entry.app) && entry.app.id !in conflicts, group, entry.app.id in conflicts,
+            runCatching { repo.sourceOf(entry.app).signInNote }.getOrNull(),
         )
         val groupBy = settings.groupBy
         if (groupBy == "none") {

@@ -2,7 +2,6 @@ package io.github.bl3xand.apkcloner.sources.source
 
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.ApkPeek
-import io.github.bl3xand.apkcloner.sources.core.CredsNeededError
 import io.github.bl3xand.apkcloner.sources.core.InvalidUrlError
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
@@ -70,7 +69,10 @@ class TelegramChannel : AppSource("TelegramChannel") {
 
     private fun gatewayOrNull(): TelegramGateway? = Telegram.gateway?.takeIf { it.isSignedIn }
 
-    private fun gateway(): TelegramGateway = gatewayOrNull() ?: throw CredsNeededError(name)
+    /** Said in the words of the settings where the signing in is done, not as "credentials". */
+    private fun gateway(): TelegramGateway = gatewayOrNull() ?: throw SourceError(Tr.get("telegramSignInFirst"))
+
+    override val signInNote: String? get() = if (Telegram.gateway?.hasAccount == true) null else Tr.get("srcNeedsSignIn")
 
     private fun channelOf(standardUrl: String): String = standardUrl.substringAfterLast('/')
 

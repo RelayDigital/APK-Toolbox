@@ -89,7 +89,7 @@ fun LinearLayout.addTelegramAccount(scope: CoroutineScope) {
 private const val CHECK_PAUSE_MS = 2_000L
 
 private suspend fun Context.signOutOfTelegram() {
-    if (!confirm(Tr.get("telegramSignOut"), Tr.get("telegramSignOutConfirm"))) return
+    if (!confirm(Tr.get("telegramSignOutTitle"), Tr.get("telegramSignOutConfirm"))) return
     try {
         withContext(Dispatchers.IO) { TelegramClient.signOut() }
     } catch (e: Exception) {

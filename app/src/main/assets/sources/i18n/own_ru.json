@@ -166,8 +166,8 @@
   "telegramNoAnswer": "Telegram не ответил вовремя.",
   "telegramTitle": "Telegram",
   "telegramDesc": "Аккаунт нужен, чтобы отслеживать приложения из Telegram-каналов. Сессия хранится только на этом устройстве.",
-  "telegramSignIn": "Войти в Telegram",
-  "telegramSignOut": "Выйти из Telegram",
+  "telegramSignIn": "Войти",
+  "telegramSignOut": "Выйти",
   "telegramSignedIn": "Вход выполнен.",
   "telegramSignedOut": "Вход не выполнен.",
   "telegramNotConfigured": "Эта сборка сделана без ключей Telegram API, поэтому Telegram-каналы недоступны.",
@@ -205,5 +205,7 @@
   "removeFromObtainium": "Удалить из APK Toolbox",
   "uninstallFromDevice": "Удалить с устройства",
   "telegramCheckAgain": "Проверить вход ещё раз",
-  "telegramNoAnswerState": "Telegram не отвечает, проверить вход не удалось."
+  "telegramNoAnswerState": "Telegram не отвечает, проверить вход не удалось.",
+  "telegramSignOutTitle": "Выйти из Telegram?",
+  "srcNeedsSignIn": "Нужен вход"
 }

@@ -106,8 +106,12 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
         forceAll: Boolean = false,
         throwErrorsForRetry: Boolean = false,
     ): List<TrackedApp> = synchronized(checkLock) {
-        val ids = specificIds?.toList()
+        val wanted = specificIds?.toList()
             ?: getAppsSortedByUpdateCheckTime(settings.onlyCheckInstalledOrTrackOnlyApps, forceAll)
+        // An app whose source has to be signed in to first cannot be checked; it says so on its
+        // row, and failing on it here would only repeat that at every check.
+        val ids = wanted.filter { id -> repo.entry(id)?.let { runCatching { repo.sourceOf(it.app).signInNote }.getOrNull() } == null }
+        if (ids.size < wanted.size) AppLog.debug("Skipped ${wanted.size - ids.size} app(s) whose source needs signing in")
         val updates = Collections.synchronizedList(ArrayList<TrackedApp>())
         val fetched = Collections.synchronizedList(ArrayList<TrackedApp>())
         val failed = Collections.synchronizedList(ArrayList<TrackedApp>())
