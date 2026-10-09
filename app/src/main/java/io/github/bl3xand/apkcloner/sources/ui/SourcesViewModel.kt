@@ -331,6 +331,29 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    /**
+     * For a signer conflict: removes the differently-signed build already on the device, then
+     * installs this source's build. Crossing signers means the data of the old one cannot be kept,
+     * so this is a clean replacement, not an in-place update.
+     */
+    fun replaceConflicting(id: String) = launchReporting {
+        _uninstalling.update { it + id }
+        val removed = try {
+            installer.uninstallApp(id)
+        } finally {
+            _uninstalling.update { it - id }
+        }
+        if (!removed) return@launchReporting
+        repo.entry(id)?.app?.let {
+            repo.saveApps(listOf(it.copy(installedVersion = null)), attemptToCorrectInstallStatus = false)
+        }
+        val installed = installer.downloadAndInstallLatestApps(listOf(id), prompts)
+        if (installed.isNotEmpty()) {
+            _events.tryEmit(SourcesEvent.Message(Tr.get("msgInstalledOne")))
+            SourcesNotifications.cancel(getApplication(), SourcesNotifications.ID_UPDATES)
+        }
+    }
+
     fun downloadAssets(ids: List<String>) = launchReporting {
         val currentPrompts = prompts ?: return@launchReporting
         installer.downloadAppAssets(ids, currentPrompts)

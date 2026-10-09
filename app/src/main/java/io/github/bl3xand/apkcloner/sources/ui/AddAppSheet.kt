@@ -386,8 +386,12 @@ class AddAppSheet : BottomSheetDialogFragment() {
                         installer.noteSignerConflict(app.id, listOfNotNull(downloaded.file))
                     }
                 }
-                // Already in the list: no error, its page is what was looked for.
-                if (repo.entry(app.id) != null) {
+                // Only the very same source already tracked just opens its page. A different URL
+                // that resolves to the same package (e.g. the original next to a fork) is treated
+                // as adding this one: it replaces the tracked entry and its own page opens, where a
+                // signer conflict is shown if the installed build is signed differently.
+                val existing = repo.entry(app.id)
+                if (existing != null && existing.app.url == app.url) {
                     viewModel.emit(SourcesEvent.OpenApp(app.id))
                     dismissAllowingStateLoss()
                     return@launch

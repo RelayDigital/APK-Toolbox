@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.sources.ui
 
+import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -199,7 +200,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
 
         val conflict = viewModel.installer.hasSignerConflict(entry)
         binding.cardNotice.isVisible = app.hasPendingRepoRename || conflict
-        binding.buttonNotice.isVisible = app.hasPendingRepoRename
+        binding.buttonNotice.isVisible = app.hasPendingRepoRename || conflict
         // A signer conflict is a hard block, so it gets the bright error colours; the repo-rename
         // notice is only informational and keeps the quieter secondary colours.
         val noticeBg = if (conflict) {
@@ -216,9 +217,19 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         binding.textNotice.setTextColor(context.themeColor(noticeFg))
         if (conflict) {
             binding.textNotice.text = Tr.get("detSignerConflict")
+            // The only way forward is to drop the installed build and put this one in its place.
+            // Inverted error colours so the button stands out on the error-coloured card.
+            binding.buttonNotice.text = Tr.get("detSignerReplace")
+            binding.buttonNotice.backgroundTintList =
+                ColorStateList.valueOf(context.themeColor(com.google.android.material.R.attr.colorOnErrorContainer))
+            binding.buttonNotice.setTextColor(context.themeColor(com.google.android.material.R.attr.colorErrorContainer))
+            binding.buttonNotice.setOnClickListener { viewModel.replaceConflicting(appId) }
         } else if (app.hasPendingRepoRename) {
             binding.textNotice.text = "${Tr.get("repoRenamedExplanation")}\n\n${app.pendingRepoRenameUrl}"
             binding.buttonNotice.text = Tr.get("updateUrl")
+            binding.buttonNotice.backgroundTintList =
+                ColorStateList.valueOf(context.themeColor(com.google.android.material.R.attr.colorSecondaryContainer))
+            binding.buttonNotice.setTextColor(context.themeColor(com.google.android.material.R.attr.colorOnSecondaryContainer))
             binding.buttonNotice.setOnClickListener {
                 viewModel.update(listOf(appId)) { it.copy(url = it.pendingRepoRenameUrl ?: it.url, pendingRepoRenameUrl = null) }
             }
