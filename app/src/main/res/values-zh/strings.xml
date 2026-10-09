@@ -37,6 +37,7 @@
     <string name="detail_original_version">原应用版本</string>
     <string name="detail_clone_version">克隆版本</string>
     <string name="detail_removed_permissions">已移除的权限</string>
+    <string name="detail_reset_permissions">保留所有权限</string>
     <string name="detail_not_installed">未安装</string>
     <string name="button_delete">删除</string>
 
