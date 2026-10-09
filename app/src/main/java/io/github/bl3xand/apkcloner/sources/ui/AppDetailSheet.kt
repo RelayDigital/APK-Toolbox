@@ -184,6 +184,20 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         val conflict = viewModel.installer.hasSignerConflict(entry)
         binding.cardNotice.isVisible = app.hasPendingRepoRename || conflict
         binding.buttonNotice.isVisible = app.hasPendingRepoRename
+        // A signer conflict is a hard block, so it gets the bright error colours; the repo-rename
+        // notice is only informational and keeps the quieter secondary colours.
+        val noticeBg = if (conflict) {
+            com.google.android.material.R.attr.colorErrorContainer
+        } else {
+            com.google.android.material.R.attr.colorSecondaryContainer
+        }
+        val noticeFg = if (conflict) {
+            com.google.android.material.R.attr.colorOnErrorContainer
+        } else {
+            com.google.android.material.R.attr.colorOnSecondaryContainer
+        }
+        binding.cardNotice.setCardBackgroundColor(context.themeColor(noticeBg))
+        binding.textNotice.setTextColor(context.themeColor(noticeFg))
         if (conflict) {
             binding.textNotice.text = Tr.get("detSignerConflict")
         } else if (app.hasPendingRepoRename) {

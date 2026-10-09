@@ -381,6 +381,29 @@ class SourcesInstaller private constructor(private val context: Context) {
         return true
     }
 
+    /**
+     * Records up front whether the app installed under [appId] is signed differently from the
+     * downloaded [apks], so its page can warn and block installing before the user tries once.
+     * Lets a mismatch be found when an app is added, not only after a failed install. Clears the
+     * mark when the signatures match or nothing is installed.
+     */
+    fun noteSignerConflict(appId: String, latestVersion: String, apks: List<File>) {
+        val key = SIGNER_CONFLICT_PREFIX + appId
+        val installed = runCatching {
+            packageManager.getPackageInfo(
+                appId, PackageManager.PackageInfoFlags.of(PackageManager.GET_SIGNING_CERTIFICATES.toLong()),
+            )
+        }.getOrNull()
+        val installedHashes = certHashesOf(installed)
+        val apkHashes = apkCertHashes(apks)
+        val conflict = settings.verifySigningCertHashes && installedHashes.isNotEmpty() &&
+            apkHashes.isNotEmpty() && !installedHashes.containsAll(apkHashes)
+        if (conflict) {
+            AppLog.warn("$appId: installed app is signed differently from $latestVersion; its page blocks installing")
+        }
+        settings.setString(key, if (conflict) latestVersion else "")
+    }
+
     private fun moveObbFiles(dir: File, appId: String) {
         for (obb in dir.walkTopDown().filter { it.isFile && it.name.lowercase().endsWith(".obb") }) {
             try {

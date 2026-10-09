@@ -379,6 +379,12 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     app = app.copy(preferredApkIndex = app.apkUrls.indexOfFirst { it.url == picked.url })
                     val downloaded = withContext(Dispatchers.IO) { installer.downloadApp(app, background = false) }
                     app = app.copy(id = downloaded.appId)
+                    // A build of this package may already be on the device under a different signer
+                    // (e.g. a fork). Record it now so the app's page blocks installing and says so,
+                    // instead of the user finding out only when an install fails.
+                    withContext(Dispatchers.IO) {
+                        installer.noteSignerConflict(app.id, app.latestVersion, listOfNotNull(downloaded.file))
+                    }
                 }
                 // Already in the list: no error, its page is what was looked for.
                 if (repo.entry(app.id) != null) {
