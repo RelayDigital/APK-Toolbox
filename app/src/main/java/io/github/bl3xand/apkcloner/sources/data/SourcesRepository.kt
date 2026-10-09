@@ -142,7 +142,10 @@ class SourcesRepository private constructor(private val context: Context) {
             app = app.copy(installedVersion = null)
             modified = true
         } else if (real != null && app.installedVersion == null) {
-            app = app.copy(installedVersion = real)
+            // Found on the device without having been installed from here. A source whose
+            // versions are not the app's own can still say whether it is the latest release.
+            val isLatest = runCatching { sourceOf(app).isLatestBuildInstalled(app, info?.versionName, info?.longVersionCode ?: 0) }.getOrNull()
+            app = app.copy(installedVersion = if (isLatest == true) app.latestVersion else real)
             modified = true
         }
         val corrected = reconcileTrackedVersion(

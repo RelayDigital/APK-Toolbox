@@ -53,6 +53,8 @@ object TelegramClient : TelegramGateway {
     private const val STALL_MS = 90_000L
     private const val DOWNLOAD_ATTEMPTS = 3
     private const val RETRY_PAUSE_MS = 3_000L
+    private const val PROGRESS_EVERY_MS = 250L
+    private const val VERIFY_EVERY_MS = 60_000L
 
     /** How TDLib counts messages against the numbers in their links. */
     private const val MESSAGE_ID_SHIFT = 20
@@ -66,12 +68,19 @@ object TelegramClient : TelegramGateway {
     @Volatile
     private var closingOnRequest = false
 
+    @Volatile
+    private var lastVerified = 0L
+
     /** Set while an unfinished sign-in is being dropped, which also ends in a closed client. */
     @Volatile
     private var startingOver = false
 
     private val _auth = MutableStateFlow<TelegramAuth>(TelegramAuth.Starting)
     val auth: StateFlow<TelegramAuth> = _auth.asStateFlow()
+
+    /** Called when the session is ended by someone else than the user of this app. */
+    @Volatile
+    var onSessionEnded: (() -> Unit)? = null
 
     /** Downloads in progress, by TDLib's file id, each with what to tell about its progress. */
     private val fileListeners = ConcurrentHashMap<Int, (TdApi.File) -> Unit>()
@@ -88,6 +97,9 @@ object TelegramClient : TelegramGateway {
         appContext = context.applicationContext
         if (!isConfigured) _auth.value = TelegramAuth.NotConfigured
     }
+
+    /** Where the client keeps the files it has fetched, whole or in part. */
+    fun downloadsDir(context: Context): File = File(context.cacheDir, SESSION_DIR)
 
     /** Starts the client if it is not running; where it stands then arrives through [auth]. */
     @Synchronized
@@ -151,6 +163,7 @@ object TelegramClient : TelegramGateway {
         } else if (hadSession) {
             // Ended from another device, revoked by Telegram, or the account was closed.
             AppLog.warn("Telegram: the session was ended from outside; apps tracked from channels need a new sign-in")
+            onSessionEnded?.invoke()
         }
         closingOnRequest = false
         startingOver = false
@@ -214,7 +227,7 @@ object TelegramClient : TelegramGateway {
     private fun parameters(key: ByteArray): TdApi.SetTdlibParameters {
         val dir = sessionDir().apply { mkdirs() }
         return TdApi.SetTdlibParameters(
-            false, dir.path, File(appContext.cacheDir, SESSION_DIR).path, key,
+            false, dir.path, downloadsDir(appContext).path, key,
             // Nothing of the account is kept but the session itself: no chats, no messages, no files.
             false, false, false, false,
             BuildConfig.TELEGRAM_API_ID, BuildConfig.TELEGRAM_API_HASH,
@@ -270,6 +283,22 @@ object TelegramClient : TelegramGateway {
         request(TdApi.CheckAuthenticationPassword(password))
     }
 
+    /**
+     * Asks Telegram who is signed in. The answer does not matter: a session that was ended from
+     * another device is found out by asking, and the client then says so through [auth]. Left
+     * alone it may go on believing it is signed in until the next request it makes.
+     */
+    fun verifySession() {
+        val now = System.currentTimeMillis()
+        if (_auth.value !is TelegramAuth.Ready || now - lastVerified < VERIFY_EVERY_MS) return
+        lastVerified = now
+        client?.send(TdApi.GetMe()) { result ->
+            if (result is TdApi.Error && TelegramErrors.isAccountRefused(result.code, result.message.orEmpty())) {
+                AppLog.warn("Telegram: the session is no longer accepted: ${result.message}")
+            }
+        }
+    }
+
     fun signOut() {
         closingOnRequest = true
         request(TdApi.LogOut())
@@ -296,6 +325,7 @@ object TelegramClient : TelegramGateway {
             start()
             val deadline = System.currentTimeMillis() + START_TIMEOUT_MS
             while (_auth.value is TelegramAuth.Starting && System.currentTimeMillis() < deadline) Thread.sleep(POLL_MS)
+            verifySession()
             return _auth.value is TelegramAuth.Ready
         }
 
@@ -388,10 +418,16 @@ object TelegramClient : TelegramGateway {
         val latch = CountDownLatch(1)
         val lastMoved = AtomicLong(System.currentTimeMillis())
         val lastReceived = AtomicLong(-1)
+        val lastTold = AtomicLong(0)
         fileListeners[remote.id] = { file ->
             val received = file.local.downloadedSize
-            if (lastReceived.getAndSet(received) != received) lastMoved.set(System.currentTimeMillis())
-            onProgress?.invoke(if (total > 0) received * 100.0 / total else null, received, total.takeIf { it > 0 })
+            val now = System.currentTimeMillis()
+            if (lastReceived.getAndSet(received) != received) lastMoved.set(now)
+            // Telegram reports many times a second; a few are enough to draw a bar from.
+            if (now - lastTold.get() >= PROGRESS_EVERY_MS) {
+                lastTold.set(now)
+                onProgress?.invoke(if (total > 0) received * 100.0 / total else null, received, total.takeIf { it > 0 })
+            }
         }
         try {
             AppLog.debug("Telegram: downloading ${document.fileName} from $channel/$messageId")
@@ -404,6 +440,7 @@ object TelegramClient : TelegramGateway {
                 val stalled = System.currentTimeMillis() - lastMoved.get() > STALL_MS
                 if (isCancelled() || stalled || client !== running) {
                     running.send(TdApi.CancelDownloadFile(remote.id, false)) {}
+                    // What was fetched so far stays with the client, so the download can go on from it.
                     if (isCancelled()) throw CancellationSignal()
                     throw SourceError(Tr.get(if (stalled) "telegramNoAnswer" else "telegramErrSession"))
                 }

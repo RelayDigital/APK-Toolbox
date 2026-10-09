@@ -33,6 +33,7 @@ import io.github.bl3xand.apkcloner.ui.expandFully
 import io.github.bl3xand.apkcloner.ui.label
 import io.github.bl3xand.apkcloner.ui.markdownToSpanned
 import io.github.bl3xand.apkcloner.ui.openUrl
+import io.github.bl3xand.apkcloner.ui.show
 import io.github.bl3xand.apkcloner.ui.themeColor
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -281,9 +282,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         // A running download, install or uninstall shows as the bar alone: what it is, is plain from
         // what was tapped.
         val busy = download != null || removing
-        binding.actions.progress.isIndeterminate = removing || (download?.progress ?: 0.0) < 0
-        if (download != null && download.progress >= 0) binding.actions.progress.setProgressCompat(download.progress.toInt(), false)
-        binding.actions.progress.isInvisible = !busy
+        binding.actions.progress.show(busy, download?.progress.takeUnless { removing })
 
         val canAct = !busy && !conflict && (installed == null || installed != app.latestVersion) && !repo.areDownloadsRunning()
         // A conflict is shown as a fresh install of the added build (the installed one must go

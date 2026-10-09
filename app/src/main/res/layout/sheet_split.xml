@@ -13,6 +13,7 @@
         android:layout_height="wrap_content" />
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
@@ -121,6 +122,16 @@
             android:visibility="gone"
             tools:text="@string/install_copy_obb" />
 
+        <!-- How it ended. It is part of what scrolls, so that it cannot move the buttons. -->
+        <TextView
+            android:id="@+id/textStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:visibility="gone"
+            tools:text="@string/merge_done" />
+
     </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
@@ -139,15 +150,6 @@
             android:layout_marginTop="8dp"
             android:indeterminate="true"
             android:visibility="invisible" />
-
-        <TextView
-            android:id="@+id/textStatus"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:visibility="gone"
-            tools:text="@string/merge_done" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonAction"

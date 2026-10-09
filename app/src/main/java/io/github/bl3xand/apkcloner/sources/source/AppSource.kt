@@ -315,6 +315,13 @@ abstract class AppSource(
      */
     open fun peekAsset(assetUrl: String, additionalSettings: Map<String, Any?>): ApkPeek? = null
 
+    /**
+     * Whether the build of [app] on the device - known by its [versionName] and [versionCode] - is
+     * the latest release. Null, the default, is for sources that go by the version alone; a
+     * source whose versions are not the app's own answers when it knows the release's build.
+     */
+    open fun isLatestBuildInstalled(app: TrackedApp, versionName: String?, versionCode: Long): Boolean? = null
+
     /** The size of an asset when the source knows it itself; null leaves it to be asked over HTTP. */
     open fun assetSize(assetUrl: String, additionalSettings: Map<String, Any?>): Long? = null
 

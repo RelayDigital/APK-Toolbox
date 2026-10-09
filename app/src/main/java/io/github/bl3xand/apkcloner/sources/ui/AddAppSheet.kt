@@ -51,11 +51,13 @@ import io.github.bl3xand.apkcloner.ui.filterChip
 import io.github.bl3xand.apkcloner.ui.label
 import io.github.bl3xand.apkcloner.ui.openUrl
 import io.github.bl3xand.apkcloner.ui.scrollable
+import io.github.bl3xand.apkcloner.ui.show
 import io.github.bl3xand.apkcloner.ui.showError
 import io.github.bl3xand.apkcloner.ui.switchRow
 import io.github.bl3xand.apkcloner.ui.themeColor
 import io.github.bl3xand.apkcloner.ui.toast
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -198,7 +200,25 @@ class AddAppSheet : BottomSheetDialogFragment() {
         if (view != null) urlEdit.setText(url)
     }
 
+    /** What is being looked up on the net right now: adding by a link, or a search by name. */
+    private var lookup: Job? = null
+
+    /** Drops what is being looked up, a download that is part of it included. */
+    private fun cancelLookup() {
+        lookup?.cancel()
+        lookup = null
+        download?.let { viewModel.installer.cancelDownload(it.first) }
+    }
+
+    override fun onDestroyView() {
+        // Leaving the sheet is saying "never mind".
+        cancelLookup()
+        super.onDestroyView()
+    }
+
     private fun onInputChanged(input: String) {
+        // The link that was being looked up is no longer the one in the field.
+        if (busy && input.trim() != userInput) cancelLookup()
         userInput = input.trim()
         resolveSource()
     }
@@ -346,14 +366,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
         addButton.isEnabled = downloading || (valid && !busy)
         addButton.text = Tr.get(if (downloading) "cancel" else "add")
         addButton.setIconResource(if (downloading) R.drawable.ic_close else R.drawable.ic_add)
-        // A known share of the file shows as such; anything else as "working on it".
-        val percent = download?.second?.progress?.takeIf { it >= 0 }
-        if (progress.isIndeterminate != (percent == null)) {
-            // The bar cannot change its kind while it is on screen.
-            progress.isVisible = false
-            progress.isIndeterminate = percent == null
-        }
-        if (percent != null) progress.setProgressCompat(percent.toInt(), true)
+        progress.show(busy, download?.second?.progress)
         progress.isVisible = busy
         searchContainer.isVisible = source == null && userInput.isEmpty()
         // Options that must be filled in cannot stay hidden.
@@ -372,7 +385,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
         val context = requireContext()
         val repo = viewModel.repo
         val installer = viewModel.installer
-        viewLifecycleOwner.lifecycleScope.launch {
+        lookup = viewLifecycleOwner.lifecycleScope.launch {
             setBusy(true)
             // Finding out what the app is can take a whole download; its progress is shown.
             val watcher = launch {
@@ -457,7 +470,11 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     return@launch
                 }
                 if (app.settings.getBool(SettingKeys.TRACK_ONLY) || !app.settings.getBool(SettingKeys.VERSION_DETECTION)) {
-                    app = app.copy(installedVersion = app.latestVersion)
+                    // Without a way to tell, what is on the device is taken for the latest. A
+                    // source that can tell is asked: an older build then gets its update offered.
+                    val onDevice = withContext(Dispatchers.IO) { repo.installedInfo(app.id) }
+                    val isLatest = onDevice?.let { source.isLatestBuildInstalled(app, it.versionName, it.longVersionCode) }
+                    app = app.copy(installedVersion = if (isLatest == false) onDevice.versionName else app.latestVersion)
                 }
                 app = app.copy(categories = categories.toList())
                 // A build of this package may already be on the device under a different signer
@@ -506,7 +523,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
         val context = requireContext()
         val settings = viewModel.repo.settings
         if (query.isBlank()) return
-        viewLifecycleOwner.lifecycleScope.launch {
+        lookup = viewLifecycleOwner.lifecycleScope.launch {
             setBusy(true)
             try {
                 val picked = SourceRegistry.sources.filter { it.canSearch && it.name !in settings.searchDeselected }

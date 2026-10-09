@@ -122,7 +122,10 @@ class CloneSheet : BottomSheetDialogFragment() {
             // Left alone otherwise, so the outcome of an install or a save stays on screen.
             is CloneState.Done -> if (lastRunning || binding.textStatus.text.isEmpty()) binding.textStatus.setText(R.string.status_done)
         }
+        val hadStatus = binding.textStatus.isVisible
         binding.textStatus.isVisible = binding.textStatus.text.isNotEmpty()
+        // The line appears under everything else; it is brought into view when it does.
+        if (binding.textStatus.isVisible && !hadStatus) binding.scroll.post { binding.scroll.fullScroll(View.FOCUS_DOWN) }
         lastRunning = running
     }
 

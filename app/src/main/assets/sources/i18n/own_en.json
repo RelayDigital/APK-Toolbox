@@ -200,5 +200,7 @@
   "telegramLastPosted": "Last posted {}",
   "telegramChannelsNote": "channels that post apps as files",
   "telegramFilesFound": "Files found: {}",
-  "telegramErrArch": "This file is built for {}, and this device runs {}. Choose another file."
+  "telegramErrArch": "This file is built for {}, and this device runs {}. Choose another file.",
+  "removeFromObtainium": "Remove from APK Toolbox",
+  "uninstallFromDevice": "Uninstall from the device"
 }

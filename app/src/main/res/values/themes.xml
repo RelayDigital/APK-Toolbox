@@ -1,5 +1,9 @@
 <resources>
-    <style name="Theme.ApkCloner" parent="Theme.Material3Expressive.DynamicColors.DayNight.NoActionBar" />
+    <style name="Theme.ApkCloner" parent="Theme.Material3Expressive.DynamicColors.DayNight.NoActionBar">
+        <!-- Every progress indicator of the app, bar or ring, wherever it is made, is the wavy one. -->
+        <item name="linearProgressIndicatorStyle">@style/Widget.Material3Expressive.LinearProgressIndicator.Wavy</item>
+        <item name="circularProgressIndicatorStyle">@style/Widget.Material3Expressive.CircularProgressIndicator.Wavy</item>
+    </style>
 
     <!-- A settings action: as wide as the screen, tall, icon and text from the start edge. -->
     <style name="Widget.ApkCloner.Button.Action" parent="Widget.Material3Expressive.Button.TonalButton">

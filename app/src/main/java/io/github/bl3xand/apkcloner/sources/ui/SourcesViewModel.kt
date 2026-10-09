@@ -66,6 +66,9 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
     /** What the page of [id] is about: the app being added, or else the tracked one. */
     fun shownEntry(id: String): AppEntry? = _candidate.value?.entry?.takeIf { it.app.id == id } ?: repo.entry(id)
 
+    /** Apps being downloaded or installed at the moment. */
+    private val obtaining = HashSet<String>()
+
     /** Set by the screen while it is shown; installs started here ask their questions through it. */
     var prompts: InstallPrompts? = null
 
@@ -296,10 +299,16 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
     }
 
     /** Downloads and installs (or, for track-only apps, marks as updated) the given apps. */
-    fun obtain(ids: List<String>) {
+    fun obtain(requested: List<String>) {
+        // A second tap while the first is still at work must not start the same download again.
+        val ids = synchronized(obtaining) { requested.filter(obtaining::add) }
         if (ids.isEmpty()) return
         launchReporting {
-            val installed = installer.downloadAndInstallLatestApps(ids, prompts)
+            val installed = try {
+                installer.downloadAndInstallLatestApps(ids, prompts)
+            } finally {
+                synchronized(obtaining) { obtaining.removeAll(ids.toSet()) }
+            }
             if (installed.isNotEmpty()) {
                 _events.tryEmit(SourcesEvent.Message(Tr.get(if (installed.size == 1) "msgInstalledOne" else "appsUpdated")))
                 SourcesNotifications.cancel(getApplication(), SourcesNotifications.ID_UPDATES)

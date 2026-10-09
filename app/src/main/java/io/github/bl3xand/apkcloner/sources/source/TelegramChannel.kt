@@ -145,10 +145,28 @@ class TelegramChannel : AppSource("TelegramChannel") {
         return info.title to newestByKind.values.toList()
     }
 
-    /** A channel with one kind of file needs no choosing; the kind is written down all the same. */
+    /**
+     * A channel with one kind of file needs no choosing; the kind is written down all the same.
+     * Which build the newest file is gets written down too, so that an app already on the
+     * device can be told to be that release or not: its version on the device and the version in
+     * the file's name are not the same thing.
+     */
     override fun postProcessApp(app: TrackedApp): TrackedApp {
-        if (kindOf(app.additionalSettings) != null || app.apkUrls.size != 1) return app
-        return app.withSetting(SETTING_KIND, TelegramFileName.family(app.apkUrls.single().name))
+        var result = app
+        if (kindOf(app.additionalSettings) == null && app.apkUrls.size == 1) {
+            result = result.withSetting(SETTING_KIND, TelegramFileName.family(app.apkUrls.single().name))
+        }
+        val newest = result.apkUrls.singleOrNull()?.url ?: return result
+        if (kindOf(result.additionalSettings) == null || result.additionalSettings[SETTING_BUILD_FILE] == newest) return result
+        val build = runCatching { peekAsset(newest, result.additionalSettings) }.getOrNull() ?: return result
+        return result.withSetting(SETTING_BUILD_FILE, newest)
+            .withSetting(SETTING_BUILD_NAME, build.versionName.orEmpty())
+            .withSetting(SETTING_BUILD_CODE, build.versionCode?.toString().orEmpty())
+    }
+
+    override fun isLatestBuildInstalled(app: TrackedApp, versionName: String?, versionCode: Long): Boolean? {
+        val code = (app.additionalSettings[SETTING_BUILD_CODE] as? String)?.toLongOrNull() ?: return null
+        return code == versionCode && (app.additionalSettings[SETTING_BUILD_NAME] as? String).orEmpty() == versionName.orEmpty()
     }
 
     /**
@@ -204,6 +222,11 @@ class TelegramChannel : AppSource("TelegramChannel") {
     companion object {
         /** The per-app setting that holds the kind of file to follow, as [TelegramFileName.family] gives it. */
         const val SETTING_KIND = "telegramFilePattern"
+
+        /** The newest file of the app, and the version name and code of the build in it. */
+        private const val SETTING_BUILD_FILE = "telegramBuildFile"
+        private const val SETTING_BUILD_NAME = "telegramBuildName"
+        private const val SETTING_BUILD_CODE = "telegramBuildCode"
 
         /** How many of the latest files are looked at for the kinds a channel has. */
         private const val CHOICE_LIMIT = 1000

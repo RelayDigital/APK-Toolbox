@@ -10,6 +10,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.R as MaterialR
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.databinding.ActivityMainBinding
@@ -69,6 +70,9 @@ class SourcesTab(private val activity: AppCompatActivity, private val binding: A
         SourcesEnvironment.refresh(activity)
         viewModel.prompts = dialogs
         binding.listSources.adapter = adapter
+        // A row changes many times a second while it downloads; fading each change in makes the
+        // whole row flicker.
+        (binding.listSources.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
         binding.chipSourcesRefresh.text = Tr.get("refresh")
         binding.chipSourcesRefresh.setOnClickListener { viewModel.refresh() }
         binding.chipSourcesFilter.setOnClickListener {

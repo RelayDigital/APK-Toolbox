@@ -50,13 +50,13 @@ object RemoteApk {
 
         val entries = entries(little(reader.read(directoryOffset, directorySize.toInt())))
         val manifest = entries.firstOrNull { it.name == MANIFEST } ?: return null
-        val packageName = AndroidManifestBlock.load(ByteArrayInputStream(content(manifest, reader))).packageName
-            ?.takeIf { it.isNotBlank() } ?: return null
+        val block = AndroidManifestBlock.load(ByteArrayInputStream(content(manifest, reader)))
+        val packageName = block.packageName?.takeIf { it.isNotBlank() } ?: return null
 
         // Who signed it is good to know and not worth failing over.
         val signers = runCatching { blockSigners(directoryOffset, reader) }.getOrNull().orEmpty()
             .ifEmpty { runCatching { jarSigners(entries, reader) }.getOrNull().orEmpty() }
-        ApkPeek(packageName, signers.map(CertHashes::format).toSet())
+        ApkPeek(packageName, signers.map(CertHashes::format).toSet(), block.versionName, block.versionCode?.toLong())
     }.getOrNull()
 
     private fun little(bytes: ByteArray): ByteBuffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)

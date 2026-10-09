@@ -201,5 +201,7 @@
   "telegramLastPosted": "Последний файл: {}",
   "telegramChannelsNote": "каналы, где приложения выкладывают файлами",
   "telegramFilesFound": "Найдено файлов: {}",
-  "telegramErrArch": "Этот файл собран для {}, а устройство поддерживает {}. Выберите другой файл."
+  "telegramErrArch": "Этот файл собран для {}, а устройство поддерживает {}. Выберите другой файл.",
+  "removeFromObtainium": "Удалить из APK Toolbox",
+  "uninstallFromDevice": "Удалить с устройства"
 }
