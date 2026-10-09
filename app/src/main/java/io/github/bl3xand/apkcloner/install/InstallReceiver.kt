@@ -24,13 +24,13 @@ class InstallReceiver : BroadcastReceiver() {
                 context.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
             PackageInstaller.STATUS_SUCCESS -> {
-                Messages.toast(context, context.getString(R.string.install_success))
+                Messages.show(context, context.getString(R.string.install_success))
                 finished.tryEmit(Unit)
             }
             PackageInstaller.STATUS_FAILURE_ABORTED -> finished.tryEmit(Unit)
             else -> {
                 val reason = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE).orEmpty()
-                Messages.toast(context, context.getString(R.string.install_failed, reason))
+                Messages.show(context, context.getString(R.string.install_failed, reason))
                 finished.tryEmit(Unit)
             }
         }

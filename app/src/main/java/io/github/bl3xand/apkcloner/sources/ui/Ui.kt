@@ -172,6 +172,7 @@ fun Context.filterChip(text: CharSequence, checked: Boolean, onChange: (Boolean)
         ChipDrawable.createFromAttributes(context, null, 0, com.google.android.material.R.style.Widget_Material3_Chip_Filter),
     )
     this.text = text
+    setTextColor(context.getColorStateList(io.github.bl3xand.apkcloner.R.color.chip_text))
     isCheckable = true
     isChecked = checked
     // Rows of chips sit close together; the group's own spacing keeps them apart.
