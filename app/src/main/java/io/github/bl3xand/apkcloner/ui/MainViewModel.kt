@@ -452,6 +452,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateClone(clone: CloneInfo) = updateClones(listOf(clone))
 
+    /**
+     * Uninstalls a clone through the system prompt, showing progress on its card for the whole
+     * wait (like an install) and reloading the list afterwards so the card closes once it is gone.
+     */
+    fun uninstallClone(clone: CloneInfo) {
+        if (_uiState.value.updatingClone != null) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(updatingClone = clone.app.packageName) }
+            try {
+                AppLog.info("Uninstalling clone ${clone.app.packageName}")
+                Installer.uninstall(getApplication(), clone.app.packageName)
+            } finally {
+                val installed = withContext(Dispatchers.IO) { repository.installed() }
+                allApps = installed.apps
+                allClones = installed.clones
+                _uiState.update { it.copy(updatingClone = null) }
+                publishApps()
+            }
+        }
+    }
+
     /** Brings every outdated clone up to date, one after another. */
     /**
      * The Refresh of the Clones side: looks at every clone and its original again and updates

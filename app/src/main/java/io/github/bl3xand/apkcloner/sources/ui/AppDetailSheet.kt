@@ -50,7 +50,14 @@ class AppDetailSheet : BottomSheetDialogFragment() {
     private val appId: String get() = requireArguments().getString(ARG_ID)!!
     private var probedSize: Long? = null
     private var probedKey: String? = null
-    private var lastRendered: Pair<TrackedApp, DownloadState?>? = null
+    private var lastRendered: RenderKey? = null
+
+    private data class RenderKey(
+        val app: TrackedApp,
+        val download: DownloadState?,
+        val removing: Boolean,
+        val installedVersionCode: Long?,
+    )
     private var buttonLook: Pair<String, Int>? = null
     private val dateFormat = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.systemDefault())
     private val timeFormat = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(ZoneId.systemDefault())
@@ -66,13 +73,20 @@ class AppDetailSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                combine(viewModel.repo.apps, viewModel.repo.downloads) { _, downloads -> downloads[appId] }.collect { download ->
+                combine(viewModel.repo.apps, viewModel.repo.downloads, viewModel.uninstalling) { _, downloads, uninstalling ->
+                    downloads[appId] to (appId in uninstalling)
+                }.collect { (download, removing) ->
                     val entry = viewModel.repo.entry(appId)
                     if (entry == null) {
                         dismissAllowingStateLoss()
-                    } else if (lastRendered != entry.app to download) {
-                        lastRendered = entry.app to download
-                        render(entry, download)
+                    } else {
+                        // Re-render on an installedInfo change too (its version code), so the
+                        // signer-conflict notice shows once the installed build is known.
+                        val key = RenderKey(entry.app, download, removing, entry.installedInfo?.longVersionCode)
+                        if (lastRendered != key) {
+                            lastRendered = key
+                            render(entry, download, removing)
+                        }
                     }
                 }
             }
@@ -95,7 +109,9 @@ class AppDetailSheet : BottomSheetDialogFragment() {
     private fun rerender() {
         lastRendered = null
         if (_binding == null) return
-        viewModel.repo.entry(appId)?.let { render(it, viewModel.repo.downloads.value[appId]) }
+        viewModel.repo.entry(appId)?.let {
+            render(it, viewModel.repo.downloads.value[appId], appId in viewModel.uninstalling.value)
+        }
     }
 
     /** Asks the server how big the download is, once per release. */
@@ -170,7 +186,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         binding.infoRows.addView(row)
     }
 
-    private fun render(entry: AppEntry, download: DownloadState?) {
+    private fun render(entry: AppEntry, download: DownloadState?, removing: Boolean) {
         val context = context ?: return
         val app = entry.app
         val repo = viewModel.repo
@@ -231,14 +247,15 @@ class AppDetailSheet : BottomSheetDialogFragment() {
 
         renderChanges(entry)
 
-        // Progress of a running download or install.
-        val busy = download != null
-        binding.progress.isVisible = false
-        binding.progress.isIndeterminate = (download?.progress ?: 0.0) < 0
+        // Progress of a running download, install or uninstall.
+        val busy = download != null || removing
+        binding.progress.isIndeterminate = removing || (download?.progress ?: 0.0) < 0
         if (download != null && download.progress >= 0) binding.progress.setProgressCompat(download.progress.toInt(), false)
         binding.progress.isVisible = busy
-        binding.textProgress.isVisible = download != null
-        if (download != null) {
+        binding.textProgress.isVisible = busy
+        if (removing) {
+            binding.textProgress.text = Tr.get("uninstalling")
+        } else if (download != null) {
             binding.textProgress.text = if (download.progress < 0) Tr.get("installing")
             else "${download.progress.toInt()}%  ${formatDownloadSize(download.receivedBytes, download.totalBytes) ?: ""}"
         }

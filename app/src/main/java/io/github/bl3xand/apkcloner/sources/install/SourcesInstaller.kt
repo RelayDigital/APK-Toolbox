@@ -1,6 +1,5 @@
 package io.github.bl3xand.apkcloner.sources.install
 
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
@@ -9,7 +8,6 @@ import android.os.Build
 import android.os.Environment
 import io.github.bl3xand.apkcloner.install.InstallOutcome
 import io.github.bl3xand.apkcloner.install.InstallReceiver
-import io.github.bl3xand.apkcloner.install.UninstallReceiver
 import io.github.bl3xand.apkcloner.install.Installer
 import io.github.bl3xand.apkcloner.install.StockInstaller
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
@@ -352,6 +350,8 @@ class SourcesInstaller private constructor(private val context: Context) {
             }
             return
         }
+        // Keep the latest APK's signer on record so the app's page can judge a conflict live.
+        storeApkCertHashes(entry.app.id, apkHashes)
         if (userHashes.isNotEmpty() && !userHashes.containsAll(apkHashes)) {
             prompts?.signingMismatch(entry.name, userHashes, apkHashes, hardBlock = true)
             throw SigningCertMismatchError(true, userHashes, apkHashes)
@@ -361,47 +361,41 @@ class SourcesInstaller private constructor(private val context: Context) {
         // app. The system will not put this one over it, so there is nothing to ask: the app's
         // page says so until the installed one is removed.
         AppLog.warn("${entry.app.id}: the installed app is signed differently from ${entry.app.latestVersion} of this source")
-        settings.setString(SIGNER_CONFLICT_PREFIX + entry.app.id, entry.app.latestVersion)
         throw SigningCertMismatchError(false, installedHashes, apkHashes)
     }
 
     /**
-     * Whether the release on offer is known not to install over what is on the device, because
-     * the two are signed differently. Found out by trying once; forgotten when the installed
-     * app goes or a new release appears.
+     * Whether the release on offer cannot be installed over what is on the device because the two
+     * are signed differently. Worked out live from the installed app's certificate and the signer
+     * last recorded for this app's downloads, so it is right the moment an app is added and clears
+     * itself once the clashing app is gone or a matching one is installed.
      */
     fun hasSignerConflict(entry: AppEntry): Boolean {
-        val key = SIGNER_CONFLICT_PREFIX + entry.app.id
-        val known = settings.getString(key).orEmpty()
-        if (known.isEmpty()) return false
-        if (entry.installedInfo == null || known != entry.app.latestVersion) {
-            settings.setString(key, "")
-            return false
-        }
-        return true
+        if (!settings.verifySigningCertHashes) return false
+        val installedHashes = entry.certificateHashes.toSet()
+        if (installedHashes.isEmpty()) return false
+        val apkHashes = storedApkCertHashes(entry.app.id)
+        if (apkHashes.isEmpty()) return false
+        return !installedHashes.containsAll(apkHashes)
     }
 
     /**
-     * Records up front whether the app installed under [appId] is signed differently from the
-     * downloaded [apks], so its page can warn and block installing before the user tries once.
-     * Lets a mismatch be found when an app is added, not only after a failed install. Clears the
-     * mark when the signatures match or nothing is installed.
+     * Records the downloaded [apks]' signer for [appId] so [hasSignerConflict] can tell, as soon as
+     * the app is added, that a differently-signed build is already installed - rather than the user
+     * finding out only when an install fails.
      */
-    fun noteSignerConflict(appId: String, latestVersion: String, apks: List<File>) {
-        val key = SIGNER_CONFLICT_PREFIX + appId
-        val installed = runCatching {
-            packageManager.getPackageInfo(
-                appId, PackageManager.PackageInfoFlags.of(PackageManager.GET_SIGNING_CERTIFICATES.toLong()),
-            )
-        }.getOrNull()
-        val installedHashes = certHashesOf(installed)
+    fun noteSignerConflict(appId: String, apks: List<File>) {
         val apkHashes = apkCertHashes(apks)
-        val conflict = settings.verifySigningCertHashes && installedHashes.isNotEmpty() &&
-            apkHashes.isNotEmpty() && !installedHashes.containsAll(apkHashes)
-        if (conflict) {
-            AppLog.warn("$appId: installed app is signed differently from $latestVersion; its page blocks installing")
-        }
-        settings.setString(key, if (conflict) latestVersion else "")
+        storeApkCertHashes(appId, apkHashes)
+        AppLog.debug("$appId: recorded ${apkHashes.size} signer hash(es) of the downloaded APK")
+    }
+
+    private fun storedApkCertHashes(appId: String): Set<String> =
+        settings.getString(APK_CERT_PREFIX + appId).orEmpty()
+            .split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+
+    private fun storeApkCertHashes(appId: String, apkHashes: Set<String>) {
+        if (apkHashes.isNotEmpty()) settings.setString(APK_CERT_PREFIX + appId, apkHashes.joinToString(","))
     }
 
     private fun moveObbFiles(dir: File, appId: String) {
@@ -730,27 +724,10 @@ class SourcesInstaller private constructor(private val context: Context) {
     }
 
     /** Shows the system uninstall prompt and waits for it; true if the app was actually removed. */
-    suspend fun uninstallApp(appId: String): Boolean {
-        val pending = PendingIntent.getBroadcast(
-            context, appId.hashCode(),
-            Intent(context, UninstallReceiver::class.java).setPackage(context.packageName),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
-        )
-        return coroutineScope {
-            val result = async { UninstallReceiver.results.first { it.first == appId }.second }
-            try {
-                context.packageManager.packageInstaller.uninstall(appId, pending.intentSender)
-            } catch (e: Exception) {
-                result.cancel()
-                AppLog.error("Uninstall of $appId could not start: ${e.message}")
-                return@coroutineScope false
-            }
-            result.await()
-        }
-    }
+    suspend fun uninstallApp(appId: String): Boolean = Installer.uninstall(context, appId)
 
     companion object {
-        private const val SIGNER_CONFLICT_PREFIX = "signerConflict:"
+        private const val APK_CERT_PREFIX = "apkCertHashes:"
 
         private const val BACKGROUND_CONFIRM_ATTEMPTS = 20
         private const val INSTALL_CONFIRM_POLLS = 300

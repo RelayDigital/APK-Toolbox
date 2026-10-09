@@ -22,8 +22,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -86,6 +88,10 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
 
     private val _events = MutableSharedFlow<SourcesEvent>(extraBufferCapacity = 8)
     val events = _events.asSharedFlow()
+
+    /** Apps whose uninstall prompt is up, so their card can show progress for the whole wait. */
+    private val _uninstalling = MutableStateFlow<Set<String>>(emptySet())
+    val uninstalling: StateFlow<Set<String>> = _uninstalling.asStateFlow()
 
     /** Set by the screen while it is shown; installs started here ask their questions through it. */
     var prompts: InstallPrompts? = null
@@ -357,14 +363,21 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
                         app == null -> false
                         !uninstall -> true
                         app.installedVersion == null -> true
-                        installer.uninstallApp(id) -> {
-                            repo.saveApps(
-                                listOf(app.copy(installedVersion = null)),
-                                attemptToCorrectInstallStatus = false,
-                            )
-                            true
+                        else -> {
+                            _uninstalling.update { it + id }
+                            val removed = try {
+                                installer.uninstallApp(id)
+                            } finally {
+                                _uninstalling.update { it - id }
+                            }
+                            if (removed) {
+                                repo.saveApps(
+                                    listOf(app.copy(installedVersion = null)),
+                                    attemptToCorrectInstallStatus = false,
+                                )
+                            }
+                            removed
                         }
-                        else -> false
                     }
                 }
                 if (removeEntry && toForget.isNotEmpty()) repo.removeApps(toForget)

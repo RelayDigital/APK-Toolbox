@@ -383,7 +383,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     // (e.g. a fork). Record it now so the app's page blocks installing and says so,
                     // instead of the user finding out only when an install fails.
                     withContext(Dispatchers.IO) {
-                        installer.noteSignerConflict(app.id, app.latestVersion, listOfNotNull(downloaded.file))
+                        installer.noteSignerConflict(app.id, listOfNotNull(downloaded.file))
                     }
                 }
                 // Already in the list: no error, its page is what was looked for.

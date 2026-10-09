@@ -1,7 +1,5 @@
 package io.github.bl3xand.apkcloner.ui
 
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -61,10 +59,9 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
         binding.buttonUpdate.isEnabled = clone.updateAvailable && updating == null
         binding.buttonDelete.isEnabled = !busy
         binding.buttonUpdate.setOnClickListener { viewModel.updateClone(clone) }
-        binding.buttonDelete.setOnClickListener {
-            // The system asks for confirmation; the list refreshes when we come back from it.
-            startActivity(Intent(Intent.ACTION_DELETE, Uri.parse("package:${clone.app.packageName}")))
-        }
+        // The system asks for confirmation; progress shows for the whole wait and the card closes
+        // once the clone is gone.
+        binding.buttonDelete.setOnClickListener { viewModel.uninstallClone(clone) }
     }
 
     companion object {

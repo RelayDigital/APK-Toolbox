@@ -241,6 +241,7 @@
     "installedVersionX": "当前版本：{}",
     "insecureRedirect": "拒绝从 HTTPS 重定向到不安全的 HTTP。可以通过每个应用的“允许不安全连接”设置来允许此行为。",
     "installing": "正在安装",
+    "uninstalling": "正在卸载",
     "installConfirmationError": "未及时收到安装确认 —— 应用可能尚未安装",
     "intermediateLink": "中转链接",
     "intermediateLinkNotFound": "未找到中转链接",
