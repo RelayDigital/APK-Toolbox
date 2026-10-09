@@ -228,20 +228,14 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 }
                 add(group.inScrollingRow(), topMargin = Spacing.UNDER_HEADING)
             }
-            val categories = settings.categories
-            if (categories.isNotEmpty()) {
-                addDivider()
-                addHeading(Tr.get("categories"))
-                val group = ChipGroup(context)
-                for ((name, color) in categories.entries.sortedBy { it.key.lowercase() }) {
-                    group.addView(
-                        chip(name, name in filter.categories, color) { checked ->
-                            filter = filter.copy(categories = if (checked) filter.categories + name else filter.categories - name)
-                        },
-                    )
-                }
-                add(group.inScrollingRow(), topMargin = Spacing.UNDER_HEADING)
-            }
+            // The same chips as everywhere categories are picked: one can be made right here, and
+            // held down to be removed. They wrap, and the sheet scrolls when there are many.
+            addDivider()
+            addHeading(Tr.get("categories"))
+            add(
+                categorySelector(filter.categories, showTitle = false) { filter = filter.copy(categories = it) },
+                topMargin = Spacing.UNDER_HEADING,
+            )
         }
         if (!context.confirm(Tr.get("filterApps"), view = view.scrollable())) return null
         return filter

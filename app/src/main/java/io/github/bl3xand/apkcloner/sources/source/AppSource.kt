@@ -322,7 +322,13 @@ abstract class AppSource(
      */
     open fun isLatestBuildInstalled(app: TrackedApp, versionName: String?, versionCode: Long): Boolean? = null
 
-    /** The size of an asset when the source knows it itself; null leaves it to be asked over HTTP. */
+    /**
+     * Whether [assetUrl] is one the source fetches in its own way (see [downloadAsset]). Such a
+     * link is not a file on the web, and nothing about it is to be asked over HTTP.
+     */
+    open fun ownsAsset(assetUrl: String): Boolean = false
+
+    /** The size of an asset when the source knows it itself; null means it does not know. */
     open fun assetSize(assetUrl: String, additionalSettings: Map<String, Any?>): Long? = null
 
     /**

@@ -214,6 +214,8 @@ class TelegramChannel : AppSource("TelegramChannel") {
         }
     }
 
+    override fun ownsAsset(assetUrl: String): Boolean = messageOf(assetUrl) != null
+
     override fun assetSize(assetUrl: String, additionalSettings: Map<String, Any?>): Long? {
         val (channel, messageId) = messageOf(assetUrl) ?: return null
         return gatewayOrNull()?.file(channel, messageId)?.size
