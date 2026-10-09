@@ -80,6 +80,10 @@
             android:exported="false" />
 
         <receiver
+            android:name=".install.UninstallReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".sources.work.SourcesNotifications$CancelDownloadReceiver"
             android:exported="false" />
 

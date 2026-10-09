@@ -1,14 +1,15 @@
 package io.github.bl3xand.apkcloner.sources.install
 
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import io.github.bl3xand.apkcloner.install.InstallOutcome
 import io.github.bl3xand.apkcloner.install.InstallReceiver
+import io.github.bl3xand.apkcloner.install.UninstallReceiver
 import io.github.bl3xand.apkcloner.install.Installer
 import io.github.bl3xand.apkcloner.install.StockInstaller
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
@@ -705,10 +706,24 @@ class SourcesInstaller private constructor(private val context: Context) {
         saved
     }
 
-    fun uninstallApp(appId: String) {
-        context.startActivity(
-            Intent(Intent.ACTION_DELETE, Uri.parse("package:$appId")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+    /** Shows the system uninstall prompt and waits for it; true if the app was actually removed. */
+    suspend fun uninstallApp(appId: String): Boolean {
+        val pending = PendingIntent.getBroadcast(
+            context, appId.hashCode(),
+            Intent(context, UninstallReceiver::class.java).setPackage(context.packageName),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
         )
+        return coroutineScope {
+            val result = async { UninstallReceiver.results.first { it.first == appId }.second }
+            try {
+                context.packageManager.packageInstaller.uninstall(appId, pending.intentSender)
+            } catch (e: Exception) {
+                result.cancel()
+                AppLog.error("Uninstall of $appId could not start: ${e.message}")
+                return@coroutineScope false
+            }
+            result.await()
+        }
     }
 
     companion object {

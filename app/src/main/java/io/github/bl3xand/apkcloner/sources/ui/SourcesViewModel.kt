@@ -348,18 +348,27 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
     fun remove(ids: List<String>, uninstall: Boolean, removeEntry: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                if (uninstall) {
-                    for (id in ids) {
-                        val app = repo.entry(id)?.app ?: continue
-                        if (app.installedVersion != null) {
-                            installer.uninstallApp(id)
-                            repo.saveApps(listOf(app.copy(installedVersion = null)), attemptToCorrectInstallStatus = false)
+                AppLog.info("Remove ${ids.joinToString()}: uninstall=$uninstall, from the list=$removeEntry")
+                // When both are asked for, the list entry is only dropped once the device uninstall
+                // actually finishes. If the user cancels the system prompt, neither happens.
+                val toForget = ids.filter { id ->
+                    val app = repo.entry(id)?.app
+                    when {
+                        app == null -> false
+                        !uninstall -> true
+                        app.installedVersion == null -> true
+                        installer.uninstallApp(id) -> {
+                            repo.saveApps(
+                                listOf(app.copy(installedVersion = null)),
+                                attemptToCorrectInstallStatus = false,
+                            )
+                            true
                         }
+                        else -> false
                     }
                 }
-                AppLog.info("Remove ${ids.joinToString()}: uninstall=$uninstall, from the list=$removeEntry")
-                if (removeEntry) repo.removeApps(ids)
-                selected.value = selected.value - ids.toSet()
+                if (removeEntry && toForget.isNotEmpty()) repo.removeApps(toForget)
+                selected.value = selected.value - toForget.toSet()
             } catch (e: Exception) {
                 _events.tryEmit(SourcesEvent.Error(e))
             }
