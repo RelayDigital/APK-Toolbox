@@ -4,11 +4,15 @@ import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
 import io.github.bl3xand.apkcloner.sources.core.NoReleasesError
 import io.github.bl3xand.apkcloner.sources.core.NoVersionError
+import io.github.bl3xand.apkcloner.sources.core.SourceEnv
 import io.github.bl3xand.apkcloner.sources.core.Tr
+import io.github.bl3xand.apkcloner.sources.core.Url
+import io.github.bl3xand.apkcloner.sources.core.notForDeviceHere
 import io.github.bl3xand.apkcloner.sources.core.rethrowOrWrap
 import io.github.bl3xand.apkcloner.sources.model.ApkDetails
 import io.github.bl3xand.apkcloner.sources.model.AppNames
 import io.github.bl3xand.apkcloner.sources.model.JsonValues
+import io.github.bl3xand.apkcloner.sources.model.asList
 import io.github.bl3xand.apkcloner.sources.model.asMap
 import io.github.bl3xand.apkcloner.sources.net.Http
 import java.security.MessageDigest
@@ -31,6 +35,24 @@ class CoolApk : AppSource("CoolApk") {
         naiveStandardVersionDetection = true
         allowOverride = false
         inferAppIdFromUrlPath = true
+        canSearch = true
+        // The store says the lowest Android its file runs on.
+        answersForDevice = true
+    }
+
+    override fun search(query: String, querySettings: Map<String, Any?>): Map<String, List<String>> {
+        val res = sourceRequest(
+            "$API_BASE_URL/v6/search?type=apk&searchValue=${Url.encodeQueryComponent(query)}&page=1", querySettings,
+        )
+        Http.ensureSuccess(res)
+        val results = LinkedHashMap<String, List<String>>()
+        for (entry in JsonValues.parse(res.body).asMap()?.get("data").asList() ?: emptyList()) {
+            val app = entry.asMap() ?: continue
+            val packageName = app["apkname"]?.toString()?.takeIf { it.isNotEmpty() } ?: continue
+            val title = app["title"]?.toString()?.takeIf { it.isNotEmpty() } ?: continue
+            results["https://www.${hosts[0]}/apk/$packageName"] = listOf(title, packageName)
+        }
+        return results
     }
 
     override fun sourceSpecificStandardizeURL(url: String, forSelection: Boolean): String =
@@ -48,6 +70,9 @@ class CoolApk : AppSource("CoolApk") {
             } ?: throw NoReleasesError()
             if ((json["status"] as? Number)?.toInt() == -2) throw NoReleasesError()
             val detail = json["data"].asMap() ?: throw NoReleasesError()
+            // Only the current release is kept here, so one that is not for this device is the end of it.
+            val minSdk = detail["sdkversion"]?.toString()?.toDoubleOrNull()?.toInt()
+            if (minSdk != null && minSdk > SourceEnv.platform.sdkInt) throw notForDeviceHere(name)
             val version = detail["apkversionname"]?.toString() ?: ""
             if (version.isEmpty()) throw NoVersionError()
             val lastUpdate = when (val raw = detail["lastupdate"]) {

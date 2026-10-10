@@ -430,7 +430,9 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         infoRow(Tr.get("detLatest"), app.latestVersion, first = false)
         // Only while there is something to download.
         if (conflict || installed == null || installed != app.latestVersion) {
-            probedSize?.let { infoRow(Tr.get("detSize"), formatBytes(it), first = false) }
+            // A clone of the app that is on the device is built from it: nothing is downloaded.
+            val fromDevice = app.cloneTarget != null && app.clonePackage == null && entry.installedInfo != null
+            probedSize?.takeUnless { fromDevice }?.let { infoRow(Tr.get("detSize"), formatBytes(it), first = false) }
         }
         app.releaseDate?.let { infoRow(Tr.get("detReleased"), dateFormat.format(it), first = false) }
         infoRow(Tr.get("detChecked"), app.lastUpdateCheck?.let(timeFormat::format) ?: Tr.get("never"), first = false)

@@ -84,7 +84,7 @@ permission to install apps. After that the four tabs are ready to use. The
 Add an app by the link to its page — a GitHub or GitLab repository, an
 F-Droid package, a store page, a Telegram channel, a direct link to an APK —
 or find it by name in the sources that can be searched (GitHub, GitLab,
-Codeberg, F-Droid, APKPure, Aptoide, Uptodown, RuStore, Tencent and a few more). APK Toolbox then knows which version is
+Codeberg, F-Droid, APKPure, Aptoide, Uptodown, RuStore, Tencent, CoolApk and a few more). APK Toolbox then knows which version is
 the latest, shows what is new in it, and installs or updates the app on
 request or in the background.
 

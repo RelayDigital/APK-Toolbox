@@ -205,6 +205,9 @@ class LiveSourcesTest {
     fun coolApk() {
         live("CoolApk")
         check(fetch("https://www.coolapk.com/apk/com.coolapk.market").id == "com.coolapk.market")
+        val found = SourceRegistry.getSource("https://www.coolapk.com/apk/x").search("微信")
+        println("  search: ${found.entries.take(3)}")
+        check(found.isNotEmpty())
     }
 
     @Test
