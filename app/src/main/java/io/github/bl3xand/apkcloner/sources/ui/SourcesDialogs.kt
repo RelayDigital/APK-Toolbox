@@ -25,6 +25,7 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.divider.MaterialDivider
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -59,7 +60,6 @@ import io.github.bl3xand.apkcloner.ui.scrollableUnderHandle
 import io.github.bl3xand.apkcloner.ui.sectionTitle
 import io.github.bl3xand.apkcloner.ui.showSheet
 import io.github.bl3xand.apkcloner.ui.switchRow
-import io.github.bl3xand.apkcloner.ui.textButton
 import io.github.bl3xand.apkcloner.ui.themeColor
 import kotlin.coroutines.resume
 import kotlinx.coroutines.Dispatchers
@@ -164,32 +164,50 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         val chosen = LinkedHashSet<String>(updates + trackOnly)
         if (updates.isEmpty()) chosen.addAll(installs)
         val all = updates + installs + trackOnly
-        val boxes = ArrayList<Pair<String, CheckBox>>()
+        // Chips at the top switch everything, or one group, on and off; each is on while all of
+        // what it stands for is. Only the groups that have something in them get a chip.
+        val groups = listOf(Tr.get("updates") to updates, Tr.get("nonInstalledApps") to installs, Tr.get("trackOnly") to trackOnly)
+            .filter { it.second.isNotEmpty() }
+        val toggles = LinkedHashMap<String, MaterialSwitch>()
+        val chips = ArrayList<Pair<Chip, List<String>>>()
+        var syncing = false
+        fun syncChips() {
+            syncing = true
+            chips.forEach { (chip, ids) -> chip.isChecked = chosen.containsAll(ids) }
+            syncing = false
+        }
+        fun chipFor(label: String, ids: List<String>): Chip = context.filterChip(label, chosen.containsAll(ids)) { on ->
+            if (syncing) return@filterChip
+            syncing = true
+            ids.forEach { toggles[it]?.isChecked = on }
+            syncing = false
+            syncChips()
+        }.also { chips.add(it to ids) }
         val view = body().apply {
-            fun section(title: String, ids: List<String>) {
-                if (ids.isEmpty()) return
-                add(context.sectionTitle("$title (${ids.size})"), topMargin = 12)
+            add(
+                ChipGroup(context).apply {
+                    addView(chipFor(Tr.get("selectAll"), all))
+                    if (groups.size > 1) groups.forEach { (title, ids) -> addView(chipFor(title, ids)) }
+                },
+            )
+            // The rows of the settings: a name with a line under it, and a switch.
+            for ((index, group) in groups.withIndex()) {
+                val (title, ids) = group
+                if (index > 0) addDivider()
+                addHeading("$title (${ids.size})", afterDivider = index > 0)
                 for (id in ids) {
                     val entry = repo.entry(id) ?: continue
-                    val box = CheckBox(context).apply {
-                        text = "${entry.name}  ·  ${Tr.get("byX", entry.author)}"
-                        isChecked = id in chosen
-                        setOnCheckedChangeListener { _, checked -> if (checked) chosen.add(id) else chosen.remove(id) }
+                    val versions = listOfNotNull(entry.app.installedVersion, entry.app.latestVersion).distinct().joinToString(" → ")
+                    val row = context.switchRow(
+                        entry.name, id in chosen, listOf(entry.author, versions).filter { it.isNotBlank() }.joinToString(" · "),
+                    ) { on ->
+                        if (on) chosen.add(id) else chosen.remove(id)
+                        if (!syncing) syncChips()
                     }
-                    boxes.add(id to box)
-                    add(box)
+                    toggles[id] = row.getChildAt(1) as MaterialSwitch
+                    add(row)
                 }
             }
-            add(
-                context.textButton(Tr.get("selectAll")) {
-                    val select = chosen.size != all.size
-                    boxes.forEach { it.second.isChecked = select }
-                },
-                width = ViewGroup.LayoutParams.WRAP_CONTENT,
-            )
-            section(Tr.get("updates"), updates)
-            section(Tr.get("nonInstalledApps"), installs)
-            section(Tr.get("trackOnly"), trackOnly)
         }
         val confirmed = context.confirm(
             Tr.get("changeX", Tr.plural("apps", all.size).lowercase()), view = view.scrollable(),
