@@ -226,7 +226,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
             addDivider()
             addHeading(Tr.get("categories"))
             add(
-                categorySelector(filter.categories, showTitle = false, withAll = true) { filter = filter.copy(categories = it) },
+                categorySelector(emptySet(), showTitle = false, selectedOrAll = filter.categories, onFilter = { filter = filter.copy(categories = it) }),
                 topMargin = Spacing.UNDER_HEADING,
             )
         }
@@ -240,15 +240,21 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         allowCreate: Boolean = true,
         showTitle: Boolean = true,
         /**
-         * For a filter: a first chip that switches every category on or off and is on while they
-         * all are. Nothing chosen and everything chosen then both mean no narrowing, and
-         * [onChange] gets an empty set for both.
+         * For a filter: a first chip switches every category on or off and is on while they all
+         * are. It is given the choice instead of [onChange]: null while every category is on,
+         * which is no narrowing at all, and an empty set when every one is off.
          */
-        withAll: Boolean = false,
-        onChange: (Set<String>) -> Unit,
+        onFilter: ((Set<String>?) -> Unit)? = null,
+        /** For a filter: null stands for every category. */
+        selectedOrAll: Set<String>? = selected,
+        onChange: (Set<String>) -> Unit = {},
     ): View {
-        val current = LinkedHashSet(if (withAll && selected.isEmpty()) settings.categories.keys else selected)
-        fun report() = onChange(if (withAll && current.containsAll(settings.categories.keys)) emptySet() else current.toSet())
+        val withAll = onFilter != null
+        val current = LinkedHashSet(if (withAll) selectedOrAll ?: settings.categories.keys else selected)
+        fun report() {
+            if (onFilter != null) onFilter(if (current.containsAll(settings.categories.keys)) null else current.toSet())
+            else onChange(current.toSet())
+        }
         val group = ChipGroup(context)
         fun rebuild() {
             group.removeAllViews()

@@ -133,7 +133,7 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
 
     private fun matches(entry: AppEntry, filter: AppsFilter, pending: Set<String>): Boolean {
         val app = entry.app
-        if (filter.kinds.isNotEmpty() && filter.kinds.intersect(kindsOf(app, pending)).isEmpty()) return false
+        if (filter.kinds != null && filter.kinds.intersect(kindsOf(app, pending)).isEmpty()) return false
         for (token in filter.name.split(' ').filter { it.isNotBlank() }) {
             if (!entry.name.lowercase().contains(token.lowercase())) return false
         }
@@ -141,8 +141,8 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
             if (!entry.author.lowercase().contains(token.lowercase())) return false
         }
         if (filter.id.isNotEmpty() && !app.id.contains(filter.id)) return false
-        if (filter.categories.isNotEmpty() && filter.categories.intersect(app.categories.toSet()).isEmpty()) return false
-        if (filter.sources.isNotEmpty() && entry.sourceType !in filter.sources) return false
+        if (filter.categories != null && filter.categories.intersect(app.categories.toSet()).isEmpty()) return false
+        if (filter.sources != null && entry.sourceType !in filter.sources) return false
         return true
     }
 

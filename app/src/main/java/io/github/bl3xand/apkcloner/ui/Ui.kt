@@ -144,29 +144,29 @@ fun Context.filterChip(text: CharSequence, checked: Boolean, onChange: (Boolean)
 
 /**
  * Chips to pick any of [options] by, after one - [all] - that switches every one of them on or
- * off at once and is itself on while they all are. Nothing chosen and everything chosen are the
- * same thing - no narrowing - and [onChange] gets an empty set for both. They wrap, so that all
- * of a filter is in sight at once.
+ * off at once and is itself on while they all are. [chosen] and what [onChange] gets are null
+ * while every chip is on, which is no narrowing at all; with every chip off they are an empty
+ * set, which leaves nothing to show. The chips wrap, so that all of a filter is in sight at once.
  */
-fun <T> Context.anyOfChips(all: CharSequence, options: List<Pair<T, CharSequence>>, chosen: Set<T>, onChange: (Set<T>) -> Unit): ChipGroup {
+fun <T> Context.anyOfChips(all: CharSequence, options: List<Pair<T, CharSequence>>, chosen: Set<T>?, onChange: (Set<T>?) -> Unit): ChipGroup {
     val everything = options.map { it.first }.toSet()
-    val current = chosen.ifEmpty { everything }.toMutableSet()
+    val current = (chosen ?: everything).toMutableSet()
     val group = ChipGroup(this)
     // Set while chips are switched from here, so that they do not answer each other.
     var syncing = false
-    fun report() = onChange(if (current.size == everything.size) emptySet() else current.toSet())
+    fun report() = onChange(if (current.containsAll(everything)) null else current.toSet())
     lateinit var allChip: Chip
     val chips = options.map { (value, label) ->
         filterChip(label, value in current) { on ->
             if (syncing) return@filterChip
             if (on) current.add(value) else current.remove(value)
             syncing = true
-            allChip.isChecked = current.size == everything.size
+            allChip.isChecked = current.containsAll(everything)
             syncing = false
             report()
         }
     }
-    allChip = filterChip(all, current.size == everything.size) { on ->
+    allChip = filterChip(all, current.containsAll(everything)) { on ->
         if (syncing) return@filterChip
         syncing = true
         if (on) current.addAll(everything) else current.clear()

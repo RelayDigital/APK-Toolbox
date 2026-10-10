@@ -4,13 +4,16 @@ import io.github.bl3xand.apkcloner.data.CloneInfo
 
 /** What the list of clones is narrowed to, the way the list of tracked apps is. */
 data class ClonesFilter(
-    /** A clone of any of these kinds is shown; nothing chosen shows every clone. */
-    val kinds: Set<CloneKind> = emptySet(),
-    val categories: Set<String> = emptySet(),
+    // Null while it does not narrow the list - every chip of the group is on; an empty set when
+    // every chip is off, which leaves nothing to show.
+
+    /** A clone of any of these kinds is shown. */
+    val kinds: Set<CloneKind>? = null,
+    val categories: Set<String>? = null,
 ) {
     val isNeutral: Boolean get() = this == ClonesFilter()
 
     fun matches(clone: CloneInfo): Boolean =
-        (kinds.isEmpty() || kinds.intersect(CloneKind.of(clone)).isNotEmpty()) &&
-            (categories.isEmpty() || categories.intersect(clone.categories).isNotEmpty())
+        (kinds == null || kinds.intersect(CloneKind.of(clone)).isNotEmpty()) &&
+            (categories == null || categories.intersect(clone.categories).isNotEmpty())
 }

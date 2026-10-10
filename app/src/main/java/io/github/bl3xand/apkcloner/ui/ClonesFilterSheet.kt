@@ -22,7 +22,7 @@ suspend fun Context.askClonesFilter(current: ClonesFilter): ClonesFilter? {
         addDivider()
         addHeading(Tr.get("categories"))
         add(
-            SourcesDialogs(context).categorySelector(filter.categories, showTitle = false, withAll = true) { filter = filter.copy(categories = it) },
+            SourcesDialogs(context).categorySelector(emptySet(), showTitle = false, selectedOrAll = filter.categories, onFilter = { filter = filter.copy(categories = it) }),
             topMargin = Spacing.UNDER_HEADING,
         )
     }
