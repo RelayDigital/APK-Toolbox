@@ -376,7 +376,9 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
             if (repo.entry(originalPackage) == null) {
                 for (url in MIRRORS.map { it.replace("{}", originalPackage) }) {
                     val app = SourceRegistry.getAppsByUrlNaive(listOf(url)).first.firstOrNull { it.id == originalPackage } ?: continue
-                    repo.saveApps(listOf(app), onlyIfExists = false)
+                    // Tracked for the clone's sake: the app itself came from somewhere else and
+                    // goes on being that store's once the clone is gone.
+                    repo.saveApps(listOf(app.withSetting(SettingKeys.TRACKED_FOR_CLONE, true)), onlyIfExists = false)
                     AppLog.info("The clone $clonePackage of $originalPackage is tracked from $url")
                     break
                 }
@@ -391,10 +393,23 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
      * all along. Nothing happens if the clone stays.
      */
     fun backToOriginal(id: String) = launchReporting {
+        val forClone = isTrackedForClone(id)
         if (!uninstallFromDevice(id)) return@launchReporting
-        withContext(Dispatchers.IO) { applyCloneMode(id, false) }
-        if (!isOriginalInstalled(id)) obtain(listOf(id))
+        withContext(Dispatchers.IO) {
+            applyCloneMode(id, false)
+            // An app that was only tracked to keep its clone current, and is on the device from
+            // wherever it came, stops being tracked with the clone: it is that store's app again.
+            if (forClone && isOriginalInstalled(id)) {
+                repo.removeApps(listOf(id))
+                AppLog.info("$id is no longer tracked: its clone is gone and the app itself comes from elsewhere")
+                return@withContext
+            }
+        }
+        if (repo.entry(id) != null && !isOriginalInstalled(id)) obtain(listOf(id))
     }
+
+    /** Whether [id] is tracked only because a clone of it was handed to a source. */
+    fun isTrackedForClone(id: String): Boolean = repo.entry(id)?.app?.settings?.getBool(SettingKeys.TRACKED_FOR_CLONE) == true
 
     /** Whether the app itself is on the device under its own package, whatever it is tracked as. */
     fun isOriginalInstalled(id: String): Boolean = repo.installedInfo(id) != null

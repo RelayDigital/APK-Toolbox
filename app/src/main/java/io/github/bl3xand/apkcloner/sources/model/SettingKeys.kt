@@ -29,4 +29,7 @@ object SettingKeys {
     const val CLONE_REQUESTED_PERMISSIONS = "cloneRequestedPermissions"
     const val CLONE_SOURCE_SIGNER = "cloneSourceSigner"
     const val CLONE_MANIFEST_VERSION = "cloneManifestVersion"
+
+    /** The app is tracked only because a clone of it was handed to a source, not because the user added it. */
+    const val TRACKED_FOR_CLONE = "trackedForClone"
 }

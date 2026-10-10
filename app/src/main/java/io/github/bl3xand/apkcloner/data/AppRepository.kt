@@ -74,11 +74,15 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
         return toSource(info, app)
     }
 
-    /** A tracked app is from its source; anything else, from whatever installed it. */
+    /**
+     * An app this app installed from a source is from that source; anything else, from whatever
+     * installed it - a tracked app too: tracking an app from Google Play does not make it less
+     * of one.
+     */
     private fun originOf(app: ApplicationInfo, tracked: AppEntry?): String {
-        if (tracked != null) return tracked.sourceName()
         val installer = runCatching { packageManager.getInstallSourceInfo(app.packageName).installingPackageName }.getOrNull()
         return when {
+            tracked != null && (installer == null || installer == context.packageName) -> tracked.sourceName()
             installer == Installer.PLAY_STORE_PACKAGE -> "Google Play"
             installer == context.packageName -> context.getString(R.string.app_name)
             installer != null -> runCatching {

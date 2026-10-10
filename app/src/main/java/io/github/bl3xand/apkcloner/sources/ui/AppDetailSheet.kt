@@ -292,7 +292,9 @@ class AppDetailSheet : BottomSheetDialogFragment() {
                 val message = Tr.get(
                     when {
                         !active -> "cloneReinstallMessage"
-                        // Next to the clone all along: there is nothing to install then.
+                        // Next to the clone all along: there is nothing to install then - and
+                        // nothing to track either, if the app was only tracked for its clone.
+                        viewModel.isOriginalInstalled(appId) && viewModel.isTrackedForClone(appId) -> "cloneBackToAppUntrackMessage"
                         viewModel.isOriginalInstalled(appId) -> "cloneBackToAppKeptMessage"
                         else -> "cloneBackToAppMessage"
                     },
