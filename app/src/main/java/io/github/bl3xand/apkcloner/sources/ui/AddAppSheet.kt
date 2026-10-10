@@ -645,9 +645,17 @@ class AddAppSheet : BottomSheetDialogFragment() {
                 val asked = picked.filter { !it.includeAdditionalOptsInMainSearch || querySettings.containsKey(it.sourceIdentifier) }
                 val pending = asked.map { source ->
                     source to searches.async {
+                        val started = System.currentTimeMillis()
                         runCatching {
                             val found = source.search(query, querySettings[source.sourceIdentifier] ?: emptyMap())
                             if (forDevice) forThisDevice(source, found) else found
+                        }.also { answer ->
+                            // Kept for a source that is late as well: its answer comes after the search is over.
+                            val took = System.currentTimeMillis() - started
+                            AppLog.info(
+                                "Search \"$query\" in ${source.shortName}: " +
+                                    (answer.fold({ "${it.size} found" }, { "failed, ${it.javaClass.simpleName}: ${it.message}" })) + " in $took ms",
+                            )
                         }
                     }
                 }
