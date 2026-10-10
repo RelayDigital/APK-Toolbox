@@ -1,5 +1,8 @@
 package io.github.bl3xand.apkcloner.sources.source
 
+import io.github.bl3xand.apkcloner.sources.core.SourceEnv
+import io.github.bl3xand.apkcloner.sources.core.notForDevice
+import io.github.bl3xand.apkcloner.sources.core.androidSdkOf
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
 import io.github.bl3xand.apkcloner.sources.core.InvalidUrlError
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
@@ -31,6 +34,7 @@ class FDroid : AppSource("FDroid") {
         hosts = listOf("f-droid.org")
         naiveStandardVersionDetection = true
         canSearch = true
+        answersForDevice = true
         inferAppIdFromUrlPath = true
     }
 
@@ -72,6 +76,7 @@ class FDroid : AppSource("FDroid") {
                 additionalSettings,
             )
             if (!hostChanged) {
+                details = fittingThisDevice(details, host, appId, additionalSettings)
                 try {
                     val lines = sourceRequest("$FDROID_DATA_BASE_URL/$appId.yml", additionalSettings).body.split('\n')
                     lines.firstOrNull { it.startsWith("AuthorName: ") }?.let { line ->
@@ -108,6 +113,40 @@ class FDroid : AppSource("FDroid") {
         } catch (e: Throwable) {
             rethrowOrWrap(e)
         }
+    }
+
+    /** A version as the package page lists it. */
+    private class Listed(val name: String, val code: String, val minSdk: Int?, val processors: List<String>) {
+        fun fits(): Boolean = (minSdk == null || minSdk <= SourceEnv.platform.sdkInt) &&
+            (processors.isEmpty() || processors.any { it in SourceEnv.platform.supportedAbis })
+    }
+
+    /**
+     * The API names versions and nothing else. The package's page says what each needs - the
+     * lowest Android, the processors it is built for - so when the chosen version is not for
+     * this device, the newest one that is takes its place. A page that cannot be read changes
+     * nothing: the choice stands as it was.
+     */
+    private fun fittingThisDevice(details: ApkDetails, host: String, appId: String, settings: Map<String, Any?>): ApkDetails {
+        val listed = try {
+            Jsoup.parse(sourceRequest("https://$host/en/packages/$appId/", settings).body).select("li.package-version").mapNotNull { item ->
+                val header = item.selectFirst(".package-version-header") ?: return@mapNotNull null
+                val name = header.selectFirst("b")?.text()?.removePrefix("Version ")?.trim() ?: return@mapNotNull null
+                val code = VERSION_CODE.find(header.ownText())?.groupValues?.get(1) ?: return@mapNotNull null
+                val needed = REQUIREMENT.find(item.selectFirst(".package-version-requirement")?.text().orEmpty())?.groupValues?.get(1)
+                Listed(name, code, needed?.let(::androidSdkOf), item.select(".package-nativecode").map { it.text().trim() })
+            }
+        } catch (e: Exception) {
+            return details
+        }
+        val chosen = listed.firstOrNull { it.name == details.version } ?: return details
+        if (chosen.fits()) return details
+        // Newest first, as the page has them.
+        val fitting = listed.firstOrNull { it.fits() } ?: throw notForDevice(name)
+        return details.copy(
+            version = fitting.name,
+            apkUrls = ApkFilter.apkUrlsFromUrls(listOf("https://$host/repo/${appId}_${fitting.code}.apk")),
+        )
     }
 
     private inline fun matches(block: () -> Unit): Boolean = try {
@@ -201,6 +240,8 @@ class FDroid : AppSource("FDroid") {
     }
 
     companion object {
+        private val VERSION_CODE = Regex("\\((\\d+)\\)")
+        private val REQUIREMENT = Regex("Android ([0-9][0-9.]*L?)", RegexOption.IGNORE_CASE)
         private const val MAX_CHANGE_LOG_CODE_UNITS = 2048
         private const val FDROID_DATA_BASE_URL = "https://gitlab.com/fdroid/fdroiddata/-/raw/master/metadata"
 

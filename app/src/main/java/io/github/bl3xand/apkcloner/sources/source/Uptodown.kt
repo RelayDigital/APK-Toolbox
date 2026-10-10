@@ -1,5 +1,8 @@
 package io.github.bl3xand.apkcloner.sources.source
 
+import io.github.bl3xand.apkcloner.sources.core.SourceEnv
+import io.github.bl3xand.apkcloner.sources.core.notForDevice
+import io.github.bl3xand.apkcloner.sources.core.androidSdkOf
 import io.github.bl3xand.apkcloner.sources.core.Dates
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
@@ -37,6 +40,7 @@ class Uptodown : AppSource("Uptodown") {
         showReleaseDateAsVersionToggle = true
         urlsAlwaysHaveExtension = true
         canSearch = true
+        answersForDevice = true
     }
 
     override fun getRequestHeaders(
@@ -105,6 +109,13 @@ class Uptodown : AppSource("Uptodown") {
         val details = getAppDetailsFromPage(standardUrl, additionalSettings)
         val version = details["version"]
         if (version.isNullOrEmpty()) throw NoVersionError()
+        // "Android 8.0 or higher required", in the words of the app's own page; the download
+        // page, which the rest is read from, leaves that out. A page that cannot be read
+        // changes nothing.
+        val needed = runCatching {
+            REQUIREMENT.find(sourceRequest(standardUrl.removeSuffix("/download"), additionalSettings).body)?.groupValues?.get(1)
+        }.getOrNull()?.let(::androidSdkOf)
+        if (needed != null && needed > SourceEnv.platform.sdkInt) throw notForDevice(name)
         val fileId = details["fileId"] ?: throw NoApkError()
         val appId = details[SettingKeys.APP_ID] ?: throw NoReleasesError()
         val extension = details["extension"]?.takeIf { it.isNotEmpty() } ?: "apk"
@@ -211,6 +222,7 @@ class Uptodown : AppSource("Uptodown") {
         Dates.tryParseLocalDate(text, "MMM d, yyyy") ?: Dates.tryParseLocalDate(text, "MMMM d, yyyy")
 
     companion object {
+        private val REQUIREMENT = Regex("Android ([0-9][0-9.]*L?) or higher", RegexOption.IGNORE_CASE)
         private const val API_HOST = "www.uptodown.app"
         private const val AUTH_PATH = "/eapi/auth/token"
         private const val SEARCH_URL = "https://en.uptodown.com/android/en/s"
