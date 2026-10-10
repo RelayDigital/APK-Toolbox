@@ -28,9 +28,8 @@ android {
 
     defaultConfig {
         applicationId = "io.github.bl3xand.apkcloner"
-        // Android 9. The code itself asks for nothing newer than Android 8.0, but 9 is the oldest
-        // version the app has been run on.
-        minSdk = 28
+        // Android 8.0: adaptive icons and notification channels, which the app counts on.
+        minSdk = 26
         targetSdk = 36
         versionCode = 8
         versionName = "1.1.1"

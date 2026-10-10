@@ -65,11 +65,10 @@ Two things it does that are hard to find elsewhere:
 
 ## Requirements
 
-- Android 9 or newer. Updating without a prompt through the system installer
-  needs Android 12; before that it takes Shizuku
+- Android 8.0 or newer. Updating without a prompt through the system
+  installer needs Android 12; before that it takes Shizuku
 - Any processor: the universal APK installs everywhere, and there is a
-  smaller APK for each kind (`arm64-v8a` for most phones, `armeabi-v7a` for
-  old 32-bit ones, `x86` and `x86_64` for emulators)
+  smaller one for each kind
 - No root needed
 - [Shizuku](https://shizuku.rikka.app/) is optional — it lets apps and clones
   update without any prompts

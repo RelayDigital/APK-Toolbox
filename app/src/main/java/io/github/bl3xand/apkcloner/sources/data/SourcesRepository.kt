@@ -323,6 +323,9 @@ class SourcesRepository private constructor(private val context: Context) {
     }
 
     fun removeApps(ids: List<String>) {
+        // Whatever drops an app from the list leaves a line: an app that is gone without one
+        // was never stored.
+        if (ids.isNotEmpty()) AppLog.info("No longer tracked: ${ids.joinToString()}")
         val downloads = apkDir.listFiles() ?: emptyArray()
         for (id in ids) {
             File(appsDir, "$id.json").delete()
