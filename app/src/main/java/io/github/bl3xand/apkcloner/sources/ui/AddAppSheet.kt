@@ -19,7 +19,6 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.R as MaterialR
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.google.android.material.bottomsheet.BottomSheetDragHandleView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.progressindicator.LinearProgressIndicator
@@ -56,6 +55,7 @@ import io.github.bl3xand.apkcloner.ui.filterChip
 import io.github.bl3xand.apkcloner.ui.label
 import io.github.bl3xand.apkcloner.ui.openUrl
 import io.github.bl3xand.apkcloner.ui.scrollable
+import io.github.bl3xand.apkcloner.ui.scrollableUnderHandle
 import io.github.bl3xand.apkcloner.ui.show
 import io.github.bl3xand.apkcloner.ui.showError
 import io.github.bl3xand.apkcloner.ui.switchRow
@@ -110,7 +110,6 @@ class AddAppSheet : BottomSheetDialogFragment() {
         dialogs = SourcesDialogs(context)
         val settings = viewModel.repo.settings
         val root = context.column(Spacing.SHEET)
-        root.add(BottomSheetDragHandleView(context))
         root.add(context.label(Tr.get("addApp"), MaterialR.attr.textAppearanceHeadlineSmall))
 
         // ---- by link ----
@@ -228,7 +227,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
 
         arguments?.getString(ARG_URL)?.takeIf { it.isNotEmpty() }?.let { urlEdit.setText(it) }
         render()
-        return root.scrollable()
+        return root.scrollableUnderHandle()
     }
 
     override fun onStart() {

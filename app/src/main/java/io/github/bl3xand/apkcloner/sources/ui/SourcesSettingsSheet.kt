@@ -13,7 +13,6 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.R as MaterialR
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.google.android.material.bottomsheet.BottomSheetDragHandleView
 import com.google.android.material.slider.Slider
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -39,7 +38,7 @@ import io.github.bl3xand.apkcloner.ui.confirm
 import io.github.bl3xand.apkcloner.ui.expandFully
 import io.github.bl3xand.apkcloner.ui.label
 import io.github.bl3xand.apkcloner.ui.openUrl
-import io.github.bl3xand.apkcloner.ui.scrollable
+import io.github.bl3xand.apkcloner.ui.scrollableUnderHandle
 import io.github.bl3xand.apkcloner.ui.settingBlock
 import io.github.bl3xand.apkcloner.ui.showError
 import io.github.bl3xand.apkcloner.ui.showSheet
@@ -71,7 +70,6 @@ class SourcesSettingsSheet : BottomSheetDialogFragment() {
         settings = viewModel.repo.settings
         dialogs = SourcesDialogs(context)
         val root = context.column(Spacing.SHEET)
-        root.add(BottomSheetDragHandleView(context))
         root.add(context.label(getString(R.string.settings_sources), MaterialR.attr.textAppearanceHeadlineSmall))
 
         var firstSection = true
@@ -183,7 +181,7 @@ class SourcesSettingsSheet : BottomSheetDialogFragment() {
             topMargin = 24,
         )
         root.add(View(context), topMargin = 24)
-        return root.scrollable()
+        return root.scrollableUnderHandle()
     }
 
     override fun onStart() {

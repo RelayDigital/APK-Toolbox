@@ -14,6 +14,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.R as AppCompatR
 import androidx.core.widget.NestedScrollView
+import com.google.android.material.bottomsheet.BottomSheetDragHandleView
 import com.google.android.material.R as MaterialR
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -238,6 +239,12 @@ fun Context.outlinedButton(text: CharSequence, onClick: () -> Unit): MaterialBut
     }
 
 fun View.scrollable(): NestedScrollView = NestedScrollView(context).also { it.addView(this) }
+
+/** The view of a sheet: it scrolls, and the handle above it stays where it is. */
+fun View.scrollableUnderHandle(): LinearLayout = context.column().also {
+    it.addView(BottomSheetDragHandleView(context))
+    it.addView(scrollable(), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+}
 
 fun Context.openUrl(url: String) {
     try {

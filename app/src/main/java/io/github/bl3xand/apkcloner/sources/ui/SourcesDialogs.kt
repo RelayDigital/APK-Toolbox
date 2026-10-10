@@ -55,6 +55,7 @@ import io.github.bl3xand.apkcloner.ui.label
 import io.github.bl3xand.apkcloner.ui.markdownToSpanned
 import io.github.bl3xand.apkcloner.ui.openUrl
 import io.github.bl3xand.apkcloner.ui.scrollable
+import io.github.bl3xand.apkcloner.ui.scrollableUnderHandle
 import io.github.bl3xand.apkcloner.ui.sectionTitle
 import io.github.bl3xand.apkcloner.ui.showSheet
 import io.github.bl3xand.apkcloner.ui.switchRow
@@ -717,7 +718,6 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         val dialog = BottomSheetDialog(context)
         Messages.track(dialog)
         val root = context.column().apply {
-            addView(BottomSheetDragHandleView(context))
             if (entry != null) {
                 addView(
                     context.appCard(entry),
@@ -766,7 +766,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
             }
             add(View(context), topMargin = 12)
         }
-        dialog.setContentView(root.scrollable())
+        dialog.setContentView(root.scrollableUnderHandle())
         dialog.expandFully()
         dialog.show()
     }

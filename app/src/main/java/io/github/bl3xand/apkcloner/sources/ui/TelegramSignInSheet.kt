@@ -12,7 +12,6 @@ import androidx.appcompat.R as AppCompatR
 import androidx.core.view.isInvisible
 import com.google.android.material.R as MaterialR
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.bottomsheet.BottomSheetDragHandleView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.textfield.TextInputEditText
@@ -31,7 +30,7 @@ import io.github.bl3xand.apkcloner.ui.column
 import io.github.bl3xand.apkcloner.ui.dp
 import io.github.bl3xand.apkcloner.ui.expandFully
 import io.github.bl3xand.apkcloner.ui.label
-import io.github.bl3xand.apkcloner.ui.scrollable
+import io.github.bl3xand.apkcloner.ui.scrollableUnderHandle
 import io.github.bl3xand.apkcloner.ui.themeColor
 import io.github.bl3xand.apkcloner.ui.toast
 import io.github.bl3xand.apkcloner.ui.tonalButton
@@ -66,18 +65,13 @@ fun Context.showTelegramSignIn(scope: CoroutineScope) {
         isInvisible = true
     }
     val step = column()
-    val root = column().apply {
-        addView(BottomSheetDragHandleView(context))
-        addView(
-            column(Spacing.SHEET).apply {
-                add(context.label(Tr.get("telegramTitle"), MaterialR.attr.textAppearanceHeadlineSmall))
-                add(progress, topMargin = Spacing.BLOCK / 2)
-                add(step, topMargin = Spacing.BLOCK / 2)
-                add(android.view.View(context), topMargin = Spacing.SHEET)
-            },
-        )
+    val root = column(Spacing.SHEET).apply {
+        add(context.label(Tr.get("telegramTitle"), MaterialR.attr.textAppearanceHeadlineSmall))
+        add(progress, topMargin = Spacing.BLOCK / 2)
+        add(step, topMargin = Spacing.BLOCK / 2)
+        add(android.view.View(context), topMargin = Spacing.SHEET)
     }
-    dialog.setContentView(root.scrollable())
+    dialog.setContentView(root.scrollableUnderHandle())
     dialog.expandFully()
 
     /** What the current step is made of, to lock while an answer is awaited. */
