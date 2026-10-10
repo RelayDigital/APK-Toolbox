@@ -208,7 +208,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
             }
         }
         val confirmed = context.confirm(
-            Tr.get("changeX", Tr.plural("apps", all.size).lowercase()), view = view.scrollable(),
+            Tr.get("bulkUpdateTitle"), view = view.scrollable(),
         )
         return if (confirmed) chosen.toList() else null
     }
