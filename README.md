@@ -3,7 +3,11 @@
 Track, clone, install and merge Android apps — right on the phone, no root.
 
 APK Toolbox started as a way to get a second copy of an app next to the
-original and grew into a small set of tools for APK files:
+original and grew into a small set of tools for APK files. It follows in the
+steps of [Obtainium](https://github.com/ImranR98/Obtainium),
+[SAI](https://github.com/Aefyr/SAI) and
+[AntiSplit-M](https://github.com/AbdurazaaqMohammed/AntiSplit-M) — what their
+authors made, brought together in one place, with a few things added:
 
 - **Sources** — track apps from GitHub, GitLab, F-Droid, app stores, Telegram
   channels and other sites, and install their new versions straight from the
