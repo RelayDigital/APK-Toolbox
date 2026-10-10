@@ -37,6 +37,7 @@ class APKPure : AppSource("APKPure") {
         inferAppIdFromUrlPath = true
         changeLogIfAnyIsMarkDown = false
         canSearch = true
+        answersForDevice = true
         // Where the store keeps its files.
         trustedApkHosts = listOf("winudf.com")
     }

@@ -1,5 +1,7 @@
 package io.github.bl3xand.apkcloner.sources.ui
 
+import io.github.bl3xand.apkcloner.sources.core.androidVersionName
+import io.github.bl3xand.apkcloner.sources.core.SourceEnv
 import io.github.bl3xand.apkcloner.compat.versionCodeLong
 import android.os.Bundle
 import android.text.InputType
@@ -185,6 +187,28 @@ class AddAppSheet : BottomSheetDialogFragment() {
             if (picked != null) settings.searchDeselected = searchable.map { it.name }.filter { it !in picked }
         }
         searchContainer.add(where, topMargin = Spacing.UNDER_LABEL)
+        // For this device only: the stores that answer for a device are asked, and what they
+        // find is kept when it has a version this device can run. Which sources to ask is then
+        // not a choice, so the chips are out of reach.
+        val forDeviceSources = searchable.filter { it.answersForDevice }
+        fun lockSources(locked: Boolean) {
+            for (i in 0 until where.childCount) where.getChildAt(i).isEnabled = !locked
+            where.alpha = if (locked) LOCKED_ALPHA else 1f
+        }
+        searchContainer.add(
+            context.switchRow(
+                Tr.get("addForDevice"), settings.searchForDevice,
+                Tr.get(
+                    "addForDeviceNote", androidVersionName(SourceEnv.platform.sdkInt),
+                    SourceEnv.platform.supportedAbis.firstOrNull().orEmpty(), forDeviceSources.joinToString { it.shortName },
+                ),
+            ) { on ->
+                settings.searchForDevice = on
+                lockSources(on)
+            },
+            topMargin = Spacing.UNDER_LABEL,
+        )
+        lockSources(settings.searchForDevice)
         searchContainer.addDivider()
         searchContainer.add(
             context.actionButton(Tr.get("addSupported"), R.drawable.ic_info_outline) { showSupportedSources() },
@@ -560,11 +584,16 @@ class AddAppSheet : BottomSheetDialogFragment() {
         lookup = viewLifecycleOwner.lifecycleScope.launch {
             setSearching(true)
             try {
+                val forDevice = settings.searchForDevice
                 val everywhere = settings.searchEverywhere
                 // Everywhere means every source that can simply be asked: one that wants an
                 // address or a token first is searched when it is picked by name.
                 val picked = SourceRegistry.sources.filter {
-                    it.canSearch && if (everywhere) !it.includeAdditionalOptsInMainSearch else it.name !in settings.searchDeselected
+                    it.canSearch && when {
+                        forDevice -> it.answersForDevice
+                        everywhere -> !it.includeAdditionalOptsInMainSearch
+                        else -> it.name !in settings.searchDeselected
+                    }
                 }
                 if (picked.isEmpty()) throw SourceError(Tr.get("selectX", Tr.plural("source", 2).lowercase()))
 
@@ -594,10 +623,13 @@ class AddAppSheet : BottomSheetDialogFragment() {
                 val asked = picked.filter { !it.includeAdditionalOptsInMainSearch || querySettings.containsKey(it.sourceIdentifier) }
                 val pending = asked.map { source ->
                     source to searches.async {
-                        runCatching { source.search(query, querySettings[source.sourceIdentifier] ?: emptyMap()) }
+                        runCatching {
+                            val found = source.search(query, querySettings[source.sourceIdentifier] ?: emptyMap())
+                            if (forDevice) forThisDevice(source, found) else found
+                        }
                     }
                 }
-                val deadline = System.currentTimeMillis() + SEARCH_LIMIT_MS
+                val deadline = System.currentTimeMillis() + if (forDevice) DEVICE_SEARCH_LIMIT_MS else SEARCH_LIMIT_MS
                 val results = pending.mapNotNull { (source, answer) ->
                     val found = withTimeoutOrNull((deadline - System.currentTimeMillis()).coerceAtLeast(1)) { answer.await() }
                     when {
@@ -651,6 +683,18 @@ class AddAppSheet : BottomSheetDialogFragment() {
         }
     }
 
+    /**
+     * Of what a search [found], the apps [source] has a version of for this device. The only way
+     * to know is to ask for each, so only the first few are asked about, side by side.
+     */
+    private suspend fun forThisDevice(source: AppSource, found: Map<String, List<String>>): Map<String, List<String>> = coroutineScope {
+        found.entries.take(DEVICE_SEARCH_RESULTS).map { hit ->
+            hit to async(Dispatchers.IO) {
+                runCatching { SourceRegistry.getApp(source, hit.key, defaultValuesOf(source.combinedAppSpecificSettingFormItems)) }.isSuccess
+            }
+        }.filter { it.second.await() }.associate { it.first.key to it.first.value }
+    }
+
     /** What can be added: every source with what it is good for; a tap opens its site. */
     private fun showSupportedSources() {
         val context = requireContext()
@@ -671,6 +715,11 @@ class AddAppSheet : BottomSheetDialogFragment() {
     companion object {
         /** How long a search waits for its sources. */
         private const val SEARCH_LIMIT_MS = 8000L
+
+        // Looking for apps for this device asks about every result, which takes longer.
+        private const val DEVICE_SEARCH_LIMIT_MS = 20000L
+        private const val DEVICE_SEARCH_RESULTS = 10
+        private const val LOCKED_ALPHA = 0.4f
 
         const val TAG = "AddAppSheet"
         private const val ARG_URL = "url"

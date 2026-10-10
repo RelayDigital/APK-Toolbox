@@ -231,5 +231,7 @@
   "addSearchSlow": "Did not answer in time: {}",
   "notForDevice": "{} has no file of this app for your device (Android {}, {}). Most likely the app needs a newer Android.",
   "notForProcessor": "The release has no file for the processor of your device ({}). Choosing by processor can be switched off in the app's options.",
-  "notForDeviceElsewhere": "An older version that still runs on it may be found in a source that keeps them, such as APKPure."
+  "notForDeviceElsewhere": "An older version that still runs on it may be found in a source that keeps them, such as APKPure.",
+  "addForDevice": "Only for my phone",
+  "addForDeviceNote": "Shows apps that have a version for this device (Android {}, {}). Asks the stores that tell: {}."
 }

@@ -38,6 +38,7 @@ class RuStore : AppSource("RuStore") {
         changeLogIfAnyIsMarkDown = false
         inferAppIdFromUrlPath = true
         canSearch = true
+        answersForDevice = true
     }
 
     private fun deviceType(): String = if (SourceEnv.platform.isTv) "TV" else "mobile"

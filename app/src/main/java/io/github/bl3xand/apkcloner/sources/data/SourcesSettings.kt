@@ -200,6 +200,11 @@ class SourcesSettings private constructor(context: Context) : SourceSettings {
         get() = bool("searchEverywhere", true)
         set(value) = setBool("searchEverywhere", value)
 
+    /** Search by name only shows apps that have a version for this device. */
+    var searchForDevice: Boolean
+        get() = bool("searchForDevice", false)
+        set(value) = setBool("searchForDevice", value)
+
     /** all, updatesOnly or none. */
     var actionBannerMode: String
         get() = getString("actionBannerMode")?.takeIf { it in listOf("all", "updatesOnly", "none") } ?: "updatesOnly"

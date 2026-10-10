@@ -71,6 +71,12 @@ abstract class AppSource(
     var allowIncludeZips = false
     var allowIncludeTarballs = false
     var canSearch = false
+
+    /**
+     * The source answers for the device that asks - its Android version and processor - so that
+     * asking it for an app tells whether there is a version of the app for this device.
+     */
+    var answersForDevice = false
     var includeAdditionalOptsInMainSearch = false
 
     private var hostMatchRegex: Regex? = null
