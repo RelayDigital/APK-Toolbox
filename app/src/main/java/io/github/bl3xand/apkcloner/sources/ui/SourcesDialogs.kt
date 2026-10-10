@@ -6,12 +6,10 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
-import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CheckBox
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -22,9 +20,9 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDragHandleView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.divider.MaterialDivider
 import com.google.android.material.textfield.TextInputEditText
@@ -409,14 +407,11 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
 
     /** A small question before a category is removed; apps simply lose it. */
     private fun confirmCategoryRemoval(name: String, onRemoved: () -> Unit) {
-        MaterialAlertDialogBuilder(context)
-            .setTitle(Tr.get("catRemoveQuestion", name))
-            .setPositiveButton(Tr.get("remove")) { _, _ ->
-                repo.setCategories(settings.categories - name)
-                onRemoved()
-            }
-            .setNegativeButton(Tr.get("cancel"), null)
-            .show()
+        context.showSheet(Tr.get("catRemoveQuestion", name), positive = Tr.get("remove"), negative = Tr.get("cancel")) {
+            repo.setCategories(settings.categories - name)
+            onRemoved()
+            true
+        }
     }
 
     /** A new category: its name and its colour in one sheet. Names already taken are refused. */
@@ -479,8 +474,6 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 )
                 row.addView(
                     context.label(name, MaterialR.attr.textAppearanceBodyLarge).apply {
-                        maxLines = 1
-                        ellipsize = TextUtils.TruncateAt.END
                         setOnClickListener {
                             promptText(Tr.get("category"), Tr.get("catName"), name) { newName ->
                                 val trimmed = newName.trim()
@@ -620,10 +613,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                         add(context.label(item.title, MaterialR.attr.textAppearanceTitleMedium))
                         if (item.description.isNotBlank()) {
                             add(
-                                context.label(item.description, colorAttr = MaterialR.attr.colorOnSurfaceVariant).apply {
-                                    maxLines = 3
-                                    ellipsize = TextUtils.TruncateAt.END
-                                },
+                                context.label(item.description, colorAttr = MaterialR.attr.colorOnSurfaceVariant),
                                 topMargin = 2,
                             )
                         }
@@ -645,7 +635,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                         )
                     }
                     if (multiple) {
-                        val box = CheckBox(context).apply {
+                        val box = MaterialCheckBox(context).apply {
                             isChecked = item.key in chosen
                             setOnCheckedChangeListener { _, checked -> if (checked) chosen.add(item.key) else chosen.remove(item.key) }
                         }
@@ -747,8 +737,6 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 add(
                     context.label(title, MaterialR.attr.textAppearanceTitleLarge).apply {
                         setPadding(context.dp(Spacing.SHEET), 0, context.dp(Spacing.SHEET), context.dp(8))
-                        maxLines = 1
-                        ellipsize = TextUtils.TruncateAt.END
                     },
                 )
             }

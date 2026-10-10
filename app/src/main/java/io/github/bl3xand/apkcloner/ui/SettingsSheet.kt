@@ -19,7 +19,6 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.R as MaterialR
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.color.MaterialColors
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import io.github.bl3xand.apkcloner.BuildConfig
 import io.github.bl3xand.apkcloner.R
@@ -303,25 +302,25 @@ class SettingsSheet : BottomSheetDialogFragment() {
     /** Replacing a key of the user's own strands whatever was signed with it, so ask first. */
     private fun confirmKeyChange(action: () -> Unit) {
         if (keys.custom == null) return action()
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.key_replace_title)
-            .setMessage(R.string.key_replace_message)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.key_replace_confirm) { _, _ -> action() }
-            .show()
+        requireContext().showSheet(
+            getString(R.string.key_replace_title), getString(R.string.key_replace_message),
+            positive = getString(R.string.key_replace_confirm), negative = getString(android.R.string.cancel),
+        ) {
+            action()
+            true
+        }
     }
 
     private fun askPassword(title: Int, withAlias: Boolean, onEntered: (CharArray, String) -> Unit) {
         val dialog = DialogKeyPasswordBinding.inflate(layoutInflater)
         dialog.layoutAlias.isVisible = withAlias
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(title)
-            .setView(dialog.root)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                onEntered(dialog.editPassword.text.toString().toCharArray(), dialog.editAlias.text.toString().trim())
-            }
-            .show()
+        requireContext().showSheet(
+            getString(title), content = dialog.root,
+            positive = getString(android.R.string.ok), negative = getString(android.R.string.cancel),
+        ) {
+            onEntered(dialog.editPassword.text.toString().toCharArray(), dialog.editAlias.text.toString().trim())
+            true
+        }
     }
 
     /** Key operations touch the keystore and the disk; keep them off the main thread. */

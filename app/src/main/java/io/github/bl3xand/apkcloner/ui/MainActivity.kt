@@ -24,10 +24,11 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.databinding.ActivityMainBinding
+import io.github.bl3xand.apkcloner.sources.ui.SheetAction
+import io.github.bl3xand.apkcloner.sources.ui.SourcesDialogs
 import io.github.bl3xand.apkcloner.sources.ui.SourcesTab
 import io.github.bl3xand.apkcloner.sources.ui.SourcesViewModel
 import io.github.bl3xand.apkcloner.update.UpdateNotifications
@@ -353,15 +354,19 @@ class MainActivity : AppCompatActivity() {
     private fun askWhatToDoWithFiles() {
         val uris = viewModel.splits.pendingFiles
         if (uris.isEmpty()) return
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.files_received_title)
-            .setItems(arrayOf(getString(R.string.files_action_install), getString(R.string.files_action_merge))) { _, which ->
-                val mode = if (which == 0) SplitMode.INSTALL else SplitMode.MERGE
-                viewModel.tab = if (which == 0) MainTabs.INSTALL else MainTabs.SPLIT
-                showTab()
-                viewModel.splits.loadFiles(uris, mode)
-            }
-            .show()
+        fun go(mode: SplitMode) {
+            viewModel.tab = if (mode == SplitMode.INSTALL) MainTabs.INSTALL else MainTabs.SPLIT
+            showTab()
+            viewModel.splits.loadFiles(uris, mode)
+        }
+        // The sheet of actions every other menu of the app is.
+        SourcesDialogs(this).showActions(
+            getString(R.string.files_received_title),
+            listOf(
+                SheetAction(R.drawable.ic_install, getString(R.string.files_action_install)) { go(SplitMode.INSTALL) },
+                SheetAction(R.drawable.ic_merge, getString(R.string.files_action_merge)) { go(SplitMode.MERGE) },
+            ),
+        )
     }
 
     private fun hasFileAccess(): Boolean =
