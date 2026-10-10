@@ -25,6 +25,22 @@ clone.
 Nothing is left behind on disk: a result is either installed or saved where
 you choose, and temporary files are removed afterwards.
 
+Two things it does that are hard to find elsewhere:
+
+- **Apps from Telegram channels.** A channel that posts builds as files is
+  tracked like a store: new files are found, downloaded and installed, in the
+  background too.
+- **A clone instead of the app, kept up to date.** An app can be installed
+  only as a clone with the permissions you take away — no network, no
+  contacts — and every new release is rebuilt the same way and installed
+  over it, with the data kept. The original never has to be on the device.
+
+<p align="center">
+  <img src="docs/screenshots/source-telegram.jpg" width="24%" alt="An app tracked from a Telegram channel" />
+  <img src="docs/screenshots/clone-install.jpg" width="24%" alt="Installing an app as a clone" />
+  <img src="docs/screenshots/permissions.jpg" width="24%" alt="Choosing the permissions a clone keeps" />
+  <img src="docs/screenshots/filter.jpg" width="24%" alt="Filter" />
+</p>
 <p align="center">
   <img src="docs/screenshots/sources.jpg" width="24%" alt="Sources" />
   <img src="docs/screenshots/source-details.jpg" width="24%" alt="A tracked app" />
