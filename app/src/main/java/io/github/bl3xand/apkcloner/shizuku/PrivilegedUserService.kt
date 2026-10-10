@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.shizuku
 
+import android.os.Build
 import android.os.ParcelFileDescriptor
 import java.util.concurrent.TimeUnit
 
@@ -23,8 +24,11 @@ class PrivilegedUserService : IPrivilegedService.Stub() {
             // -r replace, -t allow test-only builds, and no refusal of apps targeting an old SDK:
             // the same set Obtainium uses. Keeping this app as the installer of record lets the
             // stock installer update the clone silently later, too.
+            // The block on apps that target an old SDK came with Android 14, and so did the
+            // option that lifts it: an older `pm` refuses an option it does not know.
+            val liftTargetBlock = listOf("--bypass-low-target-sdk-block").filter { Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE }
             val created = run(
-                "pm", "install-create", "-r", "-t", "--bypass-low-target-sdk-block",
+                "pm", "install-create", "-r", "-t", *liftTargetBlock.toTypedArray(),
                 "-i", installerPackage, "--user", userId.toString(),
             )
             session = SESSION_ID.find(created)?.groupValues?.get(1) ?: return created.ifBlank { "install-create failed" }
