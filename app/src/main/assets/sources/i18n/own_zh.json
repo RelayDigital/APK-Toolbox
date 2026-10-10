@@ -223,5 +223,6 @@
   "fltClones": "克隆",
   "fltNoUpdates": "不更新",
   "fltUpdateAvailable": "有可用更新",
-  "cloneSettings": "克隆设置"
+  "cloneSettings": "克隆设置",
+  "cloneBackToAppKeptMessage": "克隆及其中的一切都将被移除。应用本身已安装,将保持原样。克隆的数据、登录状态和设置将丢失且无法恢复。"
 }

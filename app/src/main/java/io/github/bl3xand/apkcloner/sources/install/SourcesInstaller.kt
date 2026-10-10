@@ -174,14 +174,22 @@ class SourcesInstaller private constructor(private val context: Context) {
 
     /**
      * Gives an app its real package name once the APK is at hand. A changed name on an app that
-     * already had a real one is refused: it would be a different app.
+     * already had a real one is refused: it would be a different app. So is one on an app whose
+     * name was only worked out but is borne out by what is installed - a release can hold builds
+     * under several packages, and picking another must not turn the app into a second one next
+     * to the first. The other way round is let through: an app that is not on the device under
+     * the name it has, while the downloaded one is, takes that name.
      */
     private fun handleApkIdChange(appIn: TrackedApp, actual: String, file: File, downloadUrl: String): Pair<File, TrackedApp> {
         var app = appIn
         var result = file
         if (app.id != actual) {
             val tracked = repo.entry(app.id) != null
-            if (tracked && !app.hasTempId && !app.allowIdChange) throw IdChangedError(actual).also { it.url = app.url }
+            val installedHere = repo.installedInfo(app.id) != null
+            val settles = !installedHere && repo.installedInfo(actual) != null
+            if (tracked && !app.hasTempId && !settles && (!app.allowIdChange || installedHere)) {
+                throw IdChangedError(actual).also { it.url = app.url }
+            }
             val idChangeWasAllowed = app.allowIdChange
             val wasTemp = app.hasTempId
             val originalId = app.id
@@ -190,7 +198,7 @@ class SourcesInstaller private constructor(private val context: Context) {
             if (file.renameTo(renamed)) result = renamed
             if (tracked) {
                 repo.removeApps(listOf(originalId))
-                repo.saveApps(listOf(app), onlyIfExists = !wasTemp && !idChangeWasAllowed)
+                repo.saveApps(listOf(app), onlyIfExists = !wasTemp && !idChangeWasAllowed && !settles)
             }
         }
         return result to app

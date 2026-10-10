@@ -103,7 +103,15 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
                 repo.loadApps()
                 if (!checkedOnStart) {
                     checkedOnStart = true
-                    if (settings.checkOnStart && repo.all().isNotEmpty()) refresh()
+                    // Nobody asked for this check, so it does not come forward with what went
+                    // wrong: an app that could not be checked says so in its own row.
+                    if (settings.checkOnStart && repo.all().isNotEmpty()) {
+                        try {
+                            repo.updates.checkUpdates(forceAll = true)
+                        } catch (e: CheckUpdatesException) {
+                            AppLog.debug("Check at start: ${e.errors.idsByErrorString.values.sumOf { it.size }} app(s) could not be checked")
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 _events.tryEmit(SourcesEvent.Error(e))
@@ -379,13 +387,17 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
 
     /**
      * Goes back from the clone to the app itself: the clone is removed - the system asks - and
-     * the app is installed as its publisher made it. Nothing happens if the clone stays.
+     * the app is installed as its publisher made it, unless it has been there next to the clone
+     * all along. Nothing happens if the clone stays.
      */
     fun backToOriginal(id: String) = launchReporting {
         if (!uninstallFromDevice(id)) return@launchReporting
         withContext(Dispatchers.IO) { applyCloneMode(id, false) }
-        obtain(listOf(id))
+        if (!isOriginalInstalled(id)) obtain(listOf(id))
     }
+
+    /** Whether the app itself is on the device under its own package, whatever it is tracked as. */
+    fun isOriginalInstalled(id: String): Boolean = repo.installedInfo(id) != null
 
     /** What the clone [id] is installed as is made with; with [install] it is then installed. */
     fun setCloneOptions(id: String, packageName: String, name: String, badge: Boolean, install: Boolean = false) = saving {

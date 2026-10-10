@@ -289,7 +289,14 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         binding.buttonCloneMode.updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = context.dp(if (active) 4 else 12) }
         binding.buttonCloneMode.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launch {
-                val message = Tr.get(if (active) "cloneBackToAppMessage" else "cloneReinstallMessage")
+                val message = Tr.get(
+                    when {
+                        !active -> "cloneReinstallMessage"
+                        // Next to the clone all along: there is nothing to install then.
+                        viewModel.isOriginalInstalled(appId) -> "cloneBackToAppKeptMessage"
+                        else -> "cloneBackToAppMessage"
+                    },
+                )
                 if (!context.confirm(binding.buttonCloneMode.text, message)) return@launch
                 if (active) viewModel.backToOriginal(appId) else viewModel.setCloneMode(appId, true)
             }
