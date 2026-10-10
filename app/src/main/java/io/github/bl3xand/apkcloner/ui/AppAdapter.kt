@@ -28,6 +28,7 @@ class AppAdapter(
         holder.binding.textPackage.text = app.packageName
         // The same third line every list of apps has: the version, with nothing around it.
         holder.binding.textStatus.text = app.versionName ?: app.versionCode.toString()
+        holder.binding.stripes.removeAllViews()
         // The fourth line every list has: where the app comes from.
         holder.binding.textNote.visibility = if (app.origin != null) View.VISIBLE else View.GONE
         holder.binding.textNote.text = app.origin

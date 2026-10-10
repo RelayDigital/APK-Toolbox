@@ -439,7 +439,15 @@ class SourcesInstaller private constructor(private val context: Context) {
      * Installs [apks] (base first) for the tracked app [id], which land on the device as [appId]:
      * the app's own package, or its clone's. Returns true when the app is installed afterwards.
      */
-    private suspend fun installFiles(id: String, appId: String, apks: List<File>, background: Boolean, pretendPlay: Boolean): Boolean {
+    private suspend fun installFiles(
+        id: String,
+        appId: String,
+        apks: List<File>,
+        background: Boolean,
+        pretendPlay: Boolean,
+        /** For files that are not this install's to delete: the splits of the installed app itself. */
+        keepFiles: Boolean = false,
+    ): Boolean {
         val entry = repo.entry(id) ?: throw SourceError(Tr.get("appNotFound"))
         val newInfo = facts(apks.first())
         if (newInfo == null) {
@@ -502,7 +510,7 @@ class SourcesInstaller private constructor(private val context: Context) {
         AppLog.info(if (succeeded) "Installed $appId ${newInfo.versionName}" else "Install of $appId was not confirmed")
         if (succeeded) {
             repo.entry(id)?.let { repo.saveApps(listOf(it.app.copy(installedVersion = it.app.latestVersion))) }
-            apks.forEach { it.delete() }
+            if (!keepFiles) apks.forEach { it.delete() }
         }
         return succeeded
     }
@@ -606,6 +614,58 @@ class SourcesInstaller private constructor(private val context: Context) {
         cloneRequests.add(id)
     }
 
+    private fun manifestFile(id: String) = File(context.filesDir, "sources/clone_manifests/$id.xml")
+
+    /**
+     * Keeps the manifest the original has, for the version being made into a clone. It is all of
+     * the original that the clone does not have itself, and what lets the clone be built again
+     * with other permissions without the original being fetched once more.
+     */
+    private fun keepOriginalManifest(app: TrackedApp, base: File, versionCode: Long) {
+        runCatching {
+            val bytes = ZipFile(base).use { zip -> zip.getInputStream(zip.getEntry("AndroidManifest.xml")).use { it.readBytes() } }
+            manifestFile(app.id).apply { parentFile?.mkdirs() }.writeBytes(bytes)
+            repo.entry(app.id)?.let {
+                repo.saveApps(listOf(it.app.withSetting(SettingKeys.CLONE_MANIFEST_VERSION, versionCode.toString())))
+            }
+        }.onFailure { AppLog.warn("${app.id}: the original's manifest could not be kept: ${it.message}") }
+    }
+
+    /**
+     * Applies the permissions set for the clone [id] is installed as to the clone that is on the
+     * device, without downloading anything: the clone is built again from itself and the manifest
+     * kept from its original, and installed over itself. False when that manifest is not there or
+     * is of another version - then the release has to be fetched, as for an update.
+     */
+    suspend fun rebuildInstalledClone(id: String): Boolean = withContext(Dispatchers.IO) {
+        val entry = repo.entry(id) ?: return@withContext false
+        val app = entry.app
+        val target = app.clonePackage ?: return@withContext false
+        val installed = repo.installedInfo(target) ?: return@withContext false
+        val manifest = manifestFile(id).takeIf {
+            it.isFile && app.settings.getStringOrNull(SettingKeys.CLONE_MANIFEST_VERSION) == installed.longVersionCode.toString()
+        } ?: return@withContext false
+        val info = installed.applicationInfo ?: return@withContext false
+        val cloner = ApkCloner(context)
+        val key = installed.signingInfo?.apkContentsSigners?.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) }
+            ?: return@withContext false
+        repo.setDownload(id, DownloadState(-1.0))
+        try {
+            val removed = app.cloneRemovedPermissions
+            AppLog.info("Building the installed clone $target again, without: ${removed.sorted().joinToString().ifEmpty { "-" }}")
+            val name = app.settings.getStringOrNull(SettingKeys.CLONE_NAME)?.takeIf { it.isNotBlank() }
+            val base = cloner.recloneBase(
+                File(info.sourceDir), manifest.readBytes(), CloneRequest(emptyList(), target, name, key, null, removed), cloneDir(id),
+            )
+            val pretendPlay = settings.shizukuPretendToBeGooglePlay || app.settings.getBool(SettingKeys.PRETEND_GOOGLE_PLAY)
+            val files = listOf(base) + info.splitSourceDirs.orEmpty().map(::File)
+            installFiles(id, target, files, background = false, pretendPlay = pretendPlay, keepFiles = true)
+        } finally {
+            cloneDir(id).deleteRecursively()
+            repo.setDownload(id, null)
+        }
+    }
+
     private fun cloneDir(id: String) = File(repo.apkDir, "$id-clone")
 
     /**
@@ -641,6 +701,7 @@ class SourcesInstaller private constructor(private val context: Context) {
         }
         AppLog.info("Building ${app.id} ${app.latestVersion} as the clone $target, without: ${removed.sorted().joinToString().ifEmpty { "-" }}")
         val name = app.settings.getStringOrNull(SettingKeys.CLONE_NAME)?.takeIf { it.isNotBlank() }
+        keepOriginalManifest(app, apks.first(), info?.versionCode ?: 0)
         return cloner.clone(CloneRequest(apks, target, name, key, icon, removed), cloneDir(app.id)) { _, _, _ -> }
     }
 

@@ -116,19 +116,16 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         settingsVersion.value++
     }
 
-    private fun matches(entry: AppEntry, filter: AppsFilter): Boolean {
+    private fun kindsOf(app: TrackedApp, pending: Set<String>): Set<AppKind> = buildSet {
+        if (app.id in pending) add(AppKind.UPDATE_AVAILABLE)
+        if (app.installedVersion == null) add(AppKind.NOT_INSTALLED)
+        if (app.updatesOff && app.installedVersion != null) add(AppKind.NOT_UPDATED)
+        add(if (app.clonePackage != null) AppKind.CLONE else AppKind.ORIGINAL)
+    }
+
+    private fun matches(entry: AppEntry, filter: AppsFilter, pending: Set<String>): Boolean {
         val app = entry.app
-        val updatable = repo.isAppUpdateable(app)
-        if (app.installedVersion == app.latestVersion && !filter.includeUpToDate) return false
-        // A hidden downgrade counts as up to date.
-        if (app.installedVersion != null && app.installedVersion != app.latestVersion && !updatable &&
-            !filter.includeUpToDate
-        ) {
-            return false
-        }
-        if (app.installedVersion == null && !filter.includeNonInstalled) return false
-        if (!(if (app.clonePackage != null) filter.includeClones else filter.includeOriginals)) return false
-        if (app.updatesOff && app.installedVersion != null && !filter.includeNoUpdates) return false
+        if (filter.kinds.isNotEmpty() && filter.kinds.intersect(kindsOf(app, pending)).isEmpty()) return false
         for (token in filter.name.split(' ').filter { it.isNotBlank() }) {
             if (!entry.name.lowercase().contains(token.lowercase())) return false
         }
@@ -137,7 +134,7 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         }
         if (filter.id.isNotEmpty() && !app.id.contains(filter.id)) return false
         if (filter.categories.isNotEmpty() && filter.categories.intersect(app.categories.toSet()).isEmpty()) return false
-        if (filter.source.isNotEmpty() && entry.sourceType != filter.source) return false
+        if (filter.sources.isNotEmpty() && entry.sourceType !in filter.sources) return false
         return true
     }
 
@@ -176,7 +173,7 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         val pendingAll = repo.findAppIdsWithPendingUpdates(installedOnly = true).toSet()
         val conflicts = all.filter(repo::hasSignerConflict).map { it.app.id }.toSet()
 
-        var listed = sorted(all.filter { matches(it, filter) })
+        var listed = sorted(all.filter { matches(it, filter, pendingAll) })
         if (settings.pinUpdates) listed = listed.filter { it.app.id in pendingAll } + listed.filter { it.app.id !in pendingAll }
         if (settings.buryNonInstalled) {
             listed = listed.filter { it.app.installedVersion != null } + listed.filter { it.app.installedVersion == null }
@@ -380,8 +377,15 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
             repo.entry(originalPackage)?.app?.clonePackage == clonePackage
         }
 
-    /** Removes [packageName] through the system prompt; true when it is gone afterwards. */
-    suspend fun uninstallPackage(packageName: String): Boolean = installer.uninstallApp(packageName)
+    /**
+     * Goes back from the clone to the app itself: the clone is removed - the system asks - and
+     * the app is installed as its publisher made it. Nothing happens if the clone stays.
+     */
+    fun backToOriginal(id: String) = launchReporting {
+        if (!uninstallFromDevice(id)) return@launchReporting
+        withContext(Dispatchers.IO) { applyCloneMode(id, false) }
+        obtain(listOf(id))
+    }
 
     /** What the clone [id] is installed as is made with; with [install] it is then installed. */
     fun setCloneOptions(id: String, packageName: String, name: String, badge: Boolean, install: Boolean = false) = saving {
@@ -411,8 +415,11 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
                     .withSetting(SettingKeys.CLONE_KNOWN_PERMISSIONS, (app.cloneKnownPermissions + seen).sorted().joinToString(",")),
             ),
         )
-        // A clone that is only set up is made when it is installed.
-        if (removed != app.cloneRemovedPermissions && app.clonePackage != null) obtain(listOf(id))
+        // A clone that is only set up is made when it is installed. One that is there is built
+        // again from itself; only when that cannot be done is the release fetched for it.
+        if (removed != app.cloneRemovedPermissions && app.clonePackage != null && !installer.rebuildInstalledClone(id)) {
+            obtain(listOf(id))
+        }
     }
 
     /** Whether [packageName] cannot be the clone of [id]: another app has it, tracked or installed. */
@@ -580,7 +587,6 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
          */
         val MIRRORS = listOf(
             "https://apkpure.net/app/{}",
-            "https://apkcombo.com/app/{}",
             "https://www.rustore.ru/catalog/app/{}",
             "https://galaxystore.samsung.com/detail/{}",
             "https://sj.qq.com/appdetail/{}",

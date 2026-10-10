@@ -47,18 +47,35 @@ class ApkCloner(private val context: Context) {
                 }
 
                 val patcher = ManifestPatcher(request.newPackage, request.newLabel.takeIf { index == 0 }, request.removedPermissions)
-                val metadata = {
-                    val marked = iconFiles.isNotEmpty()
-                    METADATA_ENTRY to (
-                        "$METADATA_ORIGINAL=${patcher.oldPackage}\n$METADATA_BADGE=$marked\n" +
-                            "$METADATA_REMOVED_PERMISSIONS=${request.removedPermissions.joinToString(",")}\n"
-                        ).toByteArray()
-                }
+                val metadata = { METADATA_ENTRY to metadataOf(patcher.oldPackage, iconFiles.isNotEmpty(), request.removedPermissions) }
                 ApkRebuilder.rebuild(apk, unsigned, patcher, iconFiles, metadata.takeIf { index == 0 })
                 AppLog.debug("$name: ${patcher.oldPackage} renamed to ${request.newPackage}, ${unsigned.length()} bytes; signing")
                 sign(unsigned, output, request.key ?: keys.active)
                 output
             }
+        } finally {
+            unsigned.delete()
+        }
+    }
+
+    /**
+     * Builds the base APK of an installed clone again with another set of permissions, from the
+     * clone itself and the manifest its original had: everything but the manifest is the clone's
+     * own already, so nothing has to be fetched. Its splits go in as they are, being signed with
+     * the same key.
+     */
+    fun recloneBase(installedBase: File, originalManifest: ByteArray, request: CloneRequest, outputDir: File): File {
+        outputDir.deleteRecursively()
+        check(outputDir.mkdirs()) { "Cannot create $outputDir" }
+        val unsigned = File(outputDir, "unsigned.tmp")
+        val output = File(outputDir, "base.apk")
+        try {
+            val badged = readMetadata(installedBase.path)?.badged ?: false
+            val patcher = ManifestPatcher(request.newPackage, request.newLabel, request.removedPermissions)
+            val metadata = { METADATA_ENTRY to metadataOf(patcher.oldPackage, badged, request.removedPermissions) }
+            ApkRebuilder.rebuild(installedBase, unsigned, patcher, emptyMap(), metadata, originalManifest)
+            sign(unsigned, output, request.key ?: keys.active)
+            return output
         } finally {
             unsigned.delete()
         }
@@ -83,6 +100,11 @@ class ApkCloner(private val context: Context) {
         private const val METADATA_ORIGINAL = "original"
         private const val METADATA_BADGE = "badge"
         private const val METADATA_REMOVED_PERMISSIONS = "removedPermissions"
+
+        private fun metadataOf(original: String, badged: Boolean, removedPermissions: Set<String>): ByteArray = (
+            "$METADATA_ORIGINAL=$original\n$METADATA_BADGE=$badged\n" +
+                "$METADATA_REMOVED_PERMISSIONS=${removedPermissions.joinToString(",")}\n"
+            ).toByteArray()
 
         /** What a clone records about itself, or null if [baseApk] is not one of ours. */
         fun readMetadata(baseApk: String): CloneMetadata? = runCatching {

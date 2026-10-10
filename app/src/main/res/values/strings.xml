@@ -13,6 +13,7 @@
     <string name="chip_system_apps">System apps</string>
     <string name="chip_clones_original">From the original</string>
     <string name="chip_clones_source">From a source</string>
+    <string name="chip_update_available">Update available</string>
     <string name="chip_no_updates">Not updated</string>
     <string name="empty_list">No apps found</string>
     <string name="empty_clones">No clones yet. Installed clones will show up here.</string>
@@ -46,8 +47,9 @@
     <string name="clone_no_updates">No original</string>
     <string name="version_no_updates">%1$s (not updated)</string>
     <string name="switch_no_updates">Do not update</string>
+    <string name="clone_show_in_sources">Show in Sources</string>
     <string name="clone_track">Update from a source</string>
-    <string name="clone_track_message">A clone is rebuilt from the installed original, so it stops being updated when the original is removed - and Google Play hands its files to nobody else. APK Toolbox can look the app up by its package in stores that carry the same builds (APKPure, APKCombo, RuStore and others, one after another) and keep the clone up to date from there, in the Sources tab. The original can then be removed. An update signed by someone else than the original is refused.</string>
+    <string name="clone_track_message">A clone is rebuilt from the installed original, so it stops being updated when the original is removed - and Google Play hands its files to nobody else. APK Toolbox can look the app up by its package in stores that carry the same builds (APKPure, RuStore, Galaxy Store and others, one after another) and keep the clone up to date from there, in the Sources tab. The original can then be removed. An update signed by someone else than the original is refused.</string>
     <string name="detail_original_version">Original version</string>
     <string name="detail_clone_version">Clone version</string>
     <string name="detail_removed_permissions">Removed permissions</string>
@@ -168,6 +170,8 @@
     <string name="settings_section_experimental">Experimental</string>
     <string name="settings_check_clones">Clones</string>
     <string name="settings_check_clones_description">A clone is outdated when its original was updated.</string>
+    <string name="settings_check_on_start">Check when the app opens</string>
+    <string name="settings_check_on_start_description">Apps from sources and clones are checked for new versions every time APK Toolbox is opened.</string>
     <string name="settings_wifi_only">Wait for Wi-Fi</string>
     <string name="settings_wifi_only_description">Updates found on mobile data are installed once Wi-Fi is connected.</string>
     <string name="settings_charging_only">Wait for the charger</string>

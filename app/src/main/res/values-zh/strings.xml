@@ -11,6 +11,7 @@
     <string name="chip_system_apps">系统应用</string>
     <string name="chip_clones_original">来自原应用</string>
     <string name="chip_clones_source">来自来源</string>
+    <string name="chip_update_available">有可用更新</string>
     <string name="chip_no_updates">不更新</string>
     <string name="empty_list">未找到应用</string>
     <string name="empty_clones">暂无克隆。已安装的克隆应用会显示在这里。</string>
@@ -44,8 +45,9 @@
     <string name="clone_no_updates">无原应用</string>
     <string name="version_no_updates">%1$s(不更新)</string>
     <string name="switch_no_updates">不更新</string>
+    <string name="clone_show_in_sources">在“来源”中显示</string>
     <string name="clone_track">从来源更新</string>
-    <string name="clone_track_message">克隆由已安装的原应用重建,因此移除原应用后就不再更新,而 Google Play 不向他人提供文件。APK Toolbox 可按包名在提供相同构建的商店(APKPure、APKCombo、RuStore 等,依次查找)中查找该应用,并在“来源”标签中由此保持克隆更新。之后可以移除原应用。签名与原应用不同的更新会被拒绝。</string>
+    <string name="clone_track_message">克隆由已安装的原应用重建,因此移除原应用后就不再更新,而 Google Play 不向他人提供文件。APK Toolbox 可按包名在提供相同构建的商店(APKPure、RuStore、Galaxy Store 等,依次查找)中查找该应用,并在“来源”标签中由此保持克隆更新。之后可以移除原应用。签名与原应用不同的更新会被拒绝。</string>
     <string name="detail_original_version">原应用版本</string>
     <string name="detail_clone_version">克隆版本</string>
     <string name="detail_removed_permissions">已移除的权限</string>
@@ -161,6 +163,8 @@
     <string name="settings_section_experimental">实验性功能</string>
     <string name="settings_check_clones">克隆应用</string>
     <string name="settings_check_clones_description">原应用更新后，克隆即为过期。</string>
+    <string name="settings_check_on_start">打开应用时检查</string>
+    <string name="settings_check_on_start_description">每次打开 APK Toolbox 时检查来源中的应用和克隆是否有新版本。</string>
     <string name="settings_wifi_only">等待 Wi-Fi</string>
     <string name="settings_wifi_only_description">在移动网络下找到的更新会在连接 Wi-Fi 后安装。</string>
     <string name="settings_charging_only">等待充电</string>

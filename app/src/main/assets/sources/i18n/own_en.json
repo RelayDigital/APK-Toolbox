@@ -37,7 +37,6 @@
   "addSupported": "Supported sources",
   "addDetected": "Source: {}",
   "fltState": "Show",
-  "fltUpToDate": "Up to date",
   "fltNotInstalled": "Not installed",
   "fltSource": "Source",
   "fltAll": "All",
@@ -218,11 +217,12 @@
   "cloneReinstall": "Reinstall as a clone",
   "cloneReinstallMessage": "The app is installed as it is. A clone is a separate app that starts empty: the data, the sign-ins and the settings of the installed app do not move over. The installed app stays until you remove it. A clone is signed with APK Toolbox's key, so sign-in with Google, payments and checks of the kind may not work in it.",
   "cloneBackToApp": "Back to the original",
-  "cloneBackToAppMessage": "The app will be installed as its publisher made it, with every permission, as a separate app that starts empty: the clone's data does not move over. The clone stays until you remove it.",
-  "cloneDeleteOriginal": "Delete the original app",
+  "cloneBackToAppMessage": "The clone will be removed with everything in it, and the app will be installed anew as its publisher made it, with every permission. The clone's data, sign-ins and settings are lost and cannot be brought back.",
   "rowOriginal": "{} (original)",
   "rowClone": "{} (clone)",
   "fltOriginals": "Originals",
   "fltClones": "Clones",
-  "fltNoUpdates": "Not updated"
+  "fltNoUpdates": "Not updated",
+  "fltUpdateAvailable": "Update available",
+  "cloneSettings": "Clone settings"
 }

@@ -1,7 +1,9 @@
 package io.github.bl3xand.apkcloner.ui
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import androidx.appcompat.R as AppCompatR
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
@@ -11,6 +13,7 @@ import com.google.android.material.R as MaterialR
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.data.CloneInfo
 import io.github.bl3xand.apkcloner.databinding.ItemAppBinding
+import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import kotlinx.coroutines.Job
 
 class CloneAdapter(
@@ -63,6 +66,15 @@ class CloneAdapter(
         binding.textNote.setTextColor(
             context.themeColor(if (clone.canRebuild) MaterialR.attr.colorOnSurfaceVariant else AppCompatR.attr.colorError),
         )
+        binding.stripes.removeAllViews()
+        val colors = SourcesRepository.get(context).settings.categories
+        for (category in clone.categories.sorted()) {
+            val color = colors[category] ?: continue
+            binding.stripes.addView(
+                View(context).apply { setBackgroundColor(color or 0xFF000000.toInt()) },
+                LinearLayout.LayoutParams(context.dp(4), ViewGroup.LayoutParams.MATCH_PARENT),
+            )
+        }
         binding.progress.isVisible = updating == clone.app.packageName
         binding.root.setOnClickListener { onClick(clone) }
         binding.root.setOnLongClickListener {

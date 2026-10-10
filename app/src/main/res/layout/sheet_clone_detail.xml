@@ -194,6 +194,17 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
+        <!-- For a clone that a source keeps current: its page among the tracked apps. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonShowTracked"
+            style="@style/Widget.ApkCloner.Button.Action"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/clone_show_in_sources"
+            android:visibility="gone"
+            app:icon="@drawable/ic_open" />
+
         <!-- For a clone that only an installed original keeps current. -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonTrack"

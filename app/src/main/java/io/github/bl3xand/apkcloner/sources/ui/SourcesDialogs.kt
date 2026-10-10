@@ -43,6 +43,7 @@ import io.github.bl3xand.apkcloner.ui.actionButton
 import io.github.bl3xand.apkcloner.ui.add
 import io.github.bl3xand.apkcloner.ui.addDivider
 import io.github.bl3xand.apkcloner.ui.addHeading
+import io.github.bl3xand.apkcloner.ui.anyOfChips
 import io.github.bl3xand.apkcloner.ui.column
 import io.github.bl3xand.apkcloner.ui.confirm
 import io.github.bl3xand.apkcloner.ui.dp
@@ -198,24 +199,12 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
     /** Narrowing the list: by state, by source and by category, all as chips. */
     suspend fun askFilter(current: AppsFilter): AppsFilter? {
         var filter = current
-        fun chip(text: String, checked: Boolean, color: Int? = null, onChange: (Boolean) -> Unit) =
-            context.filterChip(text, checked, onChange).apply {
-                if (color != null) {
-                    setChipIconResource(R.drawable.ic_label)
-                    chipIconTint = ColorStateList.valueOf(color or 0xFF000000.toInt())
-                    isChipIconVisible = true
-                }
-            }
         // Chips of a filter wrap, like the categories under them: all of a filter is in sight at once.
         val view = body().apply {
             add(context.sectionTitle(Tr.get("fltState")))
             add(
-                ChipGroup(context).apply {
-                    addView(chip(Tr.get("fltUpToDate"), filter.includeUpToDate) { filter = filter.copy(includeUpToDate = it) })
-                    addView(chip(Tr.get("fltNotInstalled"), filter.includeNonInstalled) { filter = filter.copy(includeNonInstalled = it) })
-                    addView(chip(Tr.get("fltNoUpdates"), filter.includeNoUpdates) { filter = filter.copy(includeNoUpdates = it) })
-                    addView(chip(Tr.get("fltOriginals"), filter.includeOriginals) { filter = filter.copy(includeOriginals = it) })
-                    addView(chip(Tr.get("fltClones"), filter.includeClones) { filter = filter.copy(includeClones = it) })
+                context.anyOfChips(Tr.get("fltAll"), AppKind.entries.map { it to Tr.get(it.label) }, filter.kinds) {
+                    filter = filter.copy(kinds = it)
                 },
                 topMargin = Spacing.UNDER_HEADING,
             )
@@ -224,20 +213,20 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
             if (used.size > 1) {
                 addDivider()
                 addHeading(Tr.get("fltSource"))
-                val group = ChipGroup(context).apply { isSingleSelection = true }
-                val names = SourceRegistry.sources.associate { it.sourceIdentifier to it.name }
-                group.addView(chip(Tr.get("fltAll"), filter.source.isEmpty()) { if (it) filter = filter.copy(source = "") })
-                for (id in used) {
-                    group.addView(chip(names[id] ?: id, filter.source == id) { if (it) filter = filter.copy(source = id) })
-                }
-                add(group, topMargin = Spacing.UNDER_HEADING)
+                val names = SourceRegistry.sources.associate { it.sourceIdentifier to it.shortName }
+                add(
+                    context.anyOfChips(Tr.get("fltAll"), used.map { it to (names[it] ?: it) }, filter.sources) {
+                        filter = filter.copy(sources = it)
+                    },
+                    topMargin = Spacing.UNDER_HEADING,
+                )
             }
             // The same chips as everywhere categories are picked: one can be made right here, and
             // held down to be removed. They wrap, and the sheet scrolls when there are many.
             addDivider()
             addHeading(Tr.get("categories"))
             add(
-                categorySelector(filter.categories, showTitle = false) { filter = filter.copy(categories = it) },
+                categorySelector(filter.categories, showTitle = false, withAll = true) { filter = filter.copy(categories = it) },
                 topMargin = Spacing.UNDER_HEADING,
             )
         }
@@ -250,18 +239,35 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         selected: Set<String>,
         allowCreate: Boolean = true,
         showTitle: Boolean = true,
+        /**
+         * For a filter: a first chip that switches every category on or off and is on while they
+         * all are. Nothing chosen and everything chosen then both mean no narrowing, and
+         * [onChange] gets an empty set for both.
+         */
+        withAll: Boolean = false,
         onChange: (Set<String>) -> Unit,
     ): View {
-        val current = LinkedHashSet(selected)
+        val current = LinkedHashSet(if (withAll && selected.isEmpty()) settings.categories.keys else selected)
+        fun report() = onChange(if (withAll && current.containsAll(settings.categories.keys)) emptySet() else current.toSet())
         val group = ChipGroup(context)
         fun rebuild() {
             group.removeAllViews()
             val categories = settings.categories
+            if (withAll && categories.isNotEmpty()) {
+                group.addView(
+                    context.filterChip(Tr.get("fltAll"), current.containsAll(categories.keys)) { on ->
+                        if (on) current.addAll(categories.keys) else current.clear()
+                        report()
+                        group.post { rebuild() }
+                    },
+                )
+            }
             for ((name, color) in categories.entries.sortedBy { it.key.lowercase() }) {
                 group.addView(
                     context.filterChip(name, name in current) { checked ->
                         if (checked) current.add(name) else current.remove(name)
-                        onChange(current.toSet())
+                        report()
+                        if (withAll) group.post { rebuild() }
                     }.apply {
                         // The colour of the category, as on the rows of the list.
                         setChipIconResource(R.drawable.ic_label)
@@ -271,7 +277,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                         setOnLongClickListener {
                             confirmCategoryRemoval(name) {
                                 current.remove(name)
-                                onChange(current.toSet())
+                                report()
                                 rebuild()
                             }
                             true
@@ -288,7 +294,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                         setOnClickListener {
                             askNewCategory { name ->
                                 current.add(name)
-                                onChange(current.toSet())
+                                report()
                                 rebuild()
                             }
                         }

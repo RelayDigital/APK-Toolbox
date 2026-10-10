@@ -258,6 +258,21 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    /** Opens the page of the clone [packageName] in the Clones tab, from wherever it is asked. */
+    fun showClone(packageName: String) {
+        viewModel.tab = MainTabs.CLONES
+        showTab()
+        (supportFragmentManager.findFragmentByTag(CloneDetailSheet.TAG) as? CloneDetailSheet)?.dismiss()
+        CloneDetailSheet.newInstance(packageName).show(supportFragmentManager, CloneDetailSheet.TAG)
+    }
+
+    /** Opens the page of the tracked app [id] in the Sources tab, from wherever it is asked. */
+    fun showTrackedApp(id: String) {
+        viewModel.tab = MainTabs.SOURCES
+        showTab()
+        sourcesTab.openApp(id)
+    }
+
     private fun applyClonesFilter(filter: ClonesFilter) {
         viewModel.clonesFilter = filter
         // The list may look the same with another filter; the chip that clears it must not.

@@ -5,15 +5,14 @@ data class AppsFilter(
     val name: String = "",
     val author: String = "",
     val id: String = "",
-    val includeUpToDate: Boolean = true,
-    val includeNonInstalled: Boolean = true,
-    /** Apps installed as themselves, and apps installed as clones of themselves. */
-    val includeOriginals: Boolean = true,
-    val includeClones: Boolean = true,
-    /** Apps that are kept at the version they have. */
-    val includeNoUpdates: Boolean = true,
+    /**
+     * The kinds of apps to show: an app of any of them is shown. Nothing chosen shows every app,
+     * so that picking one kind narrows the list to it instead of to nothing.
+     */
+    val kinds: Set<AppKind> = emptySet(),
     val categories: Set<String> = emptySet(),
-    val source: String = "",
+    /** The sources to show apps of; none chosen shows the apps of every source. */
+    val sources: Set<String> = emptySet(),
 ) {
     val isNeutral: Boolean get() = copy(name = name.trim(), author = author.trim(), id = id.trim()) == AppsFilter()
 }

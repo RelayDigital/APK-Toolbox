@@ -254,15 +254,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             state.copy(
                 apps = allApps.filter { (showSystem || !it.isSystem) && matches(it) },
                 splitApps = allApps.filter { it.apkPaths.size > 1 && (showSystem || !it.isSystem) && matches(it) },
-                clones = allClones.filter { clone ->
-                    matches(clone.app) && (clonesFilter.notUpdated || !clone.frozen) &&
-                        (clonesFilter.categories.isEmpty() || clonesFilter.categories.intersect(clone.categories).isNotEmpty()) && when {
-                        clone.tracked != null -> clonesFilter.fromSource
-                        clone.original != null -> clonesFilter.fromOriginal
-                        // One that has neither is always worth seeing.
-                        else -> true
-                    }
-                },
+                clones = allClones.filter { matches(it.app) && clonesFilter.matches(it) },
                 outdatedClones = allClones.count { it.updateAvailable },
             )
         }

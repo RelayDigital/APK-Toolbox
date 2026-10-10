@@ -103,6 +103,12 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
         // A clone lives on what it is rebuilt from. One that has only an installed original - an
         // app from Google Play, say - can be handed to a source that carries the same app, and
         // then goes on being updated when the original is gone.
+        binding.buttonShowTracked.isVisible = tracked != null
+        binding.buttonShowTracked.setOnClickListener {
+            val id = tracked?.app?.id ?: return@setOnClickListener
+            dismiss()
+            (activity as? MainActivity)?.showTrackedApp(id)
+        }
         binding.buttonTrack.isVisible = tracked == null
         binding.buttonTrack.isEnabled = !busy
         binding.buttonTrack.setOnClickListener {
@@ -138,8 +144,8 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
         const val TAG = "clone-detail"
         private const val ARG_PACKAGE = "package"
 
-        fun newInstance(clone: CloneInfo) = CloneDetailSheet().apply {
-            arguments = bundleOf(ARG_PACKAGE to clone.app.packageName)
-        }
+        fun newInstance(clone: CloneInfo) = newInstance(clone.app.packageName)
+
+        fun newInstance(packageName: String) = CloneDetailSheet().apply { arguments = bundleOf(ARG_PACKAGE to packageName) }
     }
 }

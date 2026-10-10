@@ -28,4 +28,5 @@ object SettingKeys {
     const val CLONE_KNOWN_PERMISSIONS = "cloneKnownPermissions"
     const val CLONE_REQUESTED_PERMISSIONS = "cloneRequestedPermissions"
     const val CLONE_SOURCE_SIGNER = "cloneSourceSigner"
+    const val CLONE_MANIFEST_VERSION = "cloneManifestVersion"
 }

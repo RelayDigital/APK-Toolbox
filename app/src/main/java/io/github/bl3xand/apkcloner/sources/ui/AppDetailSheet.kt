@@ -38,6 +38,7 @@ import io.github.bl3xand.apkcloner.ui.column
 import io.github.bl3xand.apkcloner.ui.confirm
 import io.github.bl3xand.apkcloner.ui.dp
 import io.github.bl3xand.apkcloner.ui.expandFully
+import io.github.bl3xand.apkcloner.ui.MainActivity
 import io.github.bl3xand.apkcloner.ui.label
 import io.github.bl3xand.apkcloner.ui.markdownToSpanned
 import io.github.bl3xand.apkcloner.ui.openUrl
@@ -232,8 +233,10 @@ class AppDetailSheet : BottomSheetDialogFragment() {
     }
 
     /**
-     * Installing the app as a clone of itself. One switch; behind it the controls a clone is made
-     * with while it is not installed, and the ones an installed clone is changed with once it is.
+     * Installing the app as a clone of itself. For an install that is still ahead there is a
+     * switch, and behind it the controls a clone is made with. An app that is there already is
+     * reinstalled as a clone through a button that asks first. Once the clone is installed, what
+     * it is made with is set on its own page in the Clones tab: this page is about its updates.
      */
     private fun renderClone(entry: AppEntry, offered: Boolean, busy: Boolean) {
         val context = requireContext()
@@ -242,10 +245,8 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         // stays about the app that is there.
         val active = offered && app.clonePackage != null
         val draft = offered && !active && app.cloneTarget != null
-        val originalInstalled = offered && (if (active) viewModel.repo.installedInfo(app.id) else entry.installedInfo) != null
-        // The switch is for an install that is still ahead. For an app that is there already,
-        // going over to a clone is a reinstall: a button says so and asks first, and only then
-        // is there a clone to set up.
+        val originalInstalled = offered && !active && entry.installedInfo != null
+
         binding.switchClone.isVisible = draft || (offered && !active && !originalInstalled)
         binding.switchClone.text = Tr.get("actCloneInstall")
         binding.switchClone.setOnCheckedChangeListener(null)
@@ -253,32 +254,9 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         binding.switchClone.isEnabled = !busy
         binding.switchClone.setOnCheckedChangeListener { _, on -> switchClone(app, on) }
 
-        val reinstall = active || (offered && !draft && originalInstalled)
-        binding.buttonCloneMode.isVisible = reinstall
-        binding.buttonCloneMode.isEnabled = !busy
-        binding.buttonCloneMode.text = Tr.get(if (active) "cloneBackToApp" else "cloneReinstall")
-        // Under the info card it is the first button; under the clone's own buttons, one more of them.
-        binding.buttonCloneMode.updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = context.dp(if (active) 4 else 12) }
-        binding.buttonCloneMode.setOnClickListener {
-            viewLifecycleOwner.lifecycleScope.launch {
-                val message = Tr.get(if (active) "cloneBackToAppMessage" else "cloneReinstallMessage")
-                if (context.confirm(binding.buttonCloneMode.text, message)) viewModel.setCloneMode(appId, !active)
-            }
-        }
-        binding.buttonDeleteOriginal.isVisible = active && originalInstalled
-        binding.buttonDeleteOriginal.isEnabled = !busy
-        binding.buttonDeleteOriginal.text = Tr.get("cloneDeleteOriginal")
-        binding.buttonDeleteOriginal.setOnClickListener {
-            viewLifecycleOwner.lifecycleScope.launch {
-                viewModel.uninstallPackage(app.id)
-                rerender()
-            }
-        }
-        binding.cloneButtonsEnd.isVisible = reinstall
-
         val options = binding.cloneOptions
         options.root.isVisible = draft
-        if (options.root.isVisible) {
+        if (draft) {
             // What is being typed is left alone: a save in between must not move the cursor.
             fun show(edit: TextInputEditText, value: String) {
                 if (!edit.hasFocus() && edit.text?.toString() != value) edit.setText(value)
@@ -296,15 +274,25 @@ class AppDetailSheet : BottomSheetDialogFragment() {
             options.buttonPermissions.setOnClickListener { pickClonePermissions() }
         }
 
-        val permissions = binding.clonePermissions
-        permissions.root.isVisible = active
-        permissions.buttonPermissions.text = context.clonePermissionsLabel(app.cloneRemovedPermissions.size)
-        permissions.buttonPermissions.isEnabled = !busy
-        permissions.buttonPermissions.setOnClickListener { pickClonePermissions() }
-        permissions.buttonResetPermissions.isVisible = app.cloneRemovedPermissions.isNotEmpty()
-        permissions.buttonResetPermissions.isEnabled = !busy
-        permissions.buttonResetPermissions.setOnClickListener {
-            viewModel.setClonePermissions(appId, emptySet(), app.cloneRequestedPermissions)
+        binding.buttonCloneSettings.isVisible = active
+        binding.buttonCloneSettings.text = Tr.get("cloneSettings")
+        binding.buttonCloneSettings.setOnClickListener {
+            val target = app.clonePackage ?: return@setOnClickListener
+            dismiss()
+            (activity as? MainActivity)?.showClone(target)
+        }
+
+        binding.buttonCloneMode.isVisible = active || (offered && !draft && originalInstalled)
+        binding.buttonCloneMode.isEnabled = !busy
+        binding.buttonCloneMode.text = Tr.get(if (active) "cloneBackToApp" else "cloneReinstall")
+        // Under the info card it is the first button; under the one above it, one more of them.
+        binding.buttonCloneMode.updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = context.dp(if (active) 4 else 12) }
+        binding.buttonCloneMode.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch {
+                val message = Tr.get(if (active) "cloneBackToAppMessage" else "cloneReinstallMessage")
+                if (!context.confirm(binding.buttonCloneMode.text, message)) return@launch
+                if (active) viewModel.backToOriginal(appId) else viewModel.setCloneMode(appId, true)
+            }
         }
     }
 
@@ -438,11 +426,10 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         app.releaseDate?.let { infoRow(Tr.get("detReleased"), dateFormat.format(it), first = false) }
         infoRow(Tr.get("detChecked"), app.lastUpdateCheck?.let(timeFormat::format) ?: Tr.get("never"), first = false)
 
-        // What the clone the app is installed as goes without, the way a clone's own page shows it.
-        if (app.clonePackage != null) {
-            fun names(permissions: Set<String>) = permissions.sorted().joinToString("\n") { it.substringAfterLast('.') }
-            app.cloneRemovedPermissions.takeIf { it.isNotEmpty() }?.let { infoBlock(getString(R.string.detail_removed_permissions), names(it)) }
-            app.cloneNewPermissions.takeIf { it.isNotEmpty() }?.let { infoBlock(Tr.get("cloneNewPermissions"), names(it), highlight = true) }
+        // What the clone goes without is on the clone's own page. What a release asks for that
+        // none did before belongs here, with the updates.
+        app.cloneNewPermissions.takeIf { app.clonePackage != null && it.isNotEmpty() }?.let { fresh ->
+            infoBlock(Tr.get("cloneNewPermissions"), fresh.sorted().joinToString("\n") { it.substringAfterLast('.') }, highlight = true)
         }
 
         renderChanges(entry)
@@ -453,6 +440,17 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         renderClone(entry, offered = !candidate && !trackOnly, busy = busy)
         // Only an app that is there has a version to stay at.
         binding.switchNoUpdates.isVisible = !candidate && !trackOnly && installed != null && !conflict
+        // 16dp under whatever is above: a switch is 8dp taller than it looks, a button 4dp.
+        binding.switchNoUpdates.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            topMargin = context.dp(
+                when {
+                    binding.buttonCloneMode.isVisible -> 4
+                    binding.cloneOptions.root.isVisible -> 8
+                    binding.switchClone.isVisible -> 0
+                    else -> 8
+                },
+            )
+        }
         binding.switchNoUpdates.setOnCheckedChangeListener(null)
         binding.switchNoUpdates.isChecked = app.updatesOff
         binding.switchNoUpdates.setOnCheckedChangeListener { _, on ->

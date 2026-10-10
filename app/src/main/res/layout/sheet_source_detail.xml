@@ -102,12 +102,16 @@
             android:layout_marginTop="-6dp"
             android:visibility="gone" />
 
-        <include
-            android:id="@+id/clonePermissions"
-            layout="@layout/view_clone_permissions"
+        <!-- What the clone is made with is set on its own page, in the Clones tab; from here
+             there is only the way to it. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonCloneSettings"
+            style="@style/Widget.ApkCloner.Button.Action"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:visibility="gone" />
+            android:layout_marginTop="12dp"
+            android:visibility="gone"
+            app:icon="@drawable/ic_tune" />
 
         <!-- For an app that is installed already, going over to a clone - or back - is a
              reinstall, and is asked for by a button that says so. -->
@@ -120,21 +124,16 @@
             android:visibility="gone"
             app:icon="@drawable/ic_copy" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/buttonDeleteOriginal"
-            style="@style/Widget.ApkCloner.Button.Action"
+        <!-- Keeps the app at the version it has. The switch brings 8dp of its own on each side;
+             the bottom margin takes it back, as far as it goes without cutting into the switch. -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchNoUpdates"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:visibility="gone"
-            app:icon="@drawable/ic_delete" />
-
-        <!-- Buttons end 4dp lower than they look; the card after them makes up for it. -->
-        <Space
-            android:id="@+id/cloneButtonsEnd"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginBottom="-4dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="-8dp"
+            android:text="@string/switch_no_updates"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
             android:visibility="gone" />
 
         <!-- What the latest release brings. A tap shows all of it. -->
@@ -179,18 +178,6 @@
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-
-        <!-- Keeps the app at the version it has. The switch brings 8dp of its own on each side;
-             the bottom margin takes it back, as far as it goes without cutting into the switch. -->
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/switchNoUpdates"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="-8dp"
-            android:text="@string/switch_no_updates"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:visibility="gone" />
 
 
         </LinearLayout>

@@ -29,7 +29,9 @@ object ApkRebuilder {
 
     /**
      * [replacements] swaps whole entries by name. [extraEntry] is evaluated after the manifest
-     * was patched, so it may depend on the patcher.
+     * was patched, so it may depend on the patcher. With [originalManifest] that is what gets
+     * patched instead of the manifest in [source] - for a source that is a clone already, whose
+     * own manifest no longer has what the original had.
      */
     fun rebuild(
         source: File,
@@ -37,6 +39,7 @@ object ApkRebuilder {
         patcher: ManifestPatcher,
         replacements: Map<String, ByteArray>,
         extraEntry: (() -> Pair<String, ByteArray>)?,
+        originalManifest: ByteArray? = null,
     ) {
         val counter = CountingOutputStream(BufferedOutputStream(target.outputStream(), 1 shl 16))
         ZipFile(source).use { zip ->
@@ -45,7 +48,7 @@ object ApkRebuilder {
                 // Patched up front: the resource table needs the old package name, and nothing
                 // says the manifest comes before it in the archive.
                 val manifest = zip.getEntry(MANIFEST)?.let { entry ->
-                    patcher.patch(zip.getInputStream(entry).use { it.readBytes() })
+                    patcher.patch(originalManifest ?: zip.getInputStream(entry).use { it.readBytes() })
                 }
                 require(manifest != null) { "No AndroidManifest.xml in ${source.name}" }
                 for (entry in zip.entries()) {

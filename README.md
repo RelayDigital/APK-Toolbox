@@ -60,8 +60,8 @@ permission to install apps. After that the four tabs are ready to use. The
 
 Add an app by the link to its page — a GitHub or GitLab repository, an
 F-Droid package, a store page, a Telegram channel, a direct link to an APK —
-or find it by name
-in the sources that can be searched. APK Toolbox then knows which version is
+or find it by name in the sources that can be searched (GitHub, GitLab,
+Codeberg, F-Droid, APKPure, Uptodown, RuStore and a few more). APK Toolbox then knows which version is
 the latest, shows what is new in it, and installs or updates the app on
 request or in the background.
 
@@ -164,35 +164,50 @@ rest:
   package, without the permissions you switched off — and only the clone is
   installed. Choosing permissions is optional; nothing is asked on the way.
 - The clone is updated from the source like any tracked app, in the
-  background too. The original is never on the device.
-- Once installed, the page shows what the clone goes without, with the same
-  **Permissions** and **Reset permissions** as a clone's own page: a change
-  rebuilds the clone and installs it over itself, data kept.
-- A release that asks for a permission no earlier one had is listed on the
-  page as **New permissions**, and comes first in the list, marked as new.
+  background too, and every update is built without the same permissions.
+  The original is never on the device.
 - If the publisher's signing key changes between releases, the update is
   refused the way the system would refuse it for the app itself.
 
-An app that is installed already has **Reinstall as a clone** instead. A
-clone is a separate app that starts empty — data and sign-ins do not move
-over — so this asks first. Nothing about the app changes until the clone is
-really installed: set up and left at that, the app stays what it was. The
-original and the clone can live side by side; **Delete the original app**
-removes the former, **Back to the original** returns to it.
+The two tabs then share the clone between them. **Sources** is about where
+it comes from and its updates; what it is made with is set on the clone's
+own page in **Clones** — **Clone settings** on the one page and **Show in
+Sources** on the other lead across. Changing the permissions of an installed
+clone rebuilds it from itself and the manifest kept from its original, so
+nothing is downloaded again, and installs it over itself with its data. A
+release that asks for a permission no earlier one had is listed on the
+app's page as **New permissions**.
+
+An app that is installed already has **Reinstall as a clone** instead of
+the switch. A clone is a separate app that starts empty — data and sign-ins
+do not move over — so this asks first, and nothing about the app changes
+until the clone is really installed: set up and left at that, the app stays
+what it was. **Back to the original** removes the clone, with everything in
+it, and installs the app as its publisher made it.
 
 ### Clones that outlive their original
 
 A clone made from an installed app is rebuilt from that app, so it stops
 being updated when the original is removed. The **Clones** list says where
-each clone gets its updates: *From the original*, *From a source*, or *Not
-updated*. Google Play hands its files to nobody else, but the same builds
+each clone gets its updates: *From the original*, *From a source*, or *No
+original*. Google Play hands its files to nobody else, but the same builds
 are carried by other stores: **Update from a source** on a clone's page
-looks the app up by its package in APKPure, APKCombo, RuStore, Galaxy Store
-and others, one after another, and has the clone kept up to date from the
-first that has it, in the Sources tab. The original can then be removed. A
-clone of an app you track already is picked up the same way when its switch
-is turned on. An update signed by someone else than the installed original
-is refused.
+looks the app up by its package in APKPure, RuStore, Galaxy Store and
+others, one after another, and has the clone kept up to date from the first
+that has it, in the Sources tab. The original can then be removed. A clone
+of an app you track already is picked up the same way when its switch is
+turned on. An update signed by someone else than the installed original is
+refused.
+
+### Staying at a version, and finding things
+
+**Do not update**, at the bottom of a tracked app's page and of a clone's,
+keeps it at the version it has: nothing offers or installs a newer one, and
+the list says so next to the version. **Filter** on both tabs picks apps by
+any of the chosen kinds — with an update, not updated, originals or clones,
+from the original or from a source — by source and by category; *All*
+switches every chip of a group on or off. Categories are shared between the
+tabs; a clone is filed under them by holding its row.
 
 A clone is signed with APK Toolbox's key, not the publisher's: sign-in with
 Google, payments and integrity checks may not work in it.
@@ -215,6 +230,10 @@ One group of settings covers both tracked apps and clones:
     Play Protect app scanning is on.
   - **Shizuku** — installs with shell privileges, with no prompts, for any
     app. After a reboot the check waits for Shizuku to be started.
+
+**Check when the app opens** is separate from the schedule: with it on,
+tracked apps and clones are looked at again every time APK Toolbox is
+opened.
 
 Whatever could not be updated automatically is reported in a notification.
 An install you start by hand always goes through the system installer.

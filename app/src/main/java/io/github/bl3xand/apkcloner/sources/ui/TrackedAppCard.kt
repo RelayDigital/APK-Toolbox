@@ -25,7 +25,8 @@ fun ViewAppCardBinding.bindTracked(entry: AppEntry, treatAsNotInstalled: Boolean
     val version = if (treatAsNotInstalled) app.latestVersion else app.installedVersion ?: app.latestVersion
     bind(
         label = entry.name,
-        subtitle = listOfNotNull(app.id.takeIf { !app.hasTempId }, version).joinToString(" · "),
+        // What is on the device: the clone's package when the app is installed as one.
+        subtitle = listOfNotNull(app.devicePackage.takeIf { !app.hasTempId }, version).joinToString(" · "),
         icon = info?.let { AppIcons.load(context.packageManager, it) } ?: context.getDrawable(R.drawable.ic_install),
         settingsPackage = app.devicePackage.takeIf { info != null },
     )

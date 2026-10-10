@@ -113,7 +113,7 @@ class SourcesAdapter(
         binding.textName.typeface = if (app.pinned) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
         // The package is not known until an APK has been seen; until then the id is a made-up one.
         binding.textAuthor.text =
-            listOfNotNull(row.entry.author.takeIf { it.isNotBlank() }, app.id.takeIf { !app.hasTempId }).joinToString(" · ")
+            listOfNotNull(row.entry.author.takeIf { it.isNotBlank() }, app.devicePackage.takeIf { !app.hasTempId }).joinToString(" · ")
         // What stands in the way of the app, most pressing first. A repository that moved is a
         // thing to know; the rest are things that are wrong, and are said in the colour of an error.
         val trouble = row.signInNote ?: row.checkError?.let { Tr.get("srcCheckFailedShort") }

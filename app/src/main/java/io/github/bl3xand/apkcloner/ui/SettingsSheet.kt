@@ -30,6 +30,7 @@ import io.github.bl3xand.apkcloner.install.Root
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.settings.AppLanguage
 import io.github.bl3xand.apkcloner.settings.AppSettings
+import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import io.github.bl3xand.apkcloner.settings.InstallMethod
 import io.github.bl3xand.apkcloner.shizuku.ShizukuBridge
 import io.github.bl3xand.apkcloner.shizuku.ShizukuState
@@ -171,6 +172,9 @@ class SettingsSheet : BottomSheetDialogFragment() {
         }
         bindSwitch(binding.rowCheckClones, binding.switchCheckClones, { settings.checkClones }, { settings.checkClones = it })
         bindSwitch(binding.rowCheckSources, binding.switchCheckSources, { settings.checkSources }, { settings.checkSources = it })
+        // Kept with the tracked apps' own settings, which is where the check at start reads it.
+        val sources = SourcesRepository.get(requireContext()).settings
+        bindSwitch(binding.rowCheckOnStart, binding.switchCheckOnStart, { sources.checkOnStart }, { sources.checkOnStart = it })
         bindSwitch(binding.rowWifi, binding.switchWifi, { settings.wifiOnly }, { settings.wifiOnly = it })
         bindSwitch(binding.rowCharging, binding.switchCharging, { settings.chargingOnly }, { settings.chargingOnly = it })
         bindSwitch(binding.rowRoot, binding.switchRoot, { settings.useRoot }) { enabled ->

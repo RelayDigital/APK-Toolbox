@@ -1,8 +1,6 @@
 package io.github.bl3xand.apkcloner.ui
 
 import android.content.Context
-import com.google.android.material.chip.ChipGroup
-import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.ui.SourcesDialogs
 
@@ -16,17 +14,15 @@ suspend fun Context.askClonesFilter(current: ClonesFilter): ClonesFilter? {
         setPadding(dp(Spacing.SHEET), dp(2), dp(Spacing.SHEET), 0)
         add(sectionTitle(Tr.get("fltState")))
         add(
-            ChipGroup(context).apply {
-                addView(filterChip(getString(R.string.chip_clones_original), filter.fromOriginal) { filter = filter.copy(fromOriginal = it) })
-                addView(filterChip(getString(R.string.chip_clones_source), filter.fromSource) { filter = filter.copy(fromSource = it) })
-                addView(filterChip(getString(R.string.chip_no_updates), filter.notUpdated) { filter = filter.copy(notUpdated = it) })
+            anyOfChips(Tr.get("fltAll"), CloneKind.entries.map { it to getString(it.label) }, filter.kinds) {
+                filter = filter.copy(kinds = it)
             },
             topMargin = Spacing.UNDER_HEADING,
         )
         addDivider()
         addHeading(Tr.get("categories"))
         add(
-            SourcesDialogs(context).categorySelector(filter.categories, showTitle = false) { filter = filter.copy(categories = it) },
+            SourcesDialogs(context).categorySelector(filter.categories, showTitle = false, withAll = true) { filter = filter.copy(categories = it) },
             topMargin = Spacing.UNDER_HEADING,
         )
     }
