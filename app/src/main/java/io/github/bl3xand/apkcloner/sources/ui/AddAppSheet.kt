@@ -651,7 +651,9 @@ class AddAppSheet : BottomSheetDialogFragment() {
                         }
                     }
                 }
-                val deadline = System.currentTimeMillis() + if (forDevice) DEVICE_SEARCH_LIMIT_MS else SEARCH_LIMIT_MS
+                // Everywhere, nobody waits for the slowest source. Sources picked by hand are
+                // the ones wanted, so they get the time a far-away store may need.
+                val deadline = System.currentTimeMillis() + if (forDevice || !everywhere) DEVICE_SEARCH_LIMIT_MS else SEARCH_LIMIT_MS
                 val results = pending.mapNotNull { (source, answer) ->
                     val found = withTimeoutOrNull((deadline - System.currentTimeMillis()).coerceAtLeast(1)) { answer.await() }
                     when {

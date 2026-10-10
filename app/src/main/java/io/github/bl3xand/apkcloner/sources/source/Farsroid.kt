@@ -22,7 +22,11 @@ class Farsroid : AppSource("Farsroid") {
     init {
         hosts = listOf("farsroid.com")
         fixedName = "Farsroid"
+        canSearch = true
     }
+
+    override fun search(query: String, querySettings: Map<String, Any?>): Map<String, List<String>> =
+        searchWordPress("https://www.${hosts[0]}", query, querySettings)
 
     override val additionalSourceAppSpecificSettingFormItems: List<List<SettingItem>>
         get() = listOf(

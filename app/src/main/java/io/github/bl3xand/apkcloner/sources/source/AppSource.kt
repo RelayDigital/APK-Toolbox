@@ -19,6 +19,9 @@ import io.github.bl3xand.apkcloner.sources.form.TextItem
 import io.github.bl3xand.apkcloner.sources.form.cloneItems
 import io.github.bl3xand.apkcloner.sources.model.ApkDetails
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
+import io.github.bl3xand.apkcloner.sources.model.JsonValues
+import io.github.bl3xand.apkcloner.sources.model.asMap
+import org.jsoup.Jsoup
 import io.github.bl3xand.apkcloner.sources.net.Http
 import io.github.bl3xand.apkcloner.sources.net.HttpResponse
 import io.github.bl3xand.apkcloner.sources.net.ProgressListener
@@ -371,6 +374,26 @@ abstract class AppSource(
     /** Maps a result URL to [title, description]. */
     open fun search(query: String, querySettings: Map<String, Any?> = emptyMap()): Map<String, List<String>> =
         throw NotImplementedSourceError()
+
+    /**
+     * The search every site built on WordPress answers to: the posts of [site] that match, by
+     * their link. Sites that keep one app to a post are searched this way.
+     */
+    protected fun searchWordPress(site: String, query: String, querySettings: Map<String, Any?>): Map<String, List<String>> {
+        val res = sourceRequest(
+            "$site/wp-json/wp/v2/search?subtype=post&per_page=30&search=${Url.encodeQueryComponent(query)}", querySettings,
+        )
+        Http.ensureSuccess(res)
+        val results = LinkedHashMap<String, List<String>>()
+        for (entry in (JsonValues.parse(res.body) as? List<*>).orEmpty()) {
+            val post = entry.asMap() ?: continue
+            val url = post["url"]?.toString()?.takeIf { it.isNotEmpty() } ?: continue
+            // Titles come with their dashes and quotes written as HTML.
+            val title = Jsoup.parse(post["title"]?.toString().orEmpty()).text().takeIf { it.isNotEmpty() } ?: continue
+            results[url] = listOf(title, shortName)
+        }
+        return results
+    }
 
     open fun tryInferringAppId(
         standardUrl: String,

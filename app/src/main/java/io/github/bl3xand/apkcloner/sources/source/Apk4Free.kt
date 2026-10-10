@@ -14,7 +14,11 @@ class Apk4Free : AppSource("Apk4Free") {
     init {
         fixedName = "Apk4Free"
         hosts = listOf("apk4free.net")
+        canSearch = true
     }
+
+    override fun search(query: String, querySettings: Map<String, Any?>): Map<String, List<String>> =
+        searchWordPress("https://${hosts[0]}", query, querySettings)
 
     override fun sourceSpecificStandardizeURL(url: String, forSelection: Boolean): String =
         standardizeUrlWithRegex(url, subdomainPrefix = "(www\\.)?", pathPattern = "/[^/]+/?")
