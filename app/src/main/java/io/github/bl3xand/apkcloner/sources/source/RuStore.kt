@@ -1,5 +1,7 @@
 package io.github.bl3xand.apkcloner.sources.source
 
+import io.github.bl3xand.apkcloner.sources.core.androidVersionName
+import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
 import io.github.bl3xand.apkcloner.sources.core.Dates
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
@@ -88,7 +90,11 @@ class RuStore : AppSource("RuStore") {
             if (urls.isEmpty()) {
                 // A card generated from another catalogue: RuStore has no APK for it.
                 if (details["aggregatorInfo"] is Map<*, *>) throw RuStoreAggregatedAppError()
-                throw NoApkError()
+                // The store answers for this device - its Android version and processor - and
+                // has nothing for it, most often because the app needs a newer Android.
+                throw SourceError(
+                    Tr.get("ruStoreNotForDevice", androidVersionName(SourceEnv.platform.sdkInt), SourceEnv.platform.supportedAbis.firstOrNull().orEmpty()),
+                )
             }
             return ApkDetails(
                 version,

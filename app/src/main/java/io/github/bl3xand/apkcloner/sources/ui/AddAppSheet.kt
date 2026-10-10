@@ -61,6 +61,10 @@ import io.github.bl3xand.apkcloner.ui.themeColor
 import io.github.bl3xand.apkcloner.ui.toast
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -92,6 +96,11 @@ class AddAppSheet : BottomSheetDialogFragment() {
     private lateinit var optionsContainer: LinearLayout
     private lateinit var searchContainer: LinearLayout
     private lateinit var progress: LinearProgressIndicator
+    private lateinit var searchProgress: LinearProgressIndicator
+
+    /** Searches run here, so that one a source never answers does not keep the sheet waiting. */
+    private val searches = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var searching = false
     private lateinit var noteLabel: TextView
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -157,6 +166,12 @@ class AddAppSheet : BottomSheetDialogFragment() {
         searchLayout.addView(searchEdit)
         searchLayout.setStartIconOnClickListener { runSearch(searchEdit.text?.toString() ?: "") }
         searchContainer.add(searchLayout, topMargin = Spacing.UNDER_HEADING - 4)
+        // The search shows that it runs where it was started, not up at the link.
+        searchProgress = LinearProgressIndicator(context).apply {
+            isIndeterminate = true
+            isVisible = false
+        }
+        searchContainer.add(searchProgress, topMargin = Spacing.UNDER_LABEL)
         searchContainer.add(
             context.label(Tr.get("addWhere"), colorAttr = MaterialR.attr.colorOnSurfaceVariant), topMargin = Spacing.UNDER_HEADING,
         )
@@ -367,16 +382,27 @@ class AddAppSheet : BottomSheetDialogFragment() {
         val valid = (source != null) && settingsValid && requiredFilled(source)
         // While a file is coming down, the button is the way to stop it.
         val downloading = busy && download != null
-        addButton.isEnabled = downloading || (valid && !busy)
+        addButton.isEnabled = downloading || (valid && !busy && !searching)
         addButton.text = Tr.get(if (downloading) "cancel" else "add")
         addButton.setIconResource(if (downloading) R.drawable.ic_close else R.drawable.ic_add)
         progress.show(busy, download?.second?.progress)
         progress.isVisible = busy
+        searchProgress.isVisible = searching
         searchContainer.isVisible = source == null && userInput.isEmpty()
         // Options that must be filled in cannot stay hidden.
         val mustShow = source != null && (!settingsValid || !requiredFilled(source))
         optionsToggle.isVisible = source != null && !mustShow
         optionsContainer.isVisible = source != null && (optionsExpanded || mustShow)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        searches.cancel()
+    }
+
+    private fun setSearching(value: Boolean) {
+        searching = value
+        if (view != null) render()
     }
 
     private fun setBusy(value: Boolean) {
@@ -530,9 +556,9 @@ class AddAppSheet : BottomSheetDialogFragment() {
     private fun runSearch(query: String) {
         val context = requireContext()
         val settings = viewModel.repo.settings
-        if (query.isBlank()) return
+        if (query.isBlank() || searching) return
         lookup = viewLifecycleOwner.lifecycleScope.launch {
-            setBusy(true)
+            setSearching(true)
             try {
                 val everywhere = settings.searchEverywhere
                 // Everywhere means every source that can simply be asked: one that wants an
@@ -561,19 +587,23 @@ class AddAppSheet : BottomSheetDialogFragment() {
                 }
 
                 val failed = ArrayList<String>()
-                val results = withContext(Dispatchers.IO) {
-                    coroutineScope {
-                        picked.filter { !it.includeAdditionalOptsInMainSearch || querySettings.containsKey(it.sourceIdentifier) }
-                            .map { source ->
-                                async {
-                                    try {
-                                        source to source.search(query, querySettings[source.sourceIdentifier] ?: emptyMap())
-                                    } catch (e: Exception) {
-                                        synchronized(failed) { failed.add(source.name) }
-                                        null
-                                    }
-                                }
-                            }.awaitAll().filterNotNull()
+                val slow = ArrayList<String>()
+                // Each source is asked on its own and the answers are gathered until the time is
+                // up: one that hangs - a store that is far away or blocked - is left behind
+                // instead of holding back what the others have found.
+                val asked = picked.filter { !it.includeAdditionalOptsInMainSearch || querySettings.containsKey(it.sourceIdentifier) }
+                val pending = asked.map { source ->
+                    source to searches.async {
+                        runCatching { source.search(query, querySettings[source.sourceIdentifier] ?: emptyMap()) }
+                    }
+                }
+                val deadline = System.currentTimeMillis() + SEARCH_LIMIT_MS
+                val results = pending.mapNotNull { (source, answer) ->
+                    val found = withTimeoutOrNull((deadline - System.currentTimeMillis()).coerceAtLeast(1)) { answer.await() }
+                    when {
+                        found == null -> null.also { slow.add(source.name) }
+                        found.isFailure -> null.also { failed.add(source.name) }
+                        else -> source to found.getOrThrow()
                     }
                 }
                 // The closest match first, whichever source it is from; among equals one result
@@ -595,9 +625,19 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     sourceOf[hit.url] = hit.source.sourceIdentifier
                 }
                 if (merged.isEmpty()) {
-                    throw SourceError(Tr.get("noResults") + if (failed.isEmpty()) "" else "\n\n${Tr.get("error")}: ${failed.joinToString()}")
+                    throw SourceError(
+                        listOfNotNull(
+                            Tr.get("noResults"),
+                            "${Tr.get("error")}: ${failed.joinToString()}".takeIf { failed.isNotEmpty() },
+                            Tr.get("addSearchSlow", slow.joinToString()).takeIf { slow.isNotEmpty() },
+                        ).joinToString("\n\n"),
+                    )
                 }
-                if (failed.isNotEmpty()) context.toast("${Tr.get("error")}: ${failed.joinToString()}")
+                val notes = listOfNotNull(
+                    "${Tr.get("error")}: ${failed.joinToString()}".takeIf { failed.isNotEmpty() },
+                    Tr.get("addSearchSlow", slow.joinToString()).takeIf { slow.isNotEmpty() },
+                )
+                if (notes.isNotEmpty()) context.toast(notes.joinToString("\n"))
                 val chosen = dialogs.pickFromList("${Tr.get("search")}: $query", merged.values.toList())?.firstOrNull() ?: return@launch
                 overrideSource = sourceOf[chosen]
                 urlEdit.setText(chosen)
@@ -606,7 +646,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
             } catch (e: Exception) {
                 context.showError(e)
             } finally {
-                setBusy(false)
+                setSearching(false)
             }
         }
     }
@@ -629,6 +669,9 @@ class AddAppSheet : BottomSheetDialogFragment() {
     }
 
     companion object {
+        /** How long a search waits for its sources. */
+        private const val SEARCH_LIMIT_MS = 8000L
+
         const val TAG = "AddAppSheet"
         private const val ARG_URL = "url"
 
