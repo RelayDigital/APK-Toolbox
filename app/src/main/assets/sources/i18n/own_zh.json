@@ -67,7 +67,7 @@
   "importLinksNote": "包名在首次安装后才能确定；在此之前，这些应用可能显示为未安装。",
   "addLinkField": "链接",
   "addFindNow": "查找",
-  "installUpdateApps": "全部更新",
+  "installUpdateApps": "有可用更新",
   "installUpdateSelectedApps": "更新所选",
   "bulkUpdateTitle": "选择应用",
   "addSearchField": "应用名称",

@@ -67,7 +67,7 @@
   "importLinksNote": "Package names become known after the first install; until then such apps may show as not installed.",
   "addLinkField": "Link",
   "addFindNow": "Find",
-  "installUpdateApps": "Update all",
+  "installUpdateApps": "Updates available",
   "installUpdateSelectedApps": "Update selected",
   "bulkUpdateTitle": "Choose the apps",
   "addSearchField": "App name",
