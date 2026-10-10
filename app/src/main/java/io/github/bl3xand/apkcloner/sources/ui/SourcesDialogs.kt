@@ -240,9 +240,9 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         allowCreate: Boolean = true,
         showTitle: Boolean = true,
         /**
-         * For a filter: a first chip switches every category on or off and is on while they all
-         * are. It is given the choice instead of [onChange]: null while every category is on,
-         * which is no narrowing at all, and an empty set when every one is off.
+         * For a filter: a first chip stands for every category and is on by itself while nothing
+         * narrows the list. It is given the choice instead of [onChange]: null while that chip is
+         * on, a set of categories otherwise - an empty one when everything was switched off.
          */
         onFilter: ((Set<String>?) -> Unit)? = null,
         /** For a filter: null stands for every category. */
@@ -250,10 +250,10 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         onChange: (Set<String>) -> Unit = {},
     ): View {
         val withAll = onFilter != null
-        val current = LinkedHashSet(if (withAll) selectedOrAll ?: settings.categories.keys else selected)
+        var everything = withAll && selectedOrAll == null
+        val current = LinkedHashSet(if (withAll) selectedOrAll.orEmpty() else selected)
         fun report() {
-            if (onFilter != null) onFilter(if (current.containsAll(settings.categories.keys)) null else current.toSet())
-            else onChange(current.toSet())
+            if (onFilter != null) onFilter(if (everything) null else current.toSet()) else onChange(current.toSet())
         }
         val group = ChipGroup(context)
         fun rebuild() {
@@ -261,8 +261,9 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
             val categories = settings.categories
             if (withAll && categories.isNotEmpty()) {
                 group.addView(
-                    context.filterChip(Tr.get("fltAll"), current.containsAll(categories.keys)) { on ->
-                        if (on) current.addAll(categories.keys) else current.clear()
+                    context.filterChip(Tr.get("fltAll"), everything) { on ->
+                        everything = on
+                        current.clear()
                         report()
                         group.post { rebuild() }
                     },
@@ -272,6 +273,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 group.addView(
                     context.filterChip(name, name in current) { checked ->
                         if (checked) current.add(name) else current.remove(name)
+                        everything = false
                         report()
                         if (withAll) group.post { rebuild() }
                     }.apply {

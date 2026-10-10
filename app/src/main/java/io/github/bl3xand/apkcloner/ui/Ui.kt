@@ -143,34 +143,37 @@ fun Context.filterChip(text: CharSequence, checked: Boolean, onChange: (Boolean)
 }
 
 /**
- * Chips to pick any of [options] by, after one - [all] - that switches every one of them on or
- * off at once and is itself on while they all are. [chosen] and what [onChange] gets are null
- * while every chip is on, which is no narrowing at all; with every chip off they are an empty
- * set, which leaves nothing to show. The chips wrap, so that all of a filter is in sight at once.
+ * Chips to pick any of [options] by, after one - [all] - that stands for every one of them. It
+ * is on by itself while nothing narrows the list: choosing an option switches it off, and
+ * choosing it switches the options off. [chosen] and what [onChange] gets are null while [all]
+ * is on; a set of options otherwise - an empty one when everything, [all] included, was switched
+ * off, which leaves nothing to show. The chips wrap, so that all of a filter is in sight at once.
  */
 fun <T> Context.anyOfChips(all: CharSequence, options: List<Pair<T, CharSequence>>, chosen: Set<T>?, onChange: (Set<T>?) -> Unit): ChipGroup {
-    val everything = options.map { it.first }.toSet()
-    val current = (chosen ?: everything).toMutableSet()
+    var everything = chosen == null
+    val current = chosen.orEmpty().toMutableSet()
     val group = ChipGroup(this)
     // Set while chips are switched from here, so that they do not answer each other.
     var syncing = false
-    fun report() = onChange(if (current.containsAll(everything)) null else current.toSet())
+    fun report() = onChange(if (everything) null else current.toSet())
     lateinit var allChip: Chip
     val chips = options.map { (value, label) ->
         filterChip(label, value in current) { on ->
             if (syncing) return@filterChip
             if (on) current.add(value) else current.remove(value)
+            everything = false
             syncing = true
-            allChip.isChecked = current.containsAll(everything)
+            allChip.isChecked = false
             syncing = false
             report()
         }
     }
-    allChip = filterChip(all, current.containsAll(everything)) { on ->
+    allChip = filterChip(all, everything) { on ->
         if (syncing) return@filterChip
+        everything = on
+        current.clear()
         syncing = true
-        if (on) current.addAll(everything) else current.clear()
-        chips.forEach { it.isChecked = on }
+        chips.forEach { it.isChecked = false }
         syncing = false
         report()
     }

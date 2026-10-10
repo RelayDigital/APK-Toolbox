@@ -226,5 +226,6 @@
   "fltUpdateAvailable": "Update available",
   "cloneSettings": "Clone settings",
   "cloneBackToAppKeptMessage": "The clone will be removed with everything in it. The app itself is installed already and stays as it is. The clone's data, sign-ins and settings are lost and cannot be brought back.",
-  "cloneBackToAppUntrackMessage": "The clone will be removed with everything in it. The app itself is installed already and stays as it is - with the store it came from. It was tracked here only to keep the clone up to date, so it leaves the Sources list as well. The clone's data, sign-ins and settings are lost and cannot be brought back."
+  "cloneBackToAppUntrackMessage": "The clone will be removed with everything in it. The app itself is installed already and stays as it is - with the store it came from. It was tracked here only to keep the clone up to date, so it leaves the Sources list as well. The clone's data, sign-ins and settings are lost and cannot be brought back.",
+  "addEverywhere": "Everywhere"
 }

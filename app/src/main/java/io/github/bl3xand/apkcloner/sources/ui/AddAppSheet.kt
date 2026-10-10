@@ -25,6 +25,7 @@ import com.google.android.material.textfield.TextInputLayout
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.CancellationSignal
+import io.github.bl3xand.apkcloner.sources.core.SearchMatch
 import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.Url
@@ -41,6 +42,7 @@ import io.github.bl3xand.apkcloner.sources.source.SourceRegistry
 import io.github.bl3xand.apkcloner.ui.Spacing
 import io.github.bl3xand.apkcloner.ui.actionButton
 import io.github.bl3xand.apkcloner.ui.add
+import io.github.bl3xand.apkcloner.ui.anyOfChips
 import io.github.bl3xand.apkcloner.ui.addDivider
 import io.github.bl3xand.apkcloner.ui.addHeading
 import io.github.bl3xand.apkcloner.ui.column
@@ -157,14 +159,14 @@ class AddAppSheet : BottomSheetDialogFragment() {
         searchContainer.add(
             context.label(Tr.get("addWhere"), colorAttr = MaterialR.attr.colorOnSurfaceVariant), topMargin = Spacing.UNDER_HEADING,
         )
-        val where = ChipGroup(context)
-        for (source in SourceRegistry.sources.filter { it.canSearch }) {
-            where.addView(
-                context.filterChip(source.name, source.name !in settings.searchDeselected) { checked ->
-                    settings.searchDeselected =
-                        if (checked) settings.searchDeselected - source.name else (settings.searchDeselected + source.name).distinct()
-                },
-            )
+        // "Everywhere" by default; picking sources one by one narrows the search to them.
+        val searchable = SourceRegistry.sources.filter { it.canSearch }
+        val where = context.anyOfChips(
+            Tr.get("addEverywhere"), searchable.map { it.name to it.name },
+            if (settings.searchEverywhere) null else searchable.map { it.name }.filter { it !in settings.searchDeselected }.toSet(),
+        ) { picked ->
+            settings.searchEverywhere = picked == null
+            if (picked != null) settings.searchDeselected = searchable.map { it.name }.filter { it !in picked }
         }
         searchContainer.add(where, topMargin = Spacing.UNDER_LABEL)
         searchContainer.addDivider()
@@ -531,7 +533,12 @@ class AddAppSheet : BottomSheetDialogFragment() {
         lookup = viewLifecycleOwner.lifecycleScope.launch {
             setBusy(true)
             try {
-                val picked = SourceRegistry.sources.filter { it.canSearch && it.name !in settings.searchDeselected }
+                val everywhere = settings.searchEverywhere
+                // Everywhere means every source that can simply be asked: one that wants an
+                // address or a token first is searched when it is picked by name.
+                val picked = SourceRegistry.sources.filter {
+                    it.canSearch && if (everywhere) !it.includeAdditionalOptsInMainSearch else it.name !in settings.searchDeselected
+                }
                 if (picked.isEmpty()) throw SourceError(Tr.get("selectX", Tr.plural("source", 2).lowercase()))
 
                 // Sources with options of their own (an instance URL, a token) ask for them first.
@@ -568,20 +575,23 @@ class AddAppSheet : BottomSheetDialogFragment() {
                             }.awaitAll().filterNotNull()
                     }
                 }
-                // One result from each source in turn, so no source crowds out the others.
-                val merged = LinkedHashMap<String, PickItem>()
-                val sourceOf = HashMap<String, String>()
-                var index = 0
-                while (results.any { it.second.size > index }) {
-                    for ((source, found) in results) {
-                        val hit = found.entries.elementAtOrNull(index) ?: continue
-                        if (merged.containsKey(hit.key)) continue
+                // The closest match first, whichever source it is from; among equals one result
+                // from each source in turn, so that no source crowds out the others.
+                val hits = ArrayList<SearchHit>()
+                for ((order, result) in results.withIndex()) {
+                    val (source, found) = result
+                    for ((index, hit) in found.entries.withIndex()) {
                         val title = hit.value.getOrNull(0)?.takeIf { it.isNotBlank() } ?: hit.key
                         val description = hit.value.getOrNull(1)?.takeIf { it.isNotBlank() && it != title } ?: hit.key
-                        merged[hit.key] = PickItem(hit.key, title, description, source.name)
-                        sourceOf[hit.key] = source.sourceIdentifier
+                        hits += SearchHit(hit.key, title, description, source, SearchMatch.rank(query, title, description), index, order)
                     }
-                    index++
+                }
+                val merged = LinkedHashMap<String, PickItem>()
+                val sourceOf = HashMap<String, String>()
+                for (hit in hits.sortedWith(compareBy({ it.rank }, { it.index }, { it.order }))) {
+                    if (merged.containsKey(hit.url)) continue
+                    merged[hit.url] = PickItem(hit.url, hit.title, hit.description, hit.source.name)
+                    sourceOf[hit.url] = hit.source.sourceIdentifier
                 }
                 if (merged.isEmpty()) {
                     throw SourceError(Tr.get("noResults") + if (failed.isEmpty()) "" else "\n\n${Tr.get("error")}: ${failed.joinToString()}")
@@ -624,3 +634,16 @@ class AddAppSheet : BottomSheetDialogFragment() {
         fun newInstance(url: String? = null) = AddAppSheet().apply { arguments = Bundle().apply { putString(ARG_URL, url) } }
     }
 }
+
+/** One result of a search by name, with what it takes to put it in its place among the others. */
+private class SearchHit(
+    val url: String,
+    val title: String,
+    val description: String,
+    val source: AppSource,
+    val rank: Int,
+    /** Its place in what its source returned. */
+    val index: Int,
+    /** The place of its source among those asked. */
+    val order: Int,
+)
