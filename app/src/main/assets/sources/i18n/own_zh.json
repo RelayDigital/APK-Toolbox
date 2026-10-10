@@ -229,5 +229,6 @@
   "addEverywhere": "全部来源",
   "addSearchSlow": "未及时响应:{}",
   "notForDevice": "{} 没有适用于你设备(Android {},{})的此应用文件。很可能该应用需要更新的 Android 版本。",
-  "notForProcessor": "该版本没有适用于你设备处理器({})的文件。可在应用选项中关闭按架构筛选。"
+  "notForProcessor": "该版本没有适用于你设备处理器({})的文件。可在应用选项中关闭按架构筛选。",
+  "notForDeviceElsewhere": "可在保留旧版本的来源(如 APKPure)中查找仍可在其上运行的旧版本。"
 }

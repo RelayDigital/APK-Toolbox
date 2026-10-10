@@ -131,6 +131,7 @@ class Uptodown : AppSource("Uptodown") {
         val heading = html.selectFirst("#detail-app-name")
         val appId = button?.attr("data-app-id")?.ifEmpty { null } ?: heading?.attr("data-code")?.ifEmpty { null }
         val fileId = button?.attr("data-file-id")?.ifEmpty { null } ?: heading?.attr("data-file-id")?.ifEmpty { null }
+            ?: html.selectFirst("[data-file-id]")?.attr("data-file-id")?.ifEmpty { null }
         if (appId == null || fileId == null) throw NoApkError()
         return resolveDownload(appId, fileId, additionalSettings)
     }
@@ -158,6 +159,8 @@ class Uptodown : AppSource("Uptodown") {
             "fileId" to (
                 html.selectFirst("#detail-download-button")?.attr("data-file-id")?.ifEmpty { null }
                     ?: appNameElement?.attr("data-file-id")?.ifEmpty { null }
+                    // Some pages carry it on another element than the button.
+                    ?: html.selectFirst("[data-file-id]")?.attr("data-file-id")?.ifEmpty { null }
                 ),
             "extension" to (info["file type"] ?: cells.getOrNull(cells.size - 4))?.lowercase(),
         )

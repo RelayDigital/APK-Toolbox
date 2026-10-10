@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.sources.source
 
+import io.github.bl3xand.apkcloner.sources.core.NotForDeviceError
 import io.github.bl3xand.apkcloner.sources.core.notForProcessor
 import io.github.bl3xand.apkcloner.sources.core.notForDevice
 import io.github.bl3xand.apkcloner.sources.core.Dates
@@ -65,9 +66,16 @@ class APKPure : AppSource("APKPure") {
         additionalSettings: Map<String, Any?>,
     ): ApkDetails {
         var otherProcessorsOnly = false
+        var needsNewerAndroid = false
         var apkUrls = variants.mapNotNull { e ->
             val appId = e["package_name"]?.toString() ?: return@mapNotNull null
             val versionCode = e["version_code"]?.let(FDroid::numberText) ?: return@mapNotNull null
+            // The lowest Android the variant runs on, as the store has it.
+            val minSdk = e["sdk_version"]?.toString()?.toIntOrNull()
+            if (minSdk != null && minSdk > SourceEnv.platform.sdkInt) {
+                needsNewerAndroid = true
+                return@mapNotNull null
+            }
             var architectures = (e["native_code"] as? List<*>)?.map { it.toString() } ?: emptyList()
             val architectureString = architectures.joinToString(",")
             if ("universal" in architectures || "unlimited" in architectures) architectures = emptyList()
@@ -83,7 +91,13 @@ class APKPure : AppSource("APKPure") {
             val archSuffix = if (architectureString.isNotEmpty()) "-$architectureString" else ""
             NamedUrl("$appId-$versionCode$archSuffix.${type.lowercase()}", downloadUri)
         }.distinctBy { it.name }
-        if (apkUrls.isEmpty()) throw if (otherProcessorsOnly) notForProcessor() else NoApkError()
+        if (apkUrls.isEmpty()) {
+            throw when {
+                needsNewerAndroid -> notForDevice(name)
+                otherProcessorsOnly -> notForProcessor()
+                else -> NoApkError()
+            }
+        }
 
         val first = variants.first()
         val version = first["version_name"]?.toString()
@@ -130,6 +144,9 @@ class APKPure : AppSource("APKPure") {
             val minAgeDays = effectiveMinUpdateAgeDays(additionalSettings)
             val fallback = additionalSettings["fallbackToOlderReleases"] == true
             var tooYoung: List<Map<String, Any?>>? = null
+            // The newest version may be for a newer Android or another processor than this
+            // device has. The store keeps older ones: the first that fits is the one to take.
+            var notForThis: NotForDeviceError? = null
             for ((i, variants) in versions.withIndex()) {
                 try {
                     if (i == 0 && additionalSettings["stayOneVersionBehind"] == true) {
@@ -141,10 +158,13 @@ class APKPure : AppSource("APKPure") {
                         continue
                     }
                     return detailsForVersion(variants, supportedArchs, additionalSettings)
+                } catch (e: NotForDeviceError) {
+                    if (notForThis == null) notForThis = e
                 } catch (e: Exception) {
                     if (!fallback || i == versions.size - 1) throw e
                 }
             }
+            notForThis?.let { throw it }
             // Nothing is old enough: return the newest so that it can be held back.
             tooYoung?.let { return detailsForVersion(it, supportedArchs, additionalSettings) }
             throw NoApkError()

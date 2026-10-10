@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.sources.source
 
+import io.github.bl3xand.apkcloner.sources.core.notForDevice
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
 import io.github.bl3xand.apkcloner.sources.core.Dates
 import io.github.bl3xand.apkcloner.sources.core.NoReleasesError
@@ -32,6 +33,8 @@ class FDroidRepo : AppSource("FDroidRepo") {
         val added: Instant? = null,
         /** index-v2 release channels such as "Beta"; empty for v1. */
         val releaseChannels: List<String> = emptyList(),
+        /** The lowest Android the version runs on; null when the index does not say. */
+        val minSdk: Int? = null,
     )
 
     private class IndexEntry(
@@ -168,6 +171,7 @@ class FDroidRepo : AppSource("FDroidRepo") {
                         (manifest["nativecode"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                         parseV2Timestamp(v["added"]),
                         (v["releaseChannels"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                        (manifest["usesSdk"].asMap()?.get("minSdkVersion") as? Number)?.toInt(),
                     ),
                 )
             }
@@ -206,6 +210,7 @@ class FDroidRepo : AppSource("FDroidRepo") {
                         versionName, versionCode, apkName,
                         (pkg.selectFirst("nativecode")?.html() ?: "").trim().split(Regex("\\s+")).filter { it.isNotEmpty() },
                         Dates.tryParse(pkg.selectFirst("added")?.html()),
+                        minSdk = pkg.selectFirst("sdkver")?.html()?.trim()?.toIntOrNull(),
                     ),
                 )
             }
@@ -268,8 +273,11 @@ class FDroidRepo : AppSource("FDroidRepo") {
             (additionalSettings as? MutableMap<String, Any?>)?.set("appIdOrName", wanted)
             val index = fetchIndex(repoUrl, additionalSettings)
             val entry = findIndexEntry(index.entries, wanted) ?: throw SourceError(Tr.get("appWithIdOrNameNotFound"))
-            val releases = entry.versions
-            if (releases.isEmpty()) throw NoReleasesError()
+            if (entry.versions.isEmpty()) throw NoReleasesError()
+            // Versions that need a newer Android than this device has are not for it: the
+            // newest of the rest is the latest one here.
+            val releases = entry.versions.filter { it.minSdk == null || it.minSdk <= SourceEnv.platform.sdkInt }
+            if (releases.isEmpty()) throw notForDevice(name)
             var selected: List<Version> = emptyList()
             if (trySuggested && entry.marketVersionCode != null) {
                 selected = releases.filter { it.versionCode == entry.marketVersionCode }

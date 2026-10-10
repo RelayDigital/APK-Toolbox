@@ -1,6 +1,6 @@
 package io.github.bl3xand.apkcloner.sources.source
 
-import io.github.bl3xand.apkcloner.sources.core.notForDevice
+import io.github.bl3xand.apkcloner.sources.core.notForDeviceHere
 import io.github.bl3xand.apkcloner.sources.core.InvalidUrlError
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
@@ -88,7 +88,7 @@ class SamsungGalaxyStore : AppSource("SamsungGalaxyStore") {
         }
         val apkUrl = Regex("<downloadURI><!\\[CDATA\\[([^\\]]+)\\]\\]></downloadURI>").find(body)?.groupValues?.get(1)
             // Asked for this Android version: an answer without a file is the store's "not for it".
-            ?: throw notForDevice(name).also { it.url = standardUrl }
+            ?: throw notForDeviceHere(name).also { it.url = standardUrl }
         val version = Regex("<versionName>([^<]+)</versionName>").find(body)?.groupValues?.get(1)
             ?: throw NoVersionError()
         val appName = Regex("<productName>(?:<!\\[CDATA\\[)?([^<\\]]+)(?:\\]\\]>)?</productName>")

@@ -1,6 +1,6 @@
 package io.github.bl3xand.apkcloner.sources.source
 
-import io.github.bl3xand.apkcloner.sources.core.notForDevice
+import io.github.bl3xand.apkcloner.sources.core.notForDeviceHere
 import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
 import io.github.bl3xand.apkcloner.sources.core.Dates
@@ -90,7 +90,7 @@ class RuStore : AppSource("RuStore") {
             if (urls.isEmpty()) {
                 // A card generated from another catalogue: RuStore has no APK for it.
                 if (details["aggregatorInfo"] is Map<*, *>) throw RuStoreAggregatedAppError()
-                throw notForDevice(name)
+                throw notForDeviceHere(name)
             }
             return ApkDetails(
                 version,
