@@ -229,6 +229,7 @@
   "cloneBackToAppKeptMessage": "克隆及其中的一切都将被移除。应用本身已安装,将保持原样。克隆的数据、登录状态和设置将丢失且无法恢复。",
   "cloneBackToAppUntrackMessage": "克隆及其中的一切都将被移除。应用本身已安装,将保持原样,仍由其来源商店管理。此处仅为保持克隆更新而跟踪它,因此它也会从“来源”列表中移除。克隆的数据、登录状态和设置将丢失且无法恢复。",
   "addEverywhere": "全部来源",
+  "addSearchUnreachable": "无法连接到网站：{}",
   "addSearchSlow": "未及时响应:{}",
   "notAndroidApp": "这不是 Android 应用：商店中也有快应用以及只能在其他应用内运行的应用。",
   "notForDevice": "{} 没有适用于你设备(Android {},{})的此应用文件。很可能该应用需要更新的 Android 版本。",

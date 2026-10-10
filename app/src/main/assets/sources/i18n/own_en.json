@@ -230,6 +230,7 @@
   "cloneBackToAppKeptMessage": "The clone will be removed with everything in it. The app itself is installed already and stays as it is. The clone's data, sign-ins and settings are lost and cannot be brought back.",
   "cloneBackToAppUntrackMessage": "The clone will be removed with everything in it. The app itself is installed already and stays as it is - with the store it came from. It was tracked here only to keep the clone up to date, so it leaves the Sources list as well. The clone's data, sign-ins and settings are lost and cannot be brought back.",
   "addEverywhere": "Everywhere",
+  "addSearchUnreachable": "No connection to the site: {}",
   "addSearchSlow": "Did not answer in time: {}",
   "notAndroidApp": "This is not an Android app: the store also lists quick apps and apps that only run inside another one.",
   "notForDevice": "{} has no file of this app for your device (Android {}, {}). Most likely the app needs a newer Android.",

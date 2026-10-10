@@ -61,6 +61,7 @@ import io.github.bl3xand.apkcloner.ui.showError
 import io.github.bl3xand.apkcloner.ui.switchRow
 import io.github.bl3xand.apkcloner.ui.themeColor
 import io.github.bl3xand.apkcloner.ui.toast
+import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withTimeoutOrNull
@@ -639,6 +640,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
 
                 val failed = ArrayList<String>()
                 val slow = ArrayList<String>()
+                val unreachable = ArrayList<String>()
                 // Each source is asked on its own and the answers are gathered until the time is
                 // up: one that hangs - a store that is far away or blocked - is left behind
                 // instead of holding back what the others have found.
@@ -666,7 +668,11 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     val found = withTimeoutOrNull((deadline - System.currentTimeMillis()).coerceAtLeast(1)) { answer.await() }
                     when {
                         found == null -> null.also { slow.add(source.shortName) }
-                        found.isFailure -> null.also { failed.add(source.shortName) }
+                        // A site that cannot be reached is the network's doing, not the source's.
+                        found.isFailure -> null.also {
+                            val offline = generateSequence(found.exceptionOrNull()) { it.cause }.any { it is IOException }
+                            (if (offline) unreachable else failed).add(source.shortName)
+                        }
                         else -> source to found.getOrThrow()
                     }
                 }
@@ -694,12 +700,14 @@ class AddAppSheet : BottomSheetDialogFragment() {
                         listOfNotNull(
                             Tr.get("noResults"),
                             "${Tr.get("error")}: ${failed.joinToString()}".takeIf { failed.isNotEmpty() },
+                            Tr.get("addSearchUnreachable", unreachable.joinToString()).takeIf { unreachable.isNotEmpty() },
                             Tr.get("addSearchSlow", slow.joinToString()).takeIf { slow.isNotEmpty() },
                         ).joinToString("\n\n"),
                     )
                 }
                 val notes = listOfNotNull(
                     "${Tr.get("error")}: ${failed.joinToString()}".takeIf { failed.isNotEmpty() },
+                    Tr.get("addSearchUnreachable", unreachable.joinToString()).takeIf { unreachable.isNotEmpty() },
                     Tr.get("addSearchSlow", slow.joinToString()).takeIf { slow.isNotEmpty() },
                 )
                 if (notes.isNotEmpty()) context.toast(notes.joinToString("\n"))
