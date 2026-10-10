@@ -84,7 +84,7 @@ permission to install apps. After that the four tabs are ready to use. The
 Add an app by the link to its page — a GitHub or GitLab repository, an
 F-Droid package, a store page, a Telegram channel, a direct link to an APK —
 or find it by name in the sources that can be searched (GitHub, GitLab,
-Codeberg, F-Droid, APKPure, Uptodown, RuStore and a few more). APK Toolbox then knows which version is
+Codeberg, F-Droid, APKPure, Aptoide, Uptodown, RuStore, Tencent and a few more). APK Toolbox then knows which version is
 the latest, shows what is new in it, and installs or updates the app on
 request or in the background.
 
@@ -206,9 +206,12 @@ app's page as **New permissions**.
 
 An app that is installed already has **Reinstall as a clone** instead of
 the switch. A clone is a separate app that starts empty — data and sign-ins
-do not move over — so this asks first, and nothing about the app changes
-until the clone is really installed: set up and left at that, the app stays
-what it was. **Back to the original** removes the clone, with everything in
+do not move over — so this asks first. The clone is built from the app that
+is on the device, with nothing downloaded, and **Delete the original** says
+whether that app goes afterwards: it is removed only once the clone is
+installed, so a "Cancel" in the system's dialog loses nothing. Nothing about
+the app changes until then: leave the page without installing, and the app
+stays what it was. **Back to the original** removes the clone, with everything in
 it, and installs the app as its publisher made it.
 
 ### Clones that outlive their original

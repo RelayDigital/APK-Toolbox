@@ -29,39 +29,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp" />
 
-        <!-- Only shown when the repository of the app has moved. -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardNotice"
-            style="?attr/materialCardViewFilledStyle"
+        <!-- Shown when something stands in the way: a clash of signers, a sign-in that is due,
+             a repository that has moved. -->
+        <include
+            android:id="@+id/notice"
+            layout="@layout/view_notice"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:visibility="gone"
-            app:cardBackgroundColor="?attr/colorSecondaryContainer"
-            app:cardElevation="0dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:id="@+id/textNotice"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textColor="?attr/colorOnSecondaryContainer" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/buttonNotice"
-                    style="@style/Widget.Material3Expressive.Button.TonalButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp" />
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            android:layout_marginTop="16dp" />
 
         <com.google.android.material.card.MaterialCardView
             style="?attr/materialCardViewFilledStyle"

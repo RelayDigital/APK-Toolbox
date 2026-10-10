@@ -151,6 +151,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         publishApps()
     }
 
+    /** Whether a clone named [packageName] would land on an app that is not a clone made here. */
+    fun isTakenByOther(packageName: String): Boolean = repository.isTakenByOther(packageName)
+
+    /** Removes the app that holds the package a clone is to have - the system asks - then calls [onDone]. */
+    fun uninstallTaken(packageName: String, onDone: () -> Unit) {
+        viewModelScope.launch {
+            AppLog.info("Removing $packageName: it holds the package a clone is to have")
+            Installer.uninstall(getApplication(), packageName)
+            readInstalled()?.let {
+                allApps = it.apps
+                allClones = it.clones
+            }
+            publishApps()
+            onDone()
+        }
+    }
+
     /**
      * Uninstalls a clone through the system prompt, showing progress on its card for the whole
      * wait (like an install) and reloading the list afterwards so the card closes once it is gone.

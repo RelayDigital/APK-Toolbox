@@ -81,6 +81,9 @@ class AddAppSheet : BottomSheetDialogFragment() {
 
     private var userInput = ""
     private var overrideSource: String? = null
+
+    /** What the search called each app it found, for a source that knows only the package name. */
+    private val foundNames = HashMap<String, String>()
     private var pickedSource: AppSource? = null
     private var additionalSettings: MutableMap<String, Any?> = LinkedHashMap()
     private var settingsValid = true
@@ -94,6 +97,8 @@ class AddAppSheet : BottomSheetDialogFragment() {
     private lateinit var urlEdit: TextInputEditText
     private lateinit var urlNote: TextView
     private lateinit var addButton: MaterialButton
+    private lateinit var findButton: MaterialButton
+    private var searchText = ""
     private lateinit var optionsToggle: MaterialButton
     private lateinit var optionsContainer: LinearLayout
     private lateinit var searchContainer: LinearLayout
@@ -173,13 +178,27 @@ class AddAppSheet : BottomSheetDialogFragment() {
             isVisible = false
         }
         searchContainer.add(searchProgress, topMargin = Spacing.UNDER_LABEL)
+        // A name that was pasted has no key of the keyboard to send it off with.
+        findButton = MaterialButton(context).apply {
+            text = Tr.get("addFindNow")
+            setIconResource(R.drawable.ic_search)
+            iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
+            minimumHeight = context.dp(Spacing.ROW)
+            isEnabled = false
+            setOnClickListener { runSearch(searchEdit.text?.toString() ?: "") }
+        }
+        searchEdit.doAfterTextChanged {
+            searchText = it?.toString().orEmpty()
+            render()
+        }
+        searchContainer.add(findButton, topMargin = Spacing.UNDER_LABEL - Spacing.BUTTON_INSET)
         searchContainer.add(
             context.label(Tr.get("addWhere"), colorAttr = MaterialR.attr.colorOnSurfaceVariant), topMargin = Spacing.UNDER_HEADING,
         )
         // "Everywhere" by default; picking sources one by one narrows the search to them.
         val searchable = SourceRegistry.sources.filter { it.canSearch }
         val where = context.anyOfChips(
-            Tr.get("addEverywhere"), searchable.map { it.name to it.name },
+            Tr.get("addEverywhere"), searchable.map { it.name to it.shortName },
             if (settings.searchEverywhere) null else searchable.map { it.name }.filter { it !in settings.searchDeselected }.toSet(),
         ) { picked ->
             settings.searchEverywhere = picked == null
@@ -411,6 +430,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
         progress.show(busy, download?.second?.progress)
         progress.isVisible = busy
         searchProgress.isVisible = searching
+        findButton.isEnabled = searchText.isNotBlank() && !searching && !busy
         searchContainer.isVisible = source == null && userInput.isEmpty()
         // Options that must be filled in cannot stay hidden.
         val mustShow = source != null && (!settingsValid || !requiredFilled(source))
@@ -494,6 +514,9 @@ class AddAppSheet : BottomSheetDialogFragment() {
                             inferAppIdIfOptional = inferAppId,
                         )
                     }
+                }
+                if (app.name.isBlank() || app.name == app.id) {
+                    (foundNames[userInput.trim()] ?: foundNames[app.url])?.let { app = app.copy(name = it) }
                 }
                 if (app.hasTempId && !app.settings.getBool(SettingKeys.TRACK_ONLY)) {
                     // The package name is still unknown: the APK itself has to tell. Any file of
@@ -610,7 +633,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
                         context, source.searchQuerySettingItemsForUrl(host).map { listOf(it) } + listOf(listOf<SettingItem>(urlItem)),
                     )
                     val view = context.column(Spacing.SHEET).apply { add(form) }
-                    if (!context.confirm(Tr.get("searchX", source.name), view = view.scrollable())) continue
+                    if (!context.confirm(Tr.get("searchX", source.shortName), view = view.scrollable())) continue
                     querySettings[source.sourceIdentifier] = LinkedHashMap(form.values)
                 }
 
@@ -632,8 +655,8 @@ class AddAppSheet : BottomSheetDialogFragment() {
                 val results = pending.mapNotNull { (source, answer) ->
                     val found = withTimeoutOrNull((deadline - System.currentTimeMillis()).coerceAtLeast(1)) { answer.await() }
                     when {
-                        found == null -> null.also { slow.add(source.name) }
-                        found.isFailure -> null.also { failed.add(source.name) }
+                        found == null -> null.also { slow.add(source.shortName) }
+                        found.isFailure -> null.also { failed.add(source.shortName) }
                         else -> source to found.getOrThrow()
                     }
                 }
@@ -652,8 +675,9 @@ class AddAppSheet : BottomSheetDialogFragment() {
                 val sourceOf = HashMap<String, String>()
                 for (hit in hits.sortedWith(compareBy({ it.rank }, { it.index }, { it.order }))) {
                     if (merged.containsKey(hit.url)) continue
-                    merged[hit.url] = PickItem(hit.url, hit.title, hit.description, hit.source.name)
+                    merged[hit.url] = PickItem(hit.url, hit.title, hit.description, hit.source.shortName)
                     sourceOf[hit.url] = hit.source.sourceIdentifier
+                    foundNames[hit.url] = hit.title
                 }
                 if (merged.isEmpty()) {
                     throw SourceError(

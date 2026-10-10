@@ -100,9 +100,14 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
         val manual = inputData.getBoolean(KEY_MANUAL, false)
         // Apps tracked from sources share this schedule when their own switch is on.
         var sourcesHadSomething = false
-        if (settings.checkSources) {
+        // A clone that a source keeps current is a clone all the same: with the sources' switch
+        // off it is still looked after under the clones' one.
+        val trackedClones = if (settings.checkClones && !settings.checkSources) {
+            SourcesRepository.get(context).installedAsClones().values.map { it.app.id }.toSet()
+        } else emptySet()
+        if (settings.checkSources || trackedClones.isNotEmpty()) {
             try {
-                sourcesHadSomething = SourcesBackground.run(context, forceAll = manual)
+                sourcesHadSomething = SourcesBackground.run(context, forceAll = manual, only = trackedClones.takeIf { !settings.checkSources })
             } catch (e: Exception) {
                 AppLog.error("Background check of sources failed", e)
                 sourcesHadSomething = true

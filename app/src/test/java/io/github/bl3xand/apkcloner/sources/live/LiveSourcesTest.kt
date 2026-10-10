@@ -125,6 +125,9 @@ class LiveSourcesTest {
     fun aptoide() {
         live("Aptoide")
         check(fetch("https://aptoide-games.en.aptoide.com/app").apkUrls.isNotEmpty())
+        val found = SourceRegistry.getSource("https://x.en.aptoide.com/app").search("telegram")
+        println("  search: ${found.entries.take(2)}")
+        check(found.isNotEmpty() && fetch(found.keys.first()).apkUrls.isNotEmpty())
     }
 
     @Test
@@ -159,6 +162,9 @@ class LiveSourcesTest {
     fun tencent() {
         live("Tencent")
         check(fetch("https://sj.qq.com/appdetail/com.tencent.mm").id == "com.tencent.mm")
+        val found = SourceRegistry.getSource("https://sj.qq.com/appdetail/x").search("微信")
+        println("  search: ${found.entries.take(2)}")
+        check(found.keys.first() == "https://sj.qq.com/appdetail/com.tencent.mm")
     }
 
     @Test

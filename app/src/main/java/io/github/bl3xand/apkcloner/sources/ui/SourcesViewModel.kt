@@ -14,6 +14,7 @@ import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import io.github.bl3xand.apkcloner.clone.ApkCloner
 import io.github.bl3xand.apkcloner.data.AppRepository
 import io.github.bl3xand.apkcloner.sources.data.certHashesOf
+import io.github.bl3xand.apkcloner.ui.requestedPermissionsOf
 import io.github.bl3xand.apkcloner.sources.install.InstallPrompts
 import io.github.bl3xand.apkcloner.sources.install.SourcesInstaller
 import io.github.bl3xand.apkcloner.sources.model.CheckUpdatesException
@@ -443,7 +444,15 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
     fun isOriginalInstalled(id: String): Boolean = repo.installedInfo(id) != null
 
     /** What the clone [id] is installed as is made with; with [install] it is then installed. */
-    fun setCloneOptions(id: String, packageName: String, name: String, badge: Boolean, install: Boolean = false) = saving {
+    fun setCloneOptions(
+        id: String,
+        packageName: String,
+        name: String,
+        badge: Boolean,
+        install: Boolean = false,
+        /** For an app that is on the device: whether it goes once its clone is there. */
+        deleteOriginal: Boolean = false,
+    ) = saving {
         val app = repo.entry(id)?.app ?: return@saving
         repo.saveApps(
             listOf(
@@ -451,10 +460,45 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
                     .withSetting(SettingKeys.CLONE_BADGE, badge),
             ),
         )
-        if (install) {
+        if (!install) return@saving
+        if (repo.installedInfo(id) != null && repo.entry(id)?.app?.clonePackage == null) {
+            reinstallAsClone(id, deleteOriginal)
+        } else {
             installer.installAsClone(id)
             obtain(listOf(id))
         }
+    }
+
+    /**
+     * The app that is on the device becomes a clone of itself: the clone is built from what is
+     * installed, and only when it is there for certain is the original removed, if that was
+     * asked - a "Cancel" in the system's dialog then leaves the app as it was.
+     */
+    private fun reinstallAsClone(id: String, deleteOriginal: Boolean) {
+        if (!synchronized(obtaining) { obtaining.add(id) }) return
+        launchReporting {
+            try {
+                if (!installer.cloneInstalledOriginal(id)) return@launchReporting
+                _events.tryEmit(SourcesEvent.Message(Tr.get("msgInstalledOne")))
+                if (deleteOriginal && repo.installedInfo(id) != null) {
+                    AppLog.info("$id: its clone is installed, the original is being removed")
+                    installer.uninstallApp(id)
+                }
+            } finally {
+                synchronized(obtaining) { obtaining.remove(id) }
+            }
+        }
+    }
+
+    /**
+     * Forgets a clone of [id] that was set up and never installed, for an app that is on the
+     * device: leaving its page without installing the clone leaves the app what it is.
+     */
+    fun dropCloneDraft(id: String) {
+        val app = repo.entry(id)?.app ?: return
+        if (app.cloneTarget == null || app.clonePackage != null || repo.installedInfo(id) == null) return
+        if (synchronized(obtaining) { id in obtaining }) return
+        setCloneMode(id, false)
     }
 
     /**
@@ -501,7 +545,12 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
      * told the app's package - and the permissions; it is not called when that failed.
      */
     fun clonePermissions(id: String, onReady: (id: String, requested: Set<String>) -> Unit) = launchReporting {
-        val known = repo.entry(id)?.app?.takeUnless { it.hasTempId }?.cloneRequestedPermissions.orEmpty()
+        val tracked = repo.entry(id)?.app?.takeUnless { it.hasTempId }
+        // An app that is on the device is made into a clone as it is there: what it asks for is
+        // read from it, with nothing to download.
+        val local = tracked?.takeIf { it.clonePackage == null }?.let { repo.installedInfo(id)?.applicationInfo?.sourceDir }
+            ?.let { getApplication<Application>().requestedPermissionsOf(it).toSet() }.orEmpty()
+        val known = local.ifEmpty { tracked?.cloneRequestedPermissions.orEmpty() }
         val (resolved, requested) = if (known.isNotEmpty()) {
             id to known
         } else {

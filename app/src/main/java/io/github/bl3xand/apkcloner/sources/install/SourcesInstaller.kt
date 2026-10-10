@@ -35,6 +35,7 @@ import io.github.bl3xand.apkcloner.sources.data.AppEntry
 import io.github.bl3xand.apkcloner.sources.data.DownloadState
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import io.github.bl3xand.apkcloner.sources.data.certHashesOf
+import io.github.bl3xand.apkcloner.sources.data.realInstalledVersionOf
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.sources.net.CancellationToken
@@ -661,6 +662,42 @@ class SourcesInstaller private constructor(private val context: Context) {
             val pretendPlay = settings.shizukuPretendToBeGooglePlay || app.settings.getBool(SettingKeys.PRETEND_GOOGLE_PLAY)
             val files = listOf(base) + info.splitSourceDirs.orEmpty().map(::File)
             installFiles(id, target, files, background = false, pretendPlay = pretendPlay, keepFiles = true)
+        } finally {
+            cloneDir(id).deleteRecursively()
+            repo.setDownload(id, null)
+        }
+    }
+
+    /**
+     * Makes the clone [id] is set up to be installed as out of the app that is on the device:
+     * nothing is downloaded, the clone is of the very version that is installed. The original is
+     * left where it is - removing it is for whoever asked, once the clone is known to be there.
+     * False when the clone did not get installed.
+     */
+    suspend fun cloneInstalledOriginal(id: String): Boolean = withContext(Dispatchers.IO) {
+        val entry = repo.entry(id) ?: return@withContext false
+        val target = entry.app.cloneTarget ?: return@withContext false
+        val original = repo.installedInfo(id) ?: return@withContext false
+        val info = original.applicationInfo ?: return@withContext false
+        repo.setDownload(id, DownloadState(-1.0))
+        try {
+            AppLog.info("$id: the clone $target is made from the installed app, nothing is downloaded")
+            val apks = listOf(File(info.sourceDir)) + info.splitSourceDirs.orEmpty().map(::File)
+            val pretendPlay = settings.shizukuPretendToBeGooglePlay || entry.app.settings.getBool(SettingKeys.PRETEND_GOOGLE_PLAY)
+            val installed = installFiles(id, target, cloneOf(entry, apks, target), background = false, pretendPlay = pretendPlay)
+            if (installed) {
+                repo.entry(id)?.let {
+                    repo.saveApps(
+                        listOf(
+                            it.app.withSetting(SettingKeys.CLONE_ACTIVE, true)
+                                // What the source offers next has to be signed as the original was.
+                                .withSetting(SettingKeys.CLONE_SOURCE_SIGNER, certHashesOf(original).joinToString(","))
+                                .copy(installedVersion = realInstalledVersionOf(it.app, original)),
+                        ),
+                    )
+                }
+            }
+            installed
         } finally {
             cloneDir(id).deleteRecursively()
             repo.setDownload(id, null)

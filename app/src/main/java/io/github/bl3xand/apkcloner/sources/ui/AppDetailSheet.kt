@@ -43,6 +43,7 @@ import io.github.bl3xand.apkcloner.ui.MainActivity
 import io.github.bl3xand.apkcloner.ui.label
 import io.github.bl3xand.apkcloner.ui.markdownToSpanned
 import io.github.bl3xand.apkcloner.ui.openUrl
+import io.github.bl3xand.apkcloner.ui.look
 import io.github.bl3xand.apkcloner.ui.pickClonePermissions
 import io.github.bl3xand.apkcloner.ui.show
 import io.github.bl3xand.apkcloner.ui.themeColor
@@ -124,7 +125,11 @@ class AppDetailSheet : BottomSheetDialogFragment() {
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
         // Also called when the sheet is torn down for a rotation, where the candidate must survive.
-        if (activity?.isChangingConfigurations != true) viewModel.discardCandidate(appId)
+        if (activity?.isChangingConfigurations != true) {
+            viewModel.discardCandidate(appId)
+            // A clone of an installed app that was set up here and not installed is not kept.
+            viewModel.dropCloneDraft(appId)
+        }
     }
 
     override fun onDestroyView() {
@@ -249,11 +254,14 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         val originalInstalled = offered && !active && entry.installedInfo != null
 
         binding.switchClone.isVisible = draft || (offered && !active && !originalInstalled)
-        binding.switchClone.text = Tr.get("actCloneInstall")
+        // An app that is on the device is past the question of how to install it: the one left
+        // is whether it stays next to its clone.
+        val reinstalling = draft && originalInstalled
+        binding.switchClone.text = Tr.get(if (reinstalling) "cloneDeleteOriginal" else "actCloneInstall")
         binding.switchClone.setOnCheckedChangeListener(null)
-        binding.switchClone.isChecked = draft
+        binding.switchClone.isChecked = if (reinstalling) deleteOriginal else draft
         binding.switchClone.isEnabled = !busy
-        binding.switchClone.setOnCheckedChangeListener { _, on -> switchClone(app, on) }
+        binding.switchClone.setOnCheckedChangeListener { _, on -> if (reinstalling) deleteOriginal = on else switchClone(app, on) }
 
         val options = binding.cloneOptions
         options.root.isVisible = draft
@@ -306,6 +314,9 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         }
     }
 
+    /** Whether the app that is on the device is removed once its clone is installed. */
+    private var deleteOriginal = true
+
     private fun switchClone(app: TrackedApp, on: Boolean) {
         // The clone is named after the app's package, which some sources only tell with the APK:
         // that is fetched first, and the app comes back under its real id.
@@ -340,7 +351,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         if (error != null) return
         val changed = target != app.cloneTarget || name != app.settings.getString(SettingKeys.CLONE_NAME) ||
             badge != app.settings.getBool(SettingKeys.CLONE_BADGE)
-        if (changed || install) viewModel.setCloneOptions(appId, target, name, badge, install)
+        if (changed || install) viewModel.setCloneOptions(appId, target, name, badge, install, deleteOriginal)
     }
 
     /** The same picker a clone is made with; the list comes from the APK, fetched if none was seen yet. */
@@ -374,40 +385,28 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         val signInNote = source?.signInNote?.takeUnless { conflict }
         val checkError = repo.checkErrors.value[appId]?.takeUnless { conflict || signInNote != null }
         val trouble = conflict || signInNote != null || checkError != null
-        binding.cardNotice.isVisible = app.hasPendingRepoRename || trouble
-        binding.buttonNotice.isVisible = binding.cardNotice.isVisible
-        // Something wrong gets the bright error colours and a button as wide as the card; a
-        // repository that moved is only worth knowing and keeps the quieter secondary ones.
-        binding.buttonNotice.minimumHeight = if (trouble) resources.getDimensionPixelSize(R.dimen.action_button_height) else 0
-        binding.buttonNotice.updateLayoutParams<ViewGroup.LayoutParams> {
-            width = if (trouble) ViewGroup.LayoutParams.MATCH_PARENT else ViewGroup.LayoutParams.WRAP_CONTENT
-        }
-        val noticeBg = if (trouble) MaterialR.attr.colorErrorContainer else MaterialR.attr.colorSecondaryContainer
-        val noticeFg = if (trouble) MaterialR.attr.colorOnErrorContainer else MaterialR.attr.colorOnSecondaryContainer
-        binding.cardNotice.setCardBackgroundColor(context.themeColor(noticeBg))
-        binding.textNotice.setTextColor(context.themeColor(noticeFg))
-        // On the error card the button is the card's colours the other way round, so that it reads.
-        binding.buttonNotice.backgroundTintList = ColorStateList.valueOf(context.themeColor(if (trouble) noticeFg else noticeBg))
-        binding.buttonNotice.setTextColor(context.themeColor(if (trouble) noticeBg else noticeFg))
+        binding.notice.root.isVisible = app.hasPendingRepoRename || trouble
+        binding.notice.buttonNotice.isVisible = binding.notice.root.isVisible
+        binding.notice.look(trouble)
         if (conflict) {
-            binding.textNotice.text = Tr.get("detSignerConflict")
+            binding.notice.textNotice.text = Tr.get("detSignerConflict")
             // Removing the installed build is the way forward; once it is gone the card becomes an
             // ordinary install.
-            binding.buttonNotice.text = Tr.get("detSignerRemoveCurrent")
-            binding.buttonNotice.setOnClickListener { viewModel.uninstallConflicting(appId) }
+            binding.notice.buttonNotice.text = Tr.get("detSignerRemoveCurrent")
+            binding.notice.buttonNotice.setOnClickListener { viewModel.uninstallConflicting(appId) }
         } else if (signInNote != null) {
             // What is shown of the app is what was known when it was last checked.
-            binding.textNotice.text = Tr.get("telegramSignInFirst")
-            binding.buttonNotice.text = Tr.get("telegramSignIn")
-            binding.buttonNotice.setOnClickListener { context.showTelegramSignIn(viewLifecycleOwner.lifecycleScope) }
+            binding.notice.textNotice.text = Tr.get("telegramSignInFirst")
+            binding.notice.buttonNotice.text = Tr.get("telegramSignIn")
+            binding.notice.buttonNotice.setOnClickListener { context.showTelegramSignIn(viewLifecycleOwner.lifecycleScope) }
         } else if (checkError != null) {
-            binding.textNotice.text = Tr.get("srcCheckFailed", checkError)
-            binding.buttonNotice.text = Tr.get("srcCheckAgain")
-            binding.buttonNotice.setOnClickListener { viewModel.refresh(appId) }
+            binding.notice.textNotice.text = Tr.get("srcCheckFailed", checkError)
+            binding.notice.buttonNotice.text = Tr.get("srcCheckAgain")
+            binding.notice.buttonNotice.setOnClickListener { viewModel.refresh(appId) }
         } else if (app.hasPendingRepoRename) {
-            binding.textNotice.text = "${Tr.get("repoRenamedExplanation")}\n\n${app.pendingRepoRenameUrl}"
-            binding.buttonNotice.text = Tr.get("updateUrl")
-            binding.buttonNotice.setOnClickListener {
+            binding.notice.textNotice.text = "${Tr.get("repoRenamedExplanation")}\n\n${app.pendingRepoRenameUrl}"
+            binding.notice.buttonNotice.text = Tr.get("updateUrl")
+            binding.notice.buttonNotice.setOnClickListener {
                 viewModel.update(listOf(appId)) { it.copy(url = it.pendingRepoRenameUrl ?: it.url, pendingRepoRenameUrl = null) }
             }
         }

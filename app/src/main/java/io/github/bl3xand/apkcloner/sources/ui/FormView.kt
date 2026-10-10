@@ -121,7 +121,13 @@ class FormView(
     }
 
     private fun addText(item: TextItem) {
-        val layout = TextInputLayout(context, null, MaterialR.attr.textInputOutlinedStyle).apply {
+        // A field without suggestions is a plain one: a suggesting field in a plain frame is drawn
+        // squeezed, and in a drop-down frame it would promise a list that is not there.
+        val options = item.autoCompleteOptions?.distinct()?.takeIf { it.isNotEmpty() }
+        val layout = TextInputLayout(
+            context, null,
+            if (options != null) MaterialR.attr.textInputOutlinedExposedDropdownMenuStyle else MaterialR.attr.textInputOutlinedStyle,
+        ).apply {
             // The link to the help is always at the start; the end is for the eye of a hidden value.
             if (item.password) endIconMode = TextInputLayout.END_ICON_PASSWORD_TOGGLE
             if (item.helpUrl != null) {
@@ -131,10 +137,9 @@ class FormView(
             // Every field says what goes into it, in a word or two.
             hint = hint(item)
         }
-        val options = item.autoCompleteOptions
         val edit = if (options != null) {
             MaterialAutoCompleteTextView(layout.context).apply {
-                setAdapter(ArrayAdapter(context, android.R.layout.simple_list_item_1, options.distinct()))
+                setAdapter(ArrayAdapter(context, android.R.layout.simple_list_item_1, options))
             }
         } else TextInputEditText(layout.context)
         edit.apply {

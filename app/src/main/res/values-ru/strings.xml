@@ -21,8 +21,10 @@
     <string name="button_update">Обновить</string>
     <string name="field_package">Имя пакета</string>
     <string name="field_app_name">Имя приложения</string>
+    <string name="clone_conflict">Приложение с таким именем пакета уже установлено и подписано другим ключом: клон поверх него не установится. Задайте клону другое имя пакета или удалите установленное приложение.</string>
+    <string name="clone_conflict_remove">Удалить установленное</string>
     <string name="error_invalid_package">Нужно минимум две части через точку: буквы, цифры и подчёркивания</string>
-    <string name="signature_hint">Клон подписывается ключом APK Toolbox, а не оригинальным: подпись перестаёт сходиться после изменения приложения.</string>
+    <string name="signature_hint">Клон подписывается ключом APK Toolbox, а не ключом издателя: после изменения приложения исходная подпись становится недействительной.</string>
     <string name="button_clone">Клонировать</string>
     <string name="button_install">Установить</string>
     <string name="button_save">Сохранить</string>
@@ -47,7 +49,7 @@
     <string name="switch_no_updates">Не обновлять</string>
     <string name="clone_show_in_sources">Показать в источниках</string>
     <string name="clone_track">Обновлять из источника</string>
-    <string name="clone_track_message">Клон пересобирается из установленного оригинала, поэтому без него перестаёт обновляться, а Google Play свои файлы никому не отдаёт. APK Toolbox может найти приложение по пакету в магазинах с теми же сборками (APKPure, RuStore, Galaxy Store и другие, по очереди) и обновлять клон оттуда, через вкладку «Источники». Оригинал после этого можно удалить. Обновление, подписанное не тем, кем оригинал, не установится.</string>
+    <string name="clone_track_message">Клон пересобирается из установленного оригинала, поэтому без него перестаёт обновляться, а Google Play свои файлы никому не отдаёт. APK Toolbox может найти приложение по пакету в магазинах с теми же сборками (APKPure, RuStore, Galaxy Store и другие, по очереди) и обновлять клон оттуда, через вкладку «Источники». Оригинал после этого можно удалить. Обновление, подписанное другим ключом, чем оригинал, не установится.</string>
     <string name="detail_original_version">Версия оригинала</string>
     <string name="detail_clone_version">Версия клона</string>
     <string name="detail_removed_permissions">Удалённые разрешения</string>
@@ -130,7 +132,7 @@
 
     <string name="settings_signing_key">Ключ подписи</string>
     <string name="key_bundled_title">Встроенный ключ</string>
-    <string name="key_bundled_description">Клоны и объединённые APK подписываются ключом, который идёт вместе с приложением. Он один для всех и общедоступен. Создайте или импортируйте свой ключ, чтобы подписывать тем, что есть только у вас.</string>
+    <string name="key_bundled_description">Клоны и объединённые APK подписываются ключом, который идёт вместе с приложением. Он один для всех и общедоступен. Создайте или импортируйте свой ключ, чтобы подписывать ключом, который есть только у вас.</string>
     <string name="key_custom_title">Свой ключ</string>
     <string name="key_custom_description">%1$s\nSHA-256 %2$s…\nЭкспортируйте его и сохраните файл: без него клоны, подписанные этим ключом, нельзя будет обновить после переустановки приложения.</string>
     <string name="key_create">Создать</string>
@@ -162,9 +164,9 @@
     <string name="settings_section_install">Автоматическая установка</string>
     <string name="settings_section_experimental">Экспериментальное</string>
     <string name="settings_check_clones">Клоны</string>
-    <string name="settings_check_clones_description">Клон устарел, если обновился его оригинал.</string>
+    <string name="settings_check_clones_description">Клон устарел, если обновился его оригинал или в источнике доступна новая версия.</string>
     <string name="settings_check_on_start">Проверять при запуске</string>
-    <string name="settings_check_on_start_description">Приложения из источников и клоны проверяются на новые версии при каждом открытии APK Toolbox.</string>
+    <string name="settings_check_on_start_description">Обновления приложений из источников и клонов проверяются при каждом открытии APK Toolbox.</string>
     <string name="settings_wifi_only">Ждать Wi-Fi</string>
     <string name="settings_wifi_only_description">Найденное в мобильной сети установится при подключении к Wi-Fi.</string>
     <string name="settings_charging_only">Ждать зарядку</string>
@@ -184,13 +186,13 @@
     <string name="merge_force_description">Объединяет сплиты, даже если у них разные версии или пакеты. Только если обычное объединение отказывается; результат может не работать.</string>
     <string name="tab_info">Об этом списке</string>
     <string name="hint_tab_sources">Отслеживает приложения с GitHub, F-Droid, магазинов и других сайтов: добавьте приложение по ссылке или по названию, и новые версии будут находиться, скачиваться и устанавливаться отсюда.</string>
-    <string name="hint_tab_apps">Делает вторую копию установленного приложения с другим именем пакета: обе живут рядом, у каждой свои данные. Выберите приложение из списка или файл APK.</string>
-    <string name="hint_tab_clones">Клоны, сделанные здесь. Клон устаревает, когда обновляется его оригинал; пересобрать его из новой версии можно здесь или автоматически.</string>
+    <string name="hint_tab_apps">Делает копию установленного приложения с другим именем пакета: у каждой копии свои данные. Выберите приложение из списка или файл APK.</string>
+    <string name="hint_tab_clones">Сделанные клоны находятся здесь. Клон устаревает, когда обновляется его оригинал или появляется новая версия в источниках.</string>
     <string name="settings_language">Язык</string>
-    <string name="settings_language_description">Приложение говорит на языке системы, если не выбрать другой.</string>
+    <string name="settings_language_description">Используется язык системы, если не выбран другой.</string>
     <string name="language_system">Как в системе</string>
     <string name="settings_log">Журнал</string>
-    <string name="settings_log_description">Что проверялось, скачивалось, клонировалось, объединялось и устанавливалось и что не удалось. Хранится 30 дней.</string>
+    <string name="settings_log_description">Записи о проверках, загрузках, клонировании, объединении и установке, включая ошибки. Хранятся 30 дней.</string>
     <string name="button_show_log">Показать журнал</string>
     <string name="log_empty">В журнале пока пусто.</string>
     <string name="log_save">Сохранить</string>

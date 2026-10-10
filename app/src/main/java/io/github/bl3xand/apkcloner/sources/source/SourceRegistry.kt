@@ -171,7 +171,8 @@ object SourceRegistry {
             apk = apk.copy(apkUrls = ApkFilter.filterApksByArch(apk.apkUrls, SourceEnv.platform.supportedAbis))
             if (apk.apkUrls.isEmpty() && !trackOnly) throw notForProcessor().also { it.url = standardUrl }
         }
-        val name = currentApp?.name?.trim()?.takeIf { it.isNotEmpty() } ?: apk.names.name
+        // A package name standing in for the name gives way as soon as the source tells the name.
+        val name = currentApp?.name?.trim()?.takeIf { it.isNotEmpty() && it != currentApp.id } ?: apk.names.name
         val app = TrackedApp(
             id = resolveAppId(source, currentApp, additionalSettings, trackOnly, standardUrl, inferAppIdIfOptional),
             url = standardUrl,

@@ -23,6 +23,8 @@
     <string name="button_update">Update</string>
     <string name="field_package">Package name</string>
     <string name="field_app_name">App name</string>
+    <string name="clone_conflict">An app with this package name is already installed and is signed with another key: the clone cannot be installed over it. Give the clone another package name or remove the installed app.</string>
+    <string name="clone_conflict_remove">Remove the installed app</string>
     <string name="error_invalid_package">Use at least two dot-separated parts made of letters, digits and underscores</string>
     <string name="signature_hint">The clone is signed with APK Toolbox\'s key, not the original one: a signature stops matching once the app is modified.</string>
     <string name="button_clone">Clone</string>
@@ -169,9 +171,9 @@
     <string name="settings_section_install">Automatic installation</string>
     <string name="settings_section_experimental">Experimental</string>
     <string name="settings_check_clones">Clones</string>
-    <string name="settings_check_clones_description">A clone is outdated when its original was updated.</string>
+    <string name="settings_check_clones_description">A clone is outdated when its original was updated or a new version is available in its source.</string>
     <string name="settings_check_on_start">Check when the app opens</string>
-    <string name="settings_check_on_start_description">Apps from sources and clones are checked for new versions every time APK Toolbox is opened.</string>
+    <string name="settings_check_on_start_description">Updates of apps from sources and of clones are looked for every time APK Toolbox is opened.</string>
     <string name="settings_wifi_only">Wait for Wi-Fi</string>
     <string name="settings_wifi_only_description">Updates found on mobile data are installed once Wi-Fi is connected.</string>
     <string name="settings_charging_only">Wait for the charger</string>
@@ -191,8 +193,8 @@
     <string name="merge_force_description">Merges splits even when their versions or packages differ. Use only if the normal merge refuses; the result may not work.</string>
     <string name="tab_info">About this list</string>
     <string name="hint_tab_sources">Tracks apps from GitHub, F-Droid, stores and other sites: add an app by link or by name, and new versions are found, downloaded and installed from here.</string>
-    <string name="hint_tab_apps">Makes a second copy of an installed app under another package name, so both live side by side with separate data. Pick an app from the list or an APK file.</string>
-    <string name="hint_tab_clones">The clones made here. A clone becomes outdated when its original is updated; it can be rebuilt from the new version here or automatically.</string>
+    <string name="hint_tab_apps">Makes a copy of an installed app under another package name: every copy has its own data. Pick an app from the list or an APK file.</string>
+    <string name="hint_tab_clones">The clones you have made are here. A clone becomes outdated when its original is updated or a new version appears in its source.</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_description">The app speaks the language of the system unless told another.</string>
     <string name="language_system">As in the system</string>

@@ -38,9 +38,15 @@ object SourcesBackground {
      * [retry] carries the apps of a retry run with their attempt counts; a retry only checks,
      * the regular run also installs. [forceAll] - a check asked for by hand - ignores the per-app
      * schedule and reports every update that is waiting, not only those found just now.
-     * Returns whether there was anything to report or install.
+     * With [only], nothing but those apps is looked at. Returns whether there was anything to
+     * report or install.
      */
-    suspend fun run(context: Context, retry: List<Pair<String, Int>>? = null, forceAll: Boolean = false): Boolean {
+    suspend fun run(
+        context: Context,
+        retry: List<Pair<String, Int>>? = null,
+        forceAll: Boolean = false,
+        only: Set<String>? = null,
+    ): Boolean {
         val repo = SourcesRepository.get(context)
         val installer = SourcesInstaller.get(context)
         val settings = repo.settings
@@ -52,7 +58,7 @@ object SourcesBackground {
         }
         val toCheck = retry ?: repo.updates.getAppsSortedByUpdateCheckTime(
             settings.onlyCheckInstalledOrTrackOnlyApps, forceAll,
-        ).map { it to 0 }
+        ).filter { only == null || it in only }.map { it to 0 }
 
         val networkRestricted = settings.bgUpdatesOnWiFiOnly &&
             !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
@@ -100,7 +106,7 @@ object SourcesBackground {
             val notifyTrackOnly = ArrayList<TrackedApp>()
             // Asked by hand, the answer covers what was already known to be waiting as well.
             val waiting = if (!forceAll) emptyList() else repo.findAppIdsWithPendingUpdates(installedOnly = true)
-                .filter { id -> updates.none { it.id == id } }.mapNotNull { repo.entry(it)?.app }
+                .filter { id -> (only == null || id in only) && updates.none { it.id == id } }.mapNotNull { repo.entry(it)?.app }
             for (update in updates + waiting) {
                 if (canInstall && installer.canInstallSilentlyInBackground(update)) {
                     silentlyInstallable.add(update.id)
@@ -124,7 +130,7 @@ object SourcesBackground {
         if (canInstall && settings.enableBackgroundUpdates) {
             // Updates found earlier and still waiting are picked up as well.
             for (id in repo.findAppIdsWithPendingUpdates(installedOnly = true)) {
-                if (id in silentlyInstallable) continue
+                if (id in silentlyInstallable || (only != null && id !in only)) continue
                 val app = repo.entry(id)?.app ?: continue
                 if (installer.canInstallSilentlyInBackground(app)) silentlyInstallable.add(id)
             }

@@ -41,11 +41,13 @@
             android:maxLines="1" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- A switch is 8dp taller on each side than it looks and a button 4dp: with these margins
+         the switch stands 16dp from the field above and from the button below. -->
     <com.google.android.material.materialswitch.MaterialSwitch
         android:id="@+id/switchBadge"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="8dp"
         android:text="@string/clone_badge"
         android:textAppearance="?attr/textAppearanceBodyLarge" />
 
@@ -55,7 +57,7 @@
         style="@style/Widget.ApkCloner.Button.Action"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="4dp"
         android:text="@string/clone_permissions"
         app:icon="@drawable/ic_tune" />
 

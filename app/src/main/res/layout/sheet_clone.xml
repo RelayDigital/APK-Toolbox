@@ -31,6 +31,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp" />
 
+        <!-- The package the clone is to have is taken by an app that is not a clone made here. -->
+        <include
+            android:id="@+id/notice"
+            layout="@layout/view_notice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" />
+
         <include
             android:id="@+id/options"
             layout="@layout/view_clone_options"

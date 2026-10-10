@@ -5,6 +5,7 @@ import io.github.bl3xand.apkcloner.sources.core.Url
 import io.github.bl3xand.apkcloner.sources.core.rethrowOrWrap
 import io.github.bl3xand.apkcloner.sources.form.SettingItem
 import io.github.bl3xand.apkcloner.sources.model.ApkDetails
+import org.jsoup.Jsoup
 
 class IzzyOnDroid : AppSource("IzzyOnDroid") {
     private val fd = FDroid()
@@ -30,13 +31,19 @@ class IzzyOnDroid : AppSource("IzzyOnDroid") {
 
     override fun getLatestAPKDetails(standardUrl: String, additionalSettings: Map<String, Any?>): ApkDetails = try {
         val appId = tryInferringAppId(standardUrl) ?: throw NoReleasesError()
-        fd.getAPKUrlsFromFDroidPackagesAPIResponse(
+        val details = fd.getAPKUrlsFromFDroidPackagesAPIResponse(
             sourceRequest("https://apt.izzysoft.de/fdroid/api/v1/packages/$appId", additionalSettings),
             "https://android.izzysoft.de/frepo/$appId",
             standardUrl,
             name,
             additionalSettings,
         )
+        // The API knows the package only; the page of the app says what it is called.
+        val title = runCatching {
+            Jsoup.parse(sourceRequest("https://apt.izzysoft.de/fdroid/index/apk/$appId", additionalSettings).body)
+                .selectFirst("h2")?.text()?.trim()
+        }.getOrNull()
+        if (title.isNullOrEmpty()) details else details.copy(names = details.names.copy(name = title))
     } catch (e: Throwable) {
         rethrowOrWrap(e)
     }

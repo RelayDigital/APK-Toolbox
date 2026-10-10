@@ -63,6 +63,15 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
             if (metadata.originalPackage == originalPackage) info.packageName to metadata else null
         }.toMap()
 
+    /**
+     * Whether [packageName] is on the device as an app a clone cannot be installed over: one
+     * signed with a key that is not ours.
+     */
+    fun isTakenByOther(packageName: String): Boolean {
+        val info = runCatching { packageManager.getPackageInfo(packageName, SIGNERS_FLAG) }.getOrNull() ?: return false
+        return info.currentSigners.none { cloner.keys.matching(it.toByteArray()) != null }
+    }
+
     /** Copies the picked document to [target] (it may not be a real file) and parses it. */
     fun fromUri(uri: Uri, target: File): ApkSource? {
         context.contentResolver.openInputStream(uri)?.use { input ->

@@ -31,8 +31,8 @@ android {
         // Android 8.0: adaptive icons and notification channels, which the app counts on.
         minSdk = 26
         targetSdk = 36
-        versionCode = 9
-        versionName = "1.1.2"
+        versionCode = 10
+        versionName = "1.1.3"
 
         buildConfigField("int", "TELEGRAM_API_ID", (telegramProperties.getProperty("apiId")?.trim()?.toIntOrNull() ?: 0).toString())
         buildConfigField("String", "TELEGRAM_API_HASH", "\"${telegramProperties.getProperty("apiHash")?.trim().orEmpty()}\"")

@@ -79,6 +79,10 @@ class FDroid : AppSource("FDroid") {
                 details = fittingThisDevice(details, host, appId, additionalSettings)
                 try {
                     val lines = sourceRequest("$FDROID_DATA_BASE_URL/$appId.yml", additionalSettings).body.split('\n')
+                    // The API knows the package only; what the app is called is in its metadata.
+                    (lines.firstOrNull { it.startsWith("Name: ") } ?: lines.firstOrNull { it.startsWith("AutoName: ") })
+                        ?.substringAfter(": ")?.trim()?.trim('\'', '"')?.takeIf { it.isNotEmpty() }
+                        ?.let { details = details.copy(names = details.names.copy(name = it)) }
                     lines.firstOrNull { it.startsWith("AuthorName: ") }?.let { line ->
                         details = details.copy(
                             names = details.names.copy(author = line.split(": ").drop(1).joinToString(": ")),

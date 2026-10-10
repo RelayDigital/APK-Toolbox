@@ -55,7 +55,10 @@ class CloneSheet : BottomSheetDialogFragment() {
         val settings = AppSettings(requireContext())
         binding.options.switchBadge.isChecked = settings.cloneBadge
         binding.options.switchBadge.setOnCheckedChangeListener { _, checked -> settings.cloneBadge = checked }
-        binding.options.editPackage.doAfterTextChanged { binding.options.layoutPackage.error = null }
+        binding.options.editPackage.doAfterTextChanged {
+            binding.options.layoutPackage.error = null
+            renderConflict()
+        }
         binding.buttonClone.setOnClickListener { startClone() }
         binding.buttonInstall.setOnClickListener { viewModel.cloning.installResult() }
         binding.options.buttonPermissions.setOnClickListener { pickPermissions(source) }
@@ -83,6 +86,38 @@ class CloneSheet : BottomSheetDialogFragment() {
     override fun onStart() {
         super.onStart()
         expandFully()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // The app in the way may have been removed in the meantime.
+        renderConflict()
+    }
+
+    /**
+     * Says so when the package the clone is to have is held by an app that is not a clone made
+     * here: the system would refuse to install over it. That app can be removed from the card,
+     * unless it is the very one being cloned.
+     */
+    private fun renderConflict(): Boolean {
+        val binding = _binding ?: return false
+        val target = binding.options.editPackage.text?.toString().orEmpty().trim()
+        val conflict = viewModel.isTakenByOther(target)
+        binding.notice.root.isVisible = conflict
+        if (!conflict) return false
+        binding.notice.look(trouble = true)
+        binding.notice.textNotice.setText(R.string.clone_conflict)
+        val source = viewModel.cloning.selected
+        val isSource = source != null && source.packageName == target && !source.apkPaths.first().startsWith(requireContext().cacheDir.path)
+        binding.notice.buttonNotice.isVisible = !isSource
+        binding.notice.buttonNotice.setText(R.string.clone_conflict_remove)
+        binding.notice.buttonNotice.setOnClickListener {
+            viewModel.uninstallTaken(target) {
+                renderConflict()
+                _binding?.let { render(viewModel.cloning.state.value, viewModel.installing.value) }
+            }
+        }
+        return true
     }
 
     override fun onDismiss(dialog: DialogInterface) {
@@ -113,7 +148,7 @@ class CloneSheet : BottomSheetDialogFragment() {
         val installed = runCatching { requireContext().packageManager.getPackageInfo(target, 0) }.getOrNull()
         val sameVersion = installed != null && installed.versionCodeLong == viewModel.cloning.selected?.versionCode
         binding.buttonInstall.setText(if (installed != null) R.string.button_update else R.string.button_install)
-        binding.buttonInstall.isEnabled = !installing && !sameVersion
+        binding.buttonInstall.isEnabled = !installing && !sameVersion && !viewModel.isTakenByOther(target)
         binding.buttonSave.isEnabled = !installing
         binding.progress.isInvisible = !(running || installing)
         when (state) {
