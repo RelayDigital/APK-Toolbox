@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.merge
 
+import io.github.bl3xand.apkcloner.compat.versionCodeLong
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -45,7 +46,7 @@ class SplitExporter(private val context: Context) {
                 .put("package", source.packageName)
                 .put("label", source.label)
                 .put("version_name", source.versionName)
-                .put("version_code", info?.longVersionCode ?: 0)
+                .put("version_code", info?.versionCodeLong ?: 0)
                 .put("export_timestamp", System.currentTimeMillis())
             val v2 = JSONObject(v1.toString())
                 .put("meta_version", 2)

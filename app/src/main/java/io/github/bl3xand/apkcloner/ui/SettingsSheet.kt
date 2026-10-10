@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.ui
 
+import android.os.Build
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -121,7 +122,7 @@ class SettingsSheet : BottomSheetDialogFragment() {
         binding.rowCheckUpdates.setOnClickListener { binding.switchCheckUpdates.toggle() }
         binding.switchCheckUpdates.setOnCheckedChangeListener { _, checked ->
             settings.checkUpdates = checked
-            if (checked) {
+            if (checked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
             } else {
                 AutoUpdateWorker.schedule(requireContext())

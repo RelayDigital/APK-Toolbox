@@ -66,7 +66,7 @@ object ApkRebuilder {
                         }
                         if (entry.method == ZipEntry.STORED) {
                             val checksum = CRC32()
-                            renamed(CheckedOutputStream(OutputStream.nullOutputStream(), checksum))
+                            renamed(CheckedOutputStream(Discard, checksum))
                             copy.storedAt(counter.count, entry, checksum.value)
                         }
                         out.putNextEntry(copy)
@@ -114,6 +114,12 @@ object ApkRebuilder {
             .putShort((2 + padding).toShort())
             .putShort(alignment.toShort())
             .array()
+    }
+
+    /** Takes what is written and keeps none of it: only the checksum on the way is wanted. */
+    private object Discard : OutputStream() {
+        override fun write(b: Int) = Unit
+        override fun write(b: ByteArray, off: Int, len: Int) = Unit
     }
 
     private class CountingOutputStream(out: OutputStream) : FilterOutputStream(out) {

@@ -1,5 +1,9 @@
 package io.github.bl3xand.apkcloner.data
 
+import io.github.bl3xand.apkcloner.compat.installerOf
+import io.github.bl3xand.apkcloner.compat.currentSigners
+import io.github.bl3xand.apkcloner.compat.SIGNERS_FLAG
+import io.github.bl3xand.apkcloner.compat.versionCodeLong
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
@@ -19,7 +23,7 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
     private val packageManager: PackageManager = context.packageManager
 
     fun installed(): InstalledApps {
-        val packages = packageManager.getInstalledPackages(PackageManager.GET_SIGNING_CERTIFICATES)
+        val packages = packageManager.getInstalledPackages(SIGNERS_FLAG)
             .filter { it.packageName != context.packageName && it.applicationInfo != null }
         // Asked first: it also sees to it that the tracked apps have been read.
         val asClones = runCatching { SourcesRepository.get(context).installedAsClones() }.getOrDefault(emptyMap())
@@ -36,8 +40,7 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
         val frozen = AppSettings(context).frozenClones
         val categories = AppSettings(context).cloneCategories
         val clones = packages.mapNotNull { info ->
-            val signers = info.signingInfo?.apkContentsSigners ?: return@mapNotNull null
-            val key = signers.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) } ?: return@mapNotNull null
+            val key = info.currentSigners.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) } ?: return@mapNotNull null
             val source = sources.getValue(info.packageName)
             val metadata = ApkCloner.readMetadata(source.apkPaths.first()) ?: return@mapNotNull null
             CloneInfo(source, metadata.originalPackage, sources[metadata.originalPackage], key, metadata.badged, metadata.removedPermissions, tracked[info.packageName], info.packageName in frozen, categories[info.packageName].orEmpty(),
@@ -54,9 +57,8 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
      * apps, so it is cheap enough to ask for one app.
      */
     fun clonesOf(originalPackage: String): Map<String, CloneMetadata> =
-        packageManager.getInstalledPackages(PackageManager.GET_SIGNING_CERTIFICATES).mapNotNull { info ->
-            val signers = info.signingInfo?.apkContentsSigners ?: return@mapNotNull null
-            if (signers.none { cloner.keys.matching(it.toByteArray()) != null }) return@mapNotNull null
+        packageManager.getInstalledPackages(SIGNERS_FLAG).mapNotNull { info ->
+            if (info.currentSigners.none { cloner.keys.matching(it.toByteArray()) != null }) return@mapNotNull null
             val metadata = info.applicationInfo?.sourceDir?.let(ApkCloner::readMetadata) ?: return@mapNotNull null
             if (metadata.originalPackage == originalPackage) info.packageName to metadata else null
         }.toMap()
@@ -80,7 +82,7 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
      * of one.
      */
     private fun originOf(app: ApplicationInfo, tracked: AppEntry?): String {
-        val installer = runCatching { packageManager.getInstallSourceInfo(app.packageName).installingPackageName }.getOrNull()
+        val installer = packageManager.installerOf(app.packageName)
         return when {
             tracked != null && (installer == null || installer == context.packageName) -> tracked.sourceName()
             installer == Installer.PLAY_STORE_PACKAGE -> "Google Play"
@@ -97,7 +99,7 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
         packageName = app.packageName,
         label = app.loadLabel(packageManager).toString(),
         versionName = info.versionName,
-        versionCode = info.longVersionCode,
+        versionCode = info.versionCodeLong,
         apkPaths = listOf(app.sourceDir) + app.splitSourceDirs.orEmpty(),
         isSystem = app.flags and ApplicationInfo.FLAG_SYSTEM != 0,
         appInfo = app,

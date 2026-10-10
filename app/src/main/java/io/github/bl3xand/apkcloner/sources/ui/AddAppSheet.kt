@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.sources.ui
 
+import io.github.bl3xand.apkcloner.compat.versionCodeLong
 import android.os.Bundle
 import android.text.InputType
 import android.view.LayoutInflater
@@ -476,7 +477,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     // Without a way to tell, what is on the device is taken for the latest. A
                     // source that can tell is asked: an older build then gets its update offered.
                     val onDevice = withContext(Dispatchers.IO) { repo.installedInfo(app.id) }
-                    val isLatest = onDevice?.let { source.isLatestBuildInstalled(app, it.versionName, it.longVersionCode) }
+                    val isLatest = onDevice?.let { source.isLatestBuildInstalled(app, it.versionName, it.versionCodeLong) }
                     app = app.copy(installedVersion = if (isLatest == false) onDevice.versionName else app.latestVersion)
                 }
                 app = app.copy(categories = categories.toList())

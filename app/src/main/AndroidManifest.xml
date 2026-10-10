@@ -6,6 +6,10 @@
     <uses-permission
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
+    <!-- The same access on Android 10 and older, where it is an ordinary permission. -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
     <!-- The whole point of the app is listing every installed package to pick one to clone. -->
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
@@ -24,6 +28,7 @@
         android:name=".App"
         android:localeConfig="@xml/locales_config"
         android:allowBackup="false"
+        android:requestLegacyExternalStorage="true"
         tools:replace="android:allowBackup"
         android:largeHeap="true"
         android:icon="@mipmap/ic_launcher"

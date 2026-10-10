@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.ui
 
+import io.github.bl3xand.apkcloner.compat.versionCodeLong
 import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -110,7 +111,7 @@ class CloneSheet : BottomSheetDialogFragment() {
         // that clone already has the version just built.
         val target = binding.options.editPackage.text?.toString().orEmpty().trim()
         val installed = runCatching { requireContext().packageManager.getPackageInfo(target, 0) }.getOrNull()
-        val sameVersion = installed != null && installed.longVersionCode == viewModel.cloning.selected?.versionCode
+        val sameVersion = installed != null && installed.versionCodeLong == viewModel.cloning.selected?.versionCode
         binding.buttonInstall.setText(if (installed != null) R.string.button_update else R.string.button_install)
         binding.buttonInstall.isEnabled = !installing && !sameVersion
         binding.buttonSave.isEnabled = !installing

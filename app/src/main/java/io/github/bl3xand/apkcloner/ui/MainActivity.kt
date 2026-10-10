@@ -1,5 +1,10 @@
 package io.github.bl3xand.apkcloner.ui
 
+import io.github.bl3xand.apkcloner.compat.parcelableList
+import io.github.bl3xand.apkcloner.compat.parcelable
+import android.os.Build
+import android.content.pm.PackageManager
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -36,6 +41,9 @@ class MainActivity : AppCompatActivity() {
     /** The tracked apps; a clone that a source keeps current is changed through them. */
     private val sourcesViewModel: SourcesViewModel by viewModels()
     private lateinit var sourcesTab: SourcesTab
+
+    /** Before Android 11: the answer comes back through onResume, which looks at the grant again. */
+    private val requestStorage = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     private val pickApk = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) viewModel.cloning.loadFile(uri)
@@ -148,7 +156,10 @@ class MainActivity : AppCompatActivity() {
         binding.buttonTabInfo.setOnClickListener(showTabInfo)
         binding.buttonSourcesInfo.setOnClickListener(showTabInfo)
         binding.buttonGrantFiles.setOnClickListener {
-            openSettings(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+            // Access to all files is a switch in the settings since Android 11; before that it
+            // was a permission asked for like any other.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) openSettings(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+            else requestStorage.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
         binding.buttonGrantInstall.setOnClickListener {
             openSettings(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
@@ -218,9 +229,9 @@ class MainActivity : AppCompatActivity() {
         }
         val uris = when (intent.action) {
             Intent.ACTION_VIEW -> listOfNotNull(intent.data)
-            Intent.ACTION_SEND -> listOfNotNull(intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java))
+            Intent.ACTION_SEND -> listOfNotNull(intent.parcelable<Uri>(Intent.EXTRA_STREAM))
             Intent.ACTION_SEND_MULTIPLE ->
-                intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
+                intent.parcelableList<Uri>(Intent.EXTRA_STREAM)
             else -> emptyList()
         }
         viewModel.splits.offerFiles(uris)
@@ -233,7 +244,7 @@ class MainActivity : AppCompatActivity() {
         UpdateNotifications.cancelOutdated(this)
         sourcesTab.onResume()
         viewModel.setPermissions(
-            fileAccess = Environment.isExternalStorageManager(),
+            fileAccess = hasFileAccess(),
             canInstall = packageManager.canRequestPackageInstalls(),
         )
     }
@@ -352,6 +363,10 @@ class MainActivity : AppCompatActivity() {
             }
             .show()
     }
+
+    private fun hasFileAccess(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Environment.isExternalStorageManager()
+        else checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
 
     private fun openSettings(action: String) {
         startActivity(Intent(action, Uri.parse("package:$packageName")))

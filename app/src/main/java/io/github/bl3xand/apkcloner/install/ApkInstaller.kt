@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
+import android.os.Build
 import java.io.File
 
 object ApkInstaller {
@@ -18,7 +19,9 @@ object ApkInstaller {
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
         // Lets the system skip the confirmation when updating a clone this app installed itself.
         // Anything else still gets the usual prompt.
-        params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+        }
         val sessionId = installer.createSession(params)
         installer.openSession(sessionId).use { session ->
             for (apk in apks) {

@@ -1,5 +1,8 @@
 package io.github.bl3xand.apkcloner.sources.data
 
+import io.github.bl3xand.apkcloner.compat.packageInfoOrNull
+import io.github.bl3xand.apkcloner.compat.SIGNERS_FLAG
+import io.github.bl3xand.apkcloner.compat.versionCodeLong
 import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
@@ -95,13 +98,7 @@ class SourcesRepository private constructor(private val context: Context) {
 
     fun installedInfo(packageName: String?): PackageInfo? {
         if (packageName == null) return null
-        return try {
-            packageManager.getPackageInfo(
-                packageName, PackageManager.PackageInfoFlags.of(PackageManager.GET_SIGNING_CERTIFICATES.toLong()),
-            )
-        } catch (e: Exception) {
-            null
-        }
+        return packageManager.packageInfoOrNull(packageName, SIGNERS_FLAG)
     }
 
     /**
@@ -195,7 +192,7 @@ class SourcesRepository private constructor(private val context: Context) {
         } else if (real != null && app.installedVersion == null) {
             // Found on the device without having been installed from here. A source whose
             // versions are not the app's own can still say whether it is the latest release.
-            val isLatest = runCatching { sourceOf(app).isLatestBuildInstalled(app, info?.versionName, info?.longVersionCode ?: 0) }.getOrNull()
+            val isLatest = runCatching { sourceOf(app).isLatestBuildInstalled(app, info?.versionName, info?.versionCodeLong ?: 0) }.getOrNull()
             app = app.copy(installedVersion = if (isLatest == true) app.latestVersion else real)
             modified = true
         }

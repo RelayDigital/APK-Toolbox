@@ -1,5 +1,9 @@
 package io.github.bl3xand.apkcloner.sources.install
 
+import io.github.bl3xand.apkcloner.compat.currentSigners
+import io.github.bl3xand.apkcloner.compat.archiveInfoOrNull
+import io.github.bl3xand.apkcloner.compat.SIGNERS_FLAG
+import io.github.bl3xand.apkcloner.compat.versionCodeLong
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
@@ -95,16 +99,10 @@ class SourcesInstaller private constructor(private val context: Context) {
      * a set of splits, which it refuses because it could not be installed alone - is read here.
      */
     private fun facts(file: File): ApkFacts? {
-        val info = try {
-            packageManager.getPackageArchiveInfo(
-                file.path, PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong()),
-            )
-        } catch (e: Exception) {
-            null
-        }
+        val info = packageManager.archiveInfoOrNull(file.path, PackageManager.GET_PERMISSIONS)
         if (info != null) {
             return ApkFacts(
-                info.packageName, info.versionName, info.longVersionCode, info.requestedPermissions.orEmpty().toSet(), info.applicationInfo,
+                info.packageName, info.versionName, info.versionCodeLong, info.requestedPermissions.orEmpty().toSet(), info.applicationInfo,
             )
         }
         val peek = RemoteApk.peek(file) ?: return null
@@ -112,14 +110,9 @@ class SourcesInstaller private constructor(private val context: Context) {
     }
 
     private fun apkCertHashes(files: List<File>): Set<String> = files.flatMap { file ->
-        val info = try {
-            packageManager.getPackageArchiveInfo(
-                file.path, PackageManager.PackageInfoFlags.of(PackageManager.GET_SIGNING_CERTIFICATES.toLong()),
-            )
-        } catch (e: Exception) {
-            null
-        }
-        certHashesOf(info).ifEmpty { if (info == null) RemoteApk.peek(file)?.certHashes.orEmpty() else emptySet() }
+        // Read here when the system does not say: it refuses some files, and older versions
+        // do not tell the signer of a file that is not installed.
+        certHashesOf(packageManager.archiveInfoOrNull(file.path, SIGNERS_FLAG)).ifEmpty { RemoteApk.peek(file)?.certHashes.orEmpty() }
     }.toSet()
 
     /**
@@ -300,7 +293,7 @@ class SourcesInstaller private constructor(private val context: Context) {
             }
             if (info == null) {
                 // What came instead of an APK says most about why: a page, a part of a file, an archive.
-                val head = runCatching { file.inputStream().use { it.readNBytes(4) }.joinToString("") { "%02x".format(it) } }.getOrNull()
+                val head = runCatching { file.inputStream().use { input -> ByteArray(4).let { it.copyOf(input.read(it).coerceAtLeast(0)) } }.joinToString("") { "%02x".format(it) } }.getOrNull()
                 AppLog.warn("${app.id}: ${file.name} (${file.length()} bytes, starts with $head) is not an APK that can be read" +
                     (dir?.let { d -> "; unpacked: ${d.walkTopDown().filter(File::isFile).joinToString { "${it.name} ${it.length()}" }}" } ?: ""))
                 file.delete()
@@ -350,14 +343,14 @@ class SourcesInstaller private constructor(private val context: Context) {
 
     private fun baseline(appId: String): InstallBaseline {
         val info = repo.installedInfo(appId)
-        return InstallBaseline(info != null, info?.longVersionCode, info?.lastUpdateTime)
+        return InstallBaseline(info != null, info?.versionCodeLong, info?.lastUpdateTime)
     }
 
     private fun changedSince(appId: String, baseline: InstallBaseline): Boolean {
         val info = repo.installedInfo(appId) ?: return false
         if (!baseline.wasInstalled) return true
         return if (baseline.updateTime != null) info.lastUpdateTime != baseline.updateTime
-        else info.longVersionCode != baseline.versionCode
+        else info.versionCodeLong != baseline.versionCode
     }
 
     private suspend fun waitForPackageInstall(appId: String, baseline: InstallBaseline, attempts: Int, intervalMs: Long = 500): Boolean {
@@ -465,13 +458,13 @@ class SourcesInstaller private constructor(private val context: Context) {
         val installed = repo.installedInfo(appId)
         AppLog.info(
             "Installing \"${newInfo.packageName}\" version \"${newInfo.versionName}\" (${newInfo.versionCode})" +
-                (installed?.let { " over \"${it.versionName}\" (${it.longVersionCode})" } ?: ""),
+                (installed?.let { " over \"${it.versionName}\" (${it.versionCodeLong})" } ?: ""),
         )
-        if (installed != null && newInfo.versionCode < installed.longVersionCode &&
+        if (installed != null && newInfo.versionCode < installed.versionCodeLong &&
             repo.installedInfo("com.berdik.letmedowngrade") == null && settings.showAppDowngradeError
         ) {
             apks.first().delete()
-            throw DowngradeError(installed.longVersionCode, newInfo.versionCode)
+            throw DowngradeError(installed.versionCodeLong, newInfo.versionCode)
         }
         val before = baseline(appId)
         AppLog.debug("Installing $appId with ${installer(background).javaClass.simpleName}, ${apks.size} file(s), background=$background")
@@ -651,11 +644,11 @@ class SourcesInstaller private constructor(private val context: Context) {
         val target = app.clonePackage ?: return@withContext false
         val installed = repo.installedInfo(target) ?: return@withContext false
         val manifest = manifestFile(id).takeIf {
-            it.isFile && app.settings.getStringOrNull(SettingKeys.CLONE_MANIFEST_VERSION) == installed.longVersionCode.toString()
+            it.isFile && app.settings.getStringOrNull(SettingKeys.CLONE_MANIFEST_VERSION) == installed.versionCodeLong.toString()
         } ?: return@withContext false
         val info = installed.applicationInfo ?: return@withContext false
         val cloner = ApkCloner(context)
-        val key = installed.signingInfo?.apkContentsSigners?.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) }
+        val key = installed.currentSigners.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) }
             ?: return@withContext false
         repo.setDownload(id, DownloadState(-1.0))
         try {
@@ -686,7 +679,7 @@ class SourcesInstaller private constructor(private val context: Context) {
         val cloner = ApkCloner(context)
         // Only a clone made here can be updated: anything else under that package is signed by someone else.
         val key = repo.installedInfo(target)?.let { installed ->
-            installed.signingInfo?.apkContentsSigners?.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) }
+            installed.currentSigners.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) }
                 ?: throw SourceError(Tr.get("cloneInstallTaken", target))
         }
         val info = facts(apks.first())

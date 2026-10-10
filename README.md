@@ -65,7 +65,11 @@ Two things it does that are hard to find elsewhere:
 
 ## Requirements
 
-- Android 15 or newer
+- Android 9 or newer. Updating without a prompt through the system installer
+  needs Android 12; before that it takes Shizuku
+- Any processor: the universal APK installs everywhere, and there is a
+  smaller APK for each kind (`arm64-v8a` for most phones, `armeabi-v7a` for
+  old 32-bit ones, `x86` and `x86_64` for emulators)
 - No root needed
 - [Shizuku](https://shizuku.rikka.app/) is optional — it lets apps and clones
   update without any prompts
@@ -85,6 +89,9 @@ Codeberg, F-Droid, APKPure, Uptodown, RuStore and a few more). APK Toolbox then 
 the latest, shows what is new in it, and installs or updates the app on
 request or in the background.
 
+- APK Toolbox itself is on the list from the first start, tracked from its
+  GitHub releases, so it keeps itself up to date like everything else. Take
+  it off the list and it stays off.
 - Tap an app to see its versions and release notes, to **Update** or
   **Remove** it.
 - Hold an app for everything else: check it now, change its options, give it
@@ -340,7 +347,9 @@ writes what is shown to a `.log` file.
 ./gradlew assembleRelease
 ```
 
-A release build is shrunk and obfuscated with R8. It is signed if a
+This makes one APK for each kind of processor and a universal one that has
+them all, in `app/build/outputs/apk/release/`. A release build is shrunk and
+obfuscated with R8. It is signed if a
 `keystore.properties` file (`storeFile`, `storePassword`, `keyAlias`,
 `keyPassword`) is present in the project root, and left unsigned otherwise.
 

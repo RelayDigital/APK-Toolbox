@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.install
 
+import io.github.bl3xand.apkcloner.compat.parcelable
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -23,7 +24,7 @@ class InstallReceiver : BroadcastReceiver() {
         when (status) {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                 AppLog.debug("System installer: asking the user to confirm $packageName")
-                val confirm = intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java) ?: return
+                val confirm = intent.parcelable<Intent>(Intent.EXTRA_INTENT) ?: return
                 context.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
             PackageInstaller.STATUS_SUCCESS -> {

@@ -28,7 +28,9 @@ android {
 
     defaultConfig {
         applicationId = "io.github.bl3xand.apkcloner"
-        minSdk = 35
+        // Android 9. The code itself asks for nothing newer than Android 8.0, but 9 is the oldest
+        // version the app has been run on.
+        minSdk = 28
         targetSdk = 36
         versionCode = 8
         versionName = "1.1.1"
@@ -36,8 +38,18 @@ android {
         buildConfigField("int", "TELEGRAM_API_ID", (telegramProperties.getProperty("apiId")?.trim()?.toIntOrNull() ?: 0).toString())
         buildConfigField("String", "TELEGRAM_API_HASH", "\"${telegramProperties.getProperty("apiHash")?.trim().orEmpty()}\"")
 
-        // Android 15 and up runs on 64-bit ARM only; TDLib's other builds would be dead weight.
-        ndk { abiFilters += "arm64-v8a" }
+    }
+
+    // TDLib is native code, a couple of dozen megabytes for each kind of processor. The
+    // universal APK carries all of them and installs anywhere; next to it there is a smaller
+    // APK for each kind, for whoever knows which one their device needs.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+            isUniversalApk = true
+        }
     }
 
     signingConfigs {

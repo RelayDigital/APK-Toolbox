@@ -1,9 +1,11 @@
 package io.github.bl3xand.apkcloner.sources.ui
 
 import android.app.Application
+import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.bl3xand.apkcloner.log.AppLog
+import io.github.bl3xand.apkcloner.sources.core.CancellationSignal
 import io.github.bl3xand.apkcloner.sources.core.RepositoryRenamedError
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
@@ -96,11 +98,35 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         reload()
     }
 
+    /**
+     * The first thing on the list is this app itself, tracked from where it is published, so
+     * that it is kept up to date like everything else. It is put there once: taken off the list,
+     * it stays off. Without the network it waits for the next start.
+     */
+    @Synchronized
+    private fun trackSelfOnce() {
+        if (settings.selfTracked) return
+        val self = getApplication<Application>().packageName
+        if (repo.entry(self) == null) {
+            val app = SourceRegistry.getAppsByUrlNaive(listOf(SELF_URL)).first.firstOrNull() ?: return
+            // A release holds one APK for each kind of processor and one for all of them: the
+            // one for this device is the one to take, or the only one of an older release.
+            val abi = Regex.escape(Build.SUPPORTED_ABIS.firstOrNull().orEmpty())
+            repo.saveApps(
+                listOf(app.copy(id = self, allowIdChange = false).withSetting("apkFilterRegEx", "$abi\\.apk$|APK-Toolbox-[0-9.]+\\.apk$")),
+                onlyIfExists = false,
+            )
+            AppLog.info("Added this app to the tracked ones, from $SELF_URL")
+        }
+        settings.selfTracked = true
+    }
+
     /** Re-reads the stored apps and the state of their installed copies. */
     fun reload() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 repo.loadApps()
+                runCatching { trackSelfOnce() }.onFailure { AppLog.debug("Could not add this app to the tracked ones yet: ${it.message}") }
                 if (!checkedOnStart) {
                     checkedOnStart = true
                     // Nobody asked for this check, so it does not come forward with what went
@@ -278,6 +304,8 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             try {
                 block()
+            } catch (e: CancellationSignal) {
+                // Stopped on purpose: there is nothing to report.
             } catch (e: Exception) {
                 AppLog.error("Sources", e)
                 _events.tryEmit(SourcesEvent.Error(if (e is CheckUpdatesException) e.errors else e))
@@ -474,8 +502,17 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
      */
     fun clonePermissions(id: String, onReady: (id: String, requested: Set<String>) -> Unit) = launchReporting {
         val known = repo.entry(id)?.app?.takeUnless { it.hasTempId }?.cloneRequestedPermissions.orEmpty()
-        val (resolved, requested) = if (known.isNotEmpty()) id to known
-        else withContext(Dispatchers.IO) { installer.downloadForPermissions(id) }
+        val (resolved, requested) = if (known.isNotEmpty()) {
+            id to known
+        } else {
+            // The download is the one an install would make: the two must not run side by side.
+            if (!synchronized(obtaining) { obtaining.add(id) }) return@launchReporting
+            try {
+                withContext(Dispatchers.IO) { installer.downloadForPermissions(id) }
+            } finally {
+                synchronized(obtaining) { obtaining.remove(id) }
+            }
+        }
         onReady(resolved, requested)
     }
 
@@ -607,6 +644,8 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private companion object {
+        const val SELF_URL = "https://github.com/bl3xand/APK-Toolbox"
+
         /** Stores that hand out, by package name, the builds other stores publish. */
         /**
          * Asked in this order, the ones that carry what Google Play has first. Only stores are

@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.install
 
+import io.github.bl3xand.apkcloner.compat.installerOf
 import android.content.Context
 import android.os.Build
 import io.github.bl3xand.apkcloner.data.ApkSource
@@ -23,9 +24,9 @@ object StockInstaller : Installer {
      * that keep their publisher's signature are not held back by Play Protect.
      */
     fun isUpdateWithoutPrompt(context: Context, packageName: String, targetSdk: Int): Boolean {
-        val installer = runCatching {
-            context.packageManager.getInstallSourceInfo(packageName).installingPackageName
-        }.getOrNull()
+        // Before Android 12 the system asks about every install, whoever starts it.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
+        val installer = context.packageManager.installerOf(packageName)
         return installer == context.packageName && targetSdk >= Build.VERSION.SDK_INT - MAX_TARGET_SDK_LAG
     }
 

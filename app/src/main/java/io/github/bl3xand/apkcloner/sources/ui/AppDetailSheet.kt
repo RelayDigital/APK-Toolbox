@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.sources.ui
 
+import io.github.bl3xand.apkcloner.compat.versionCodeLong
 import android.content.DialogInterface
 import android.content.res.ColorStateList
 import android.os.Bundle
@@ -103,7 +104,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
                         // Re-render on an installedInfo change too (its version code), so the
                         // signer-conflict notice shows once the installed build is known.
                         val key = RenderKey(
-                            entry.app, download, removing, entry.installedInfo?.longVersionCode, isCandidate(entry),
+                            entry.app, download, removing, entry.installedInfo?.versionCodeLong, isCandidate(entry),
                         )
                         if (lastRendered != key) {
                             lastRendered = key
