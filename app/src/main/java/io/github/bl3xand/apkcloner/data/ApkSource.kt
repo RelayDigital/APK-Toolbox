@@ -27,6 +27,7 @@ class ApkSource(
         badgeIcon: Boolean,
         key: SigningKey? = null,
         removedPermissions: Set<String> = emptySet(),
+        bypassSignatureCheck: Boolean = false,
     ) = CloneRequest(
         apks = apkPaths.map(::File),
         newPackage = newPackage,
@@ -34,5 +35,6 @@ class ApkSource(
         key = key,
         badgeIconOf = appInfo.takeIf { badgeIcon },
         removedPermissions = removedPermissions,
+        bypassSignatureCheck = bypassSignatureCheck,
     )
 }

@@ -18,6 +18,11 @@ class CloneRequest(
     val badgeIconOf: ApplicationInfo? = null,
     /** Permissions of the original, by name, that the clone is made without. */
     val removedPermissions: Set<String> = emptySet(),
+    /**
+     * Opt-in: rewrite the dex to neutralize the app's own integrity/signature check, so an app
+     * that self-exits on a signature mismatch stays alive as a clone.
+     */
+    val bypassSignatureCheck: Boolean = false,
 ) {
     companion object {
         /** What a package name has to look like for the system to take it. */

@@ -61,6 +61,11 @@ class AppSettings(context: Context) {
         get() = prefs.getBoolean(SettingsKeys.CLONE_BADGE, true)
         set(value) = put(SettingsKeys.CLONE_BADGE, value)
 
+    /** Opt-in: rewrite the clone's dex to neutralize the app's own integrity/signature check. */
+    var cloneBypass: Boolean
+        get() = prefs.getBoolean(SettingsKeys.CLONE_BYPASS, false)
+        set(value) = put(SettingsKeys.CLONE_BYPASS, value)
+
     /** Clones, by package, that are kept at the version they have. */
     var frozenClones: Set<String>
         get() = prefs.getStringSet(SettingsKeys.FROZEN_CLONES, emptySet()).orEmpty().toSet()

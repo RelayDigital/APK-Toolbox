@@ -55,6 +55,8 @@ class CloneSheet : BottomSheetDialogFragment() {
         val settings = AppSettings(requireContext())
         binding.options.switchBadge.isChecked = settings.cloneBadge
         binding.options.switchBadge.setOnCheckedChangeListener { _, checked -> settings.cloneBadge = checked }
+        binding.options.switchBypass.isChecked = settings.cloneBypass
+        binding.options.switchBypass.setOnCheckedChangeListener { _, checked -> settings.cloneBypass = checked }
         binding.options.editPackage.doAfterTextChanged {
             binding.options.layoutPackage.error = null
             renderConflict()
@@ -140,6 +142,7 @@ class CloneSheet : BottomSheetDialogFragment() {
         binding.options.layoutPackage.isEnabled = !running && !done
         binding.options.layoutName.isEnabled = !running && !done
         binding.options.switchBadge.isEnabled = !running && !done
+        binding.options.switchBypass.isEnabled = !running && !done
         binding.options.buttonPermissions.isEnabled = !running && !done
         binding.buttonClone.isEnabled = !running
         binding.buttonClone.isVisible = !done
@@ -191,7 +194,7 @@ class CloneSheet : BottomSheetDialogFragment() {
         }
         val newName = binding.options.editName.text?.toString().orEmpty().trim()
             .ifEmpty { viewModel.cloning.selected?.label.orEmpty() }
-        viewModel.cloning.start(newPackage, newName, binding.options.switchBadge.isChecked)
+        viewModel.cloning.start(newPackage, newName, binding.options.switchBadge.isChecked, settings.cloneBypass)
     }
 
     private fun save() {

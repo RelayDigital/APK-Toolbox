@@ -48,7 +48,9 @@ class ApkCloner(private val context: Context) {
 
                 val patcher = ManifestPatcher(request.newPackage, request.newLabel.takeIf { index == 0 }, request.removedPermissions)
                 val metadata = { METADATA_ENTRY to metadataOf(patcher.oldPackage, iconFiles.isNotEmpty(), request.removedPermissions) }
-                ApkRebuilder.rebuild(apk, unsigned, patcher, iconFiles, metadata.takeIf { index == 0 })
+                val dexPatcher = if (request.bypassSignatureCheck) { name: String, data: ByteArray -> SignatureBypass.patchDex(data) } else null
+                ApkRebuilder.rebuild(apk, unsigned, patcher, iconFiles, metadata.takeIf { index == 0 }, dexPatcher = dexPatcher)
+                if (dexPatcher != null) AppLog.debug("$name: signature-check bypass enabled in dex")
                 AppLog.debug("$name: ${patcher.oldPackage} renamed to ${request.newPackage}, ${unsigned.length()} bytes; signing")
                 sign(unsigned, output, request.key ?: keys.active)
                 output
