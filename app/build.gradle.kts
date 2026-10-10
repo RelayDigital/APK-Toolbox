@@ -89,6 +89,7 @@ android {
             // Tests that reach real sites only run on request: -Plive=true [-Plive.only=<Source>].
             it.systemProperty("live", providers.gradleProperty("live").getOrElse("false"))
             it.systemProperty("live.only", providers.gradleProperty("live.only").getOrElse(""))
+            it.systemProperty("live.query", providers.gradleProperty("live.query").getOrElse(""))
             it.testLogging.showStandardStreams = true
         }
     }

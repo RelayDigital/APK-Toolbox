@@ -69,7 +69,9 @@ object SourceRegistry {
 
     fun getSource(url: String, overrideSource: String? = null): AppSource {
         val prepared = preStandardizeUrl(url)
-        if (overrideSource != null) {
+        // A link that names its source needs no forcing - and apps added while a search still
+        // forced it are put right here.
+        if (overrideSource != null && overrideFor(prepared, overrideSource) != null) {
             val factory = factoriesById[overrideSource] ?: throw UnsupportedUrlError().also { it.url = prepared }
             // The override changes the host of the chosen source, so it gets its own instance.
             val source = factory()
@@ -92,6 +94,14 @@ object SourceRegistry {
         }
         throw UnsupportedUrlError().also { it.url = prepared }
     }
+
+    /**
+     * The source to force for [url] when it is known to be of [sourceId] - none when the link
+     * says so itself. Forcing a source takes its host from the link and skips what the source
+     * does to its own links, which is only right for an instance of it under another address.
+     */
+    fun overrideFor(url: String, sourceId: String?): String? =
+        sourceId?.takeIf { runCatching { getSource(url).sourceIdentifier }.getOrNull() != it }
 
     /** A placeholder id used until the real package name is known. */
     fun generateTempId(standardUrl: String, additionalSettings: Map<String, Any?>): String =

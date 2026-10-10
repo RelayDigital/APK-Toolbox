@@ -36,7 +36,7 @@ class RockMods : AppSource("RockMods") {
             appName = Jsoup.parse(res.body).selectFirst("h1")?.text()?.trim() ?: standardUrl.split('/').last()
         }
         if (appVersion.isNullOrEmpty()) throw NoVersionError()
-        ApkDetails(appVersion, emptyList(), AppNames(appAuthor ?: name, appName))
+        ApkDetails(appVersion, emptyList(), AppNames(appAuthor ?: shortName, appName))
     } catch (e: Throwable) {
         rethrowOrWrap(e)
     }

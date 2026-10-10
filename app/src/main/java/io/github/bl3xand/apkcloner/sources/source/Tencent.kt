@@ -38,7 +38,8 @@ class Tencent : AppSource("Tencent") {
         for (card in cards) {
             for (entry in card.dig("data", "itemData").asList() ?: emptyList()) {
                 val app = entry.asMap() ?: continue
-                val packageName = app["pkg_name"]?.toString()?.takeIf { it.isNotEmpty() } ?: continue
+                // Programs for computers are listed among the apps; there is no APK of those.
+                val packageName = app["pkg_name"]?.toString()?.takeIf { it.isNotEmpty() && !it.startsWith(PC_PREFIX) } ?: continue
                 val title = app["name"]?.toString()?.takeIf { it.isNotEmpty() } ?: continue
                 results["https://${hosts[0]}/appdetail/$packageName"] = listOf(title, app["developer"]?.toString().orEmpty().ifEmpty { packageName })
             }
@@ -72,10 +73,14 @@ class Tencent : AppSource("Tencent") {
             return ApkDetails(
                 version,
                 listOf(NamedUrl(apkName, apkUrl)),
-                AppNames(json["author"]?.toString() ?: name, json["appName"]?.toString() ?: Tr.get("app")),
+                AppNames(json["author"]?.toString() ?: shortName, json["appName"]?.toString() ?: Tr.get("app")),
             )
         } catch (e: Throwable) {
             rethrowOrWrap(e)
         }
+    }
+
+    companion object {
+        private const val PC_PREFIX = "com.tencent.pcgame."
     }
 }

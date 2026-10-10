@@ -91,12 +91,12 @@ class RuStore : AppSource("RuStore") {
             if (urls.isEmpty()) {
                 // A card generated from another catalogue: RuStore has no APK for it.
                 if (details["aggregatorInfo"] is Map<*, *>) throw RuStoreAggregatedAppError()
-                throw notForDeviceHere(name)
+                throw notForDeviceHere(shortName)
             }
             return ApkDetails(
                 version,
                 apkUrlsFromDownloadUrls(urls),
-                AppNames((details["companyName"] as? String) ?: name, (details["appName"] as? String) ?: Tr.get("app")),
+                AppNames((details["companyName"] as? String) ?: shortName, (details["appName"] as? String) ?: Tr.get("app")),
                 releaseDate = Dates.tryParse(details["appVerUpdatedAt"] as? String),
                 changeLog = details["whatsNew"] as? String,
             )

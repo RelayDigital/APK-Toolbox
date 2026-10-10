@@ -71,13 +71,16 @@ class HuaweiAppGallery : AppSource("HuaweiAppGallery") {
         // The store API is the only source of the real version name.
         val info = fetchAppDetail(cId, buildMergedSettings(additionalSettings))
             ?: throw SourceError(Tr.get("huaweiAppGalleryApiError"))
+        // The store also lists what is not an Android app: quick apps and wrappers that only run
+        // inside another app. Their file is not an APK.
+        if ((info["ctype"] as? Number)?.toInt()?.let { it != 0 } == true) throw SourceError(Tr.get("notAndroidApp"))
         val packageName = info["package"]?.toString()
         val developer = info["developer"]?.toString()
         ApkDetails(
             info["versionName"].toString(),
             listOf(NamedUrl("${packageName ?: cId}.apk", info["url"].toString())),
             AppNames(
-                if (!developer.isNullOrEmpty()) developer else name,
+                if (!developer.isNullOrEmpty()) developer else shortName,
                 info["name"]?.toString() ?: packageName ?: Tr.get("app"),
             ),
             releaseDate = Dates.tryParse(info["releaseDate"]?.toString() ?: ""),

@@ -109,7 +109,8 @@ class CloneSheet : BottomSheetDialogFragment() {
         binding.notice.textNotice.setText(R.string.clone_conflict)
         val source = viewModel.cloning.selected
         val isSource = source != null && source.packageName == target && !source.apkPaths.first().startsWith(requireContext().cacheDir.path)
-        binding.notice.buttonNotice.isVisible = !isSource
+        // Once the clone is built, the app it was made from is no longer needed for it.
+        binding.notice.buttonNotice.isVisible = !isSource || viewModel.cloning.state.value is CloneState.Done
         binding.notice.buttonNotice.setText(R.string.clone_conflict_remove)
         binding.notice.buttonNotice.setOnClickListener {
             viewModel.uninstallTaken(target) {
@@ -134,6 +135,7 @@ class CloneSheet : BottomSheetDialogFragment() {
     private fun render(state: CloneState, installing: Boolean) {
         val running = state is CloneState.Running
         val done = state is CloneState.Done
+        renderConflict()
         isCancelable = !running && !installing
         binding.options.layoutPackage.isEnabled = !running && !done
         binding.options.layoutName.isEnabled = !running && !done

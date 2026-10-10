@@ -298,7 +298,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
         val failed = userInput.isNotEmpty() && source == null && error != null
         urlNote.text = when {
             failed -> error
-            source != null -> Tr.get("addDetected", source.name)
+            source != null -> Tr.get("addDetected", source.shortName)
             else -> Tr.get("addLinkHint")
         }
         urlNote.setTextColor(
@@ -375,7 +375,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
         optionsContainer.addHeading(Tr.get("grpInstance"))
         val overrideChoices = listOf("" to Tr.get("none")) + SourceRegistry.sources
             .filter { it.allowOverride || it.sourceIdentifier == source.sourceIdentifier }
-            .map { it.sourceIdentifier to it.name }
+            .map { it.sourceIdentifier to it.shortName }
         optionsContainer.add(
             FormView(
                 context,
@@ -694,7 +694,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
                 )
                 if (notes.isNotEmpty()) context.toast(notes.joinToString("\n"))
                 val chosen = dialogs.pickFromList("${Tr.get("search")}: $query", merged.values.toList())?.firstOrNull() ?: return@launch
-                overrideSource = sourceOf[chosen]
+                overrideSource = SourceRegistry.overrideFor(chosen, sourceOf[chosen])
                 urlEdit.setText(chosen)
             } catch (e: CancellationException) {
                 throw e
@@ -728,7 +728,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     Tr.get("traitSearch").takeIf { source.canSearch },
                 ).joinToString(" · ")
                 val site = listOfNotNull(source.hosts.firstOrNull() ?: Tr.get("addAnyHost"), source.supportedNote).joinToString(" · ")
-                PickItem(source.sourceIdentifier, source.name, site, traits)
+                PickItem(source.sourceIdentifier, source.shortName, site, traits)
             }
             val chosen = dialogs.pickFromList(Tr.get("addSupported"), items, filterable = false)?.firstOrNull() ?: return@launch
             SourceRegistry.sources.first { it.sourceIdentifier == chosen }.hosts.firstOrNull()?.let { context.openUrl("https://$it") }

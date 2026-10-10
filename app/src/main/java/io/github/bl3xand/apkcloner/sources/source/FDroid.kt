@@ -72,7 +72,7 @@ class FDroid : AppSource("FDroid") {
                 sourceRequest("https://$host/api/v1/packages/$appId", additionalSettings),
                 "https://$host/repo/$appId",
                 standardUrl,
-                name,
+                shortName,
                 additionalSettings,
             )
             if (!hostChanged) {
@@ -146,7 +146,7 @@ class FDroid : AppSource("FDroid") {
         val chosen = listed.firstOrNull { it.name == details.version } ?: return details
         if (chosen.fits()) return details
         // Newest first, as the page has them.
-        val fitting = listed.firstOrNull { it.fits() } ?: throw notForDevice(name)
+        val fitting = listed.firstOrNull { it.fits() } ?: throw notForDevice(shortName)
         return details.copy(
             version = fitting.name,
             apkUrls = ApkFilter.apkUrlsFromUrls(listOf("https://$host/repo/${appId}_${fitting.code}.apk")),

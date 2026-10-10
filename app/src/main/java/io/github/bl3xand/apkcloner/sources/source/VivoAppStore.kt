@@ -46,7 +46,7 @@ class VivoAppStore : AppSource("VivoAppStore") {
         ApkDetails(
             versionName,
             listOf(NamedUrl("${packageName}_$versionCode.apk", "$APK_DOWNLOAD_URL${Url.encodeQueryComponent(id)}")),
-            AppNames(json["developer"]?.toString() ?: name, json["title_zh"]?.toString() ?: Tr.get("app")),
+            AppNames(json["developer"]?.toString() ?: shortName, json["title_zh"]?.toString() ?: Tr.get("app")),
             releaseDate = Dates.tryParse(json["upload_time"]?.toString()),
         )
     } catch (e: Throwable) {

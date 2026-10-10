@@ -71,7 +71,7 @@ class Farsroid : AppSource("Farsroid") {
                 if (apkLinks.size != 1) throw NoVersionError()
                 version = apkLinks.single().name
             }
-            return ApkDetails(version, apkLinks, AppNames(name, appName))
+            return ApkDetails(version, apkLinks, AppNames(shortName, appName))
         } catch (e: Throwable) {
             rethrowOrWrap(e)
         }

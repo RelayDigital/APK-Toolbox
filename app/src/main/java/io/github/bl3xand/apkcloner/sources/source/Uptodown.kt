@@ -115,14 +115,14 @@ class Uptodown : AppSource("Uptodown") {
         val needed = runCatching {
             REQUIREMENT.find(sourceRequest(standardUrl.removeSuffix("/download"), additionalSettings).body)?.groupValues?.get(1)
         }.getOrNull()?.let(::androidSdkOf)
-        if (needed != null && needed > SourceEnv.platform.sdkInt) throw notForDevice(name)
+        if (needed != null && needed > SourceEnv.platform.sdkInt) throw notForDevice(shortName)
         val fileId = details["fileId"] ?: throw NoApkError()
         val appId = details[SettingKeys.APP_ID] ?: throw NoReleasesError()
         val extension = details["extension"]?.takeIf { it.isNotEmpty() } ?: "apk"
         ApkDetails(
             version,
             listOf(NamedUrl("$appId.$extension", "$standardUrl/$fileId-x")),
-            AppNames(details["author"] ?: name, details["name"] ?: Tr.get("app")),
+            AppNames(details["author"] ?: shortName, details["name"] ?: Tr.get("app")),
             releaseDate = parseDate(details["dateStr"]),
         )
     } catch (e: Throwable) {

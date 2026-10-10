@@ -72,7 +72,7 @@ class CoolApk : AppSource("CoolApk") {
             val detail = json["data"].asMap() ?: throw NoReleasesError()
             // Only the current release is kept here, so one that is not for this device is the end of it.
             val minSdk = detail["sdkversion"]?.toString()?.toDoubleOrNull()?.toInt()
-            if (minSdk != null && minSdk > SourceEnv.platform.sdkInt) throw notForDeviceHere(name)
+            if (minSdk != null && minSdk > SourceEnv.platform.sdkInt) throw notForDeviceHere(shortName)
             val version = detail["apkversionname"]?.toString() ?: ""
             if (version.isEmpty()) throw NoVersionError()
             val lastUpdate = when (val raw = detail["lastupdate"]) {

@@ -164,6 +164,14 @@ class SourcesInstaller private constructor(private val context: Context) {
         }
     }
 
+    /** A zip that is not an APK itself and has APKs inside: APKS, XAPK, APKM, whatever it is called. */
+    private fun isArchiveOfApks(file: File): Boolean = runCatching {
+        ZipFile(file).use { zip ->
+            zip.getEntry("AndroidManifest.xml") == null &&
+                zip.entries().asSequence().any { !it.isDirectory && it.name.lowercase().endsWith(".apk") }
+        }
+    }.getOrDefault(false)
+
     private fun isTarballName(name: String): Boolean = ApkFilter.tarballExtensions.any { name.endsWith(it) }
 
     /**
@@ -246,7 +254,8 @@ class SourcesInstaller private constructor(private val context: Context) {
             repo.setDownload(appId, DownloadState(90.0))
 
             val originalAssetName = chosen.name.lowercase()
-            val isApk = file.path.lowercase().endsWith(".apk")
+            // By what it holds, not by what it is called: a set of splits may come under the name of an APK.
+            val isApk = file.path.lowercase().endsWith(".apk") && !isArchiveOfApks(file)
             val isTarball = isTarballName(originalAssetName)
             var dir: File? = null
             var info: ApkFacts? = null

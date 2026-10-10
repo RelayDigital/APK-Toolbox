@@ -35,7 +35,7 @@ class IzzyOnDroid : AppSource("IzzyOnDroid") {
             sourceRequest("https://apt.izzysoft.de/fdroid/api/v1/packages/$appId", additionalSettings),
             "https://android.izzysoft.de/frepo/$appId",
             standardUrl,
-            name,
+            shortName,
             additionalSettings,
         )
         // The API knows the package only; the page of the app says what it is called.

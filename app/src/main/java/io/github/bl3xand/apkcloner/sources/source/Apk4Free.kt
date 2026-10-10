@@ -72,7 +72,7 @@ class Apk4Free : AppSource("Apk4Free") {
                 }
             }
             if (version == null) throw NoVersionError()
-            return ApkDetails(version.trim(), apkUrls, AppNames(name, title))
+            return ApkDetails(version.trim(), apkUrls, AppNames(shortName, title))
         } catch (e: Throwable) {
             rethrowOrWrap(e)
         }

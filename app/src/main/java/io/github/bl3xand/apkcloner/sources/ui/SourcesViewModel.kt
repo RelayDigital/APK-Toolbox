@@ -251,7 +251,7 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
             listed.forEach { rows.add(appRow(it, null)) }
         } else {
             val groups = LinkedHashMap<String?, MutableList<AppEntry>>()
-            val sourceNames = SourceRegistry.sources.associate { it.sourceIdentifier to it.name }
+            val sourceNames = SourceRegistry.sources.associate { it.sourceIdentifier to it.shortName }
             for (entry in listed) {
                 if (groupBy == "category") {
                     if (entry.app.categories.isEmpty()) groups.getOrPut(null) { ArrayList() }.add(entry)

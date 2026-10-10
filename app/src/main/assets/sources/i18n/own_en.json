@@ -231,6 +231,7 @@
   "cloneBackToAppUntrackMessage": "The clone will be removed with everything in it. The app itself is installed already and stays as it is - with the store it came from. It was tracked here only to keep the clone up to date, so it leaves the Sources list as well. The clone's data, sign-ins and settings are lost and cannot be brought back.",
   "addEverywhere": "Everywhere",
   "addSearchSlow": "Did not answer in time: {}",
+  "notAndroidApp": "This is not an Android app: the store also lists quick apps and apps that only run inside another one.",
   "notForDevice": "{} has no file of this app for your device (Android {}, {}). Most likely the app needs a newer Android.",
   "notForProcessor": "The release has no file for the processor of your device ({}). Choosing by processor can be switched off in the app's options.",
   "notForDeviceElsewhere": "An older version that still runs on it may be found in a source that keeps them, such as APKPure.",

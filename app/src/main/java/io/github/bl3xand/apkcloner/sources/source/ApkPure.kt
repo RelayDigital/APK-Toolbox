@@ -94,7 +94,7 @@ class APKPure : AppSource("APKPure") {
         }.distinctBy { it.name }
         if (apkUrls.isEmpty()) {
             throw when {
-                needsNewerAndroid -> notForDevice(name)
+                needsNewerAndroid -> notForDevice(shortName)
                 otherProcessorsOnly -> notForProcessor()
                 else -> NoApkError()
             }
@@ -107,7 +107,7 @@ class APKPure : AppSource("APKPure") {
         return ApkDetails(
             version,
             apkUrls,
-            AppNames(first["developer"]?.toString() ?: name, first["title"]?.toString() ?: Tr.get("app")),
+            AppNames(first["developer"]?.toString() ?: shortName, first["title"]?.toString() ?: Tr.get("app")),
             releaseDate = Dates.tryParse(first["update_date"]?.toString()),
             // The notes come as a piece of the store's page, <br> and all.
             changeLog = (first["whatsnew"] as? String)?.let(::htmlToText)?.takeIf { it.isNotEmpty() },
@@ -140,7 +140,7 @@ class APKPure : AppSource("APKPure") {
             // Variants of one version stay together, versions keep the order of the API.
             val versions = apks.groupBy { (it["version_name"] as? String) ?: "" }.values.toList()
             // The store is asked for this Android version and lists what runs on it.
-            if (versions.isEmpty()) throw notForDevice(name)
+            if (versions.isEmpty()) throw notForDevice(shortName)
 
             val minAgeDays = effectiveMinUpdateAgeDays(additionalSettings)
             val fallback = additionalSettings["fallbackToOlderReleases"] == true

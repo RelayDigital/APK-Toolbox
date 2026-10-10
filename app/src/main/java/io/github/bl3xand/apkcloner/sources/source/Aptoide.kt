@@ -52,10 +52,11 @@ class Aptoide : AppSource("Aptoide") {
 
     private fun getAppDetailsJson(standardUrl: String, additionalSettings: Map<String, Any?>): Map<String, Any?> {
         val res = sourceRequest(standardUrl, additionalSettings)
-        Http.ensureSuccess(res)
-        val id = Regex("\"app\"\\s*:\\s*\\{\\s*\"id\"\\s*:\\s*([0-9]+)").find(res.body)?.groupValues?.get(1)
-            ?: throw NoReleasesError()
-        val res2 = sourceRequest("$API_BASE_URL/$id", additionalSettings)
+        val id = if (res.statusCode != 200) null else Regex("\"app\"\\s*:\\s*\\{\\s*\"id\"\\s*:\\s*([0-9]+)").find(res.body)?.groupValues?.get(1)
+        // Not every app has a page that can be read, or one that names it. The store can also be asked by the name of the
+        // page, which may answer with an older build than the page has - so only then.
+        val url = if (id != null) "$API_BASE_URL/$id" else "$API_ROOT/package_uname/${Url.parse(standardUrl).host.substringBefore('.')}"
+        val res2 = sourceRequest(url, additionalSettings)
         Http.ensureSuccess(res2)
         return JsonValues.parse(res2.body).dig("nodes", "meta", "data").asMap() ?: throw NoReleasesError()
     }
@@ -72,16 +73,17 @@ class Aptoide : AppSource("Aptoide") {
         if ((minSdk != null && minSdk > SourceEnv.platform.sdkInt) ||
             (processors.isNotEmpty() && processors.none { it in SourceEnv.platform.supportedAbis })
         ) {
-            throw notForDeviceHere(name)
+            throw notForDeviceHere(shortName)
         }
         ApkDetails(
             version,
             ApkFilter.apkUrlsFromUrls(listOf(apkUrl)),
             AppNames(
-                (details.dig("developer", "name") as? String) ?: name,
+                (details.dig("developer", "name") as? String) ?: shortName,
                 (details["name"] as? String) ?: Tr.get("app"),
             ),
             releaseDate = Dates.tryParse(details["updated"] as? String),
+            changeLog = (details.dig("media", "news") as? String)?.trim()?.takeIf { it.isNotEmpty() },
         )
     } catch (e: Throwable) {
         rethrowOrWrap(e)
@@ -89,6 +91,7 @@ class Aptoide : AppSource("Aptoide") {
 
     companion object {
         private const val SEARCH_URL = "https://ws75.aptoide.com/api/7/apps/search"
-        private const val API_BASE_URL = "https://ws2.aptoide.com/api/7/getApp/app_id"
+        private const val API_ROOT = "https://ws2.aptoide.com/api/7/getApp"
+        private const val API_BASE_URL = "$API_ROOT/app_id"
     }
 }

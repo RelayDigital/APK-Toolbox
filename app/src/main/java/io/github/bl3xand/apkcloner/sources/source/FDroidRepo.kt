@@ -277,7 +277,7 @@ class FDroidRepo : AppSource("FDroidRepo") {
             // Versions that need a newer Android than this device has are not for it: the
             // newest of the rest is the latest one here.
             val releases = entry.versions.filter { it.minSdk == null || it.minSdk <= SourceEnv.platform.sdkInt }
-            if (releases.isEmpty()) throw notForDevice(name)
+            if (releases.isEmpty()) throw notForDevice(shortName)
             var selected: List<Version> = emptyList()
             if (trySuggested && entry.marketVersionCode != null) {
                 selected = releases.filter { it.versionCode == entry.marketVersionCode }
@@ -306,7 +306,7 @@ class FDroidRepo : AppSource("FDroidRepo") {
             return ApkDetails(
                 if (useVersionCode) selected.first().versionCode.toString() else selected.first().versionName,
                 ApkFilter.apkUrlsFromUrls(selected.map { "${index.baseUrl}/${it.apkName}" }),
-                AppNames(entry.author ?: name, entry.name),
+                AppNames(entry.author ?: shortName, entry.name),
                 releaseDate = selected.first().added,
                 changeLog = entry.changelog,
             )

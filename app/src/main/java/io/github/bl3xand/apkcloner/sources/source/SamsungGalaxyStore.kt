@@ -88,7 +88,7 @@ class SamsungGalaxyStore : AppSource("SamsungGalaxyStore") {
         }
         val apkUrl = Regex("<downloadURI><!\\[CDATA\\[([^\\]]+)\\]\\]></downloadURI>").find(body)?.groupValues?.get(1)
             // Asked for this Android version: an answer without a file is the store's "not for it".
-            ?: throw notForDeviceHere(name).also { it.url = standardUrl }
+            ?: throw notForDeviceHere(shortName).also { it.url = standardUrl }
         val version = Regex("<versionName>([^<]+)</versionName>").find(body)?.groupValues?.get(1)
             ?: throw NoVersionError()
         val appName = Regex("<productName>(?:<!\\[CDATA\\[)?([^<\\]]+)(?:\\]\\]>)?</productName>")
@@ -96,7 +96,7 @@ class SamsungGalaxyStore : AppSource("SamsungGalaxyStore") {
         return ApkDetails(
             version,
             listOf(NamedUrl("$packageName.apk", apkUrl)),
-            AppNames(name, appName),
+            AppNames(shortName, appName),
             releaseDate = releaseDateFromUrl(apkUrl),
         )
     }
