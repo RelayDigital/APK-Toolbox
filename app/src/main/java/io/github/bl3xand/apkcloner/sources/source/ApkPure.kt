@@ -1,5 +1,7 @@
 package io.github.bl3xand.apkcloner.sources.source
 
+import io.github.bl3xand.apkcloner.sources.core.notForProcessor
+import io.github.bl3xand.apkcloner.sources.core.notForDevice
 import io.github.bl3xand.apkcloner.sources.core.Dates
 import io.github.bl3xand.apkcloner.sources.core.InvalidUrlError
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
@@ -62,6 +64,7 @@ class APKPure : AppSource("APKPure") {
         supportedArchs: List<String>,
         additionalSettings: Map<String, Any?>,
     ): ApkDetails {
+        var otherProcessorsOnly = false
         var apkUrls = variants.mapNotNull { e ->
             val appId = e["package_name"]?.toString() ?: return@mapNotNull null
             val versionCode = e["version_code"]?.let(FDroid::numberText) ?: return@mapNotNull null
@@ -71,6 +74,7 @@ class APKPure : AppSource("APKPure") {
             if (additionalSettings["autoApkFilterByArch"] == true && architectures.isNotEmpty() &&
                 architectures.none { it in supportedArchs }
             ) {
+                otherProcessorsOnly = true
                 return@mapNotNull null
             }
             val asset = e["asset"].asMap()
@@ -79,7 +83,7 @@ class APKPure : AppSource("APKPure") {
             val archSuffix = if (architectureString.isNotEmpty()) "-$architectureString" else ""
             NamedUrl("$appId-$versionCode$archSuffix.${type.lowercase()}", downloadUri)
         }.distinctBy { it.name }
-        if (apkUrls.isEmpty()) throw NoApkError()
+        if (apkUrls.isEmpty()) throw if (otherProcessorsOnly) notForProcessor() else NoApkError()
 
         val first = variants.first()
         val version = first["version_name"]?.toString()
@@ -120,7 +124,8 @@ class APKPure : AppSource("APKPure") {
             }
             // Variants of one version stay together, versions keep the order of the API.
             val versions = apks.groupBy { (it["version_name"] as? String) ?: "" }.values.toList()
-            if (versions.isEmpty()) throw NoReleasesError()
+            // The store is asked for this Android version and lists what runs on it.
+            if (versions.isEmpty()) throw notForDevice(name)
 
             val minAgeDays = effectiveMinUpdateAgeDays(additionalSettings)
             val fallback = additionalSettings["fallbackToOlderReleases"] == true

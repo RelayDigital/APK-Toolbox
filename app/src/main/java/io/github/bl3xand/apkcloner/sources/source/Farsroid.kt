@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.sources.source
 
+import io.github.bl3xand.apkcloner.sources.core.notForProcessor
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
@@ -63,6 +64,7 @@ class Farsroid : AppSource("Farsroid") {
             if (apkLinks.isEmpty()) throw NoApkError()
             if (additionalSettings["autoApkFilterByArch"] == true) {
                 apkLinks = ApkFilter.filterApksByArch(apkLinks, SourceEnv.platform.supportedAbis)
+                if (apkLinks.isEmpty()) throw notForProcessor()
             }
             if (additionalSettings["useFirstApkOfVersion"] == true) apkLinks = listOf(apkLinks.first())
             if (additionalSettings["releaseTitleAsVersion"] == true) {

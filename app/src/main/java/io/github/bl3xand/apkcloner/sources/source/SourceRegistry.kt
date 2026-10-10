@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.sources.source
 
+import io.github.bl3xand.apkcloner.sources.core.notForProcessor
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
 import io.github.bl3xand.apkcloner.sources.core.MinUpdateAgeError
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
@@ -168,7 +169,7 @@ object SourceRegistry {
         if (apk.apkUrls.isEmpty() && !trackOnly) throw NoApkError().also { it.url = standardUrl }
         if (additionalSettings["autoApkFilterByArch"] == true) {
             apk = apk.copy(apkUrls = ApkFilter.filterApksByArch(apk.apkUrls, SourceEnv.platform.supportedAbis))
-            if (apk.apkUrls.isEmpty() && !trackOnly) throw NoApkError().also { it.url = standardUrl }
+            if (apk.apkUrls.isEmpty() && !trackOnly) throw notForProcessor().also { it.url = standardUrl }
         }
         val name = currentApp?.name?.trim()?.takeIf { it.isNotEmpty() } ?: apk.names.name
         val app = TrackedApp(
