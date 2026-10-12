@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "ApkToolbox",
+  "project_id": "44858cb0-dc85-4123-92d0-ca28da88423c"
+}

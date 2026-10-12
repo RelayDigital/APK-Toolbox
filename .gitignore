@@ -17,3 +17,10 @@ keystore.properties
 
 # Telegram API credentials; see telegram.properties.example
 telegram.properties
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
+*.gate.lock*
