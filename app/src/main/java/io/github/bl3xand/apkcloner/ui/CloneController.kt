@@ -84,7 +84,7 @@ class CloneController(
         }
     }
 
-    fun start(newPackage: String, newLabel: String, badgeIcon: Boolean, bypassSignatureCheck: Boolean = false) {
+    fun start(newPackage: String, newLabel: String, badgeIcon: Boolean, bypassSignatureCheck: Boolean = false, renameAlias: Boolean = false) {
         val source = selected ?: return
         if (_state.value is CloneState.Running) return
         _state.value = CloneState.Running(source.label, 0, source.apkPaths.size)
@@ -94,7 +94,8 @@ class CloneController(
                     AppLog.info("Cloning ${source.packageName} ${source.versionName.orEmpty()} as $newPackage (${source.apkPaths.size} files)")
                     if (removedPermissions.isNotEmpty()) AppLog.info("Clone is made without: ${removedPermissions.joinToString()}")
                     if (bypassSignatureCheck) AppLog.info("Clone has the integrity/signature check bypassed")
-                    val request = source.cloneRequest(newPackage, newLabel, badgeIcon, removedPermissions = removedPermissions, bypassSignatureCheck = bypassSignatureCheck)
+                    if (renameAlias) AppLog.info("Clone has the core/plugin package-name binding rename-aliased")
+                    val request = source.cloneRequest(newPackage, newLabel, badgeIcon, removedPermissions = removedPermissions, bypassSignatureCheck = bypassSignatureCheck, renameAlias = renameAlias)
                     CloneState.Done(cloner.clone(request, sheetOutput) { file, index, total ->
                         _state.value = CloneState.Running(file, index, total)
                     }).also { AppLog.info("Cloned $newPackage: ${it.apks.sumOf(File::length) / ApkOutput.BYTES_IN_MB} MB") }

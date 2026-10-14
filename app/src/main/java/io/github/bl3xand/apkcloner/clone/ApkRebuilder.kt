@@ -62,9 +62,13 @@ object ApkRebuilder {
                         out.putNextEntry(copy)
                         out.write(manifest)
                     } else if (entry.name == ResourceTableRenamer.ENTRY) {
-                        // Same size and place as before; only the package name inside changes.
+                        // Same size and place as before; only the package name inside changes. When the
+                        // clone keeps the original package name, the table keeps it too, so
+                        // getIdentifier(name, type, getPackageName()) still resolves against the original
+                        // package.
                         fun renamed(to: OutputStream) = zip.getInputStream(entry).use {
-                            ResourceTableRenamer.copy(it, to, patcher.oldPackage, patcher.newPackage)
+                            val toPackage = if (patcher.keepResourceTable) patcher.oldPackage else patcher.newPackage
+                            ResourceTableRenamer.copy(it, to, patcher.oldPackage, toPackage)
                         }
                         if (entry.method == ZipEntry.STORED) {
                             val checksum = CRC32()

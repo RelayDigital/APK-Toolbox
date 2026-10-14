@@ -6,13 +6,20 @@ import org.jf.dexlib2.Opcodes
 import org.jf.dexlib2.DexFileFactory
 import org.jf.dexlib2.iface.DexFile
 import org.jf.dexlib2.iface.Method
-import org.jf.dexlib2.iface.MethodImplementation
+import org.jf.dexlib2.iface.instruction.FiveRegisterInstruction
 import org.jf.dexlib2.iface.instruction.Instruction
+import org.jf.dexlib2.iface.instruction.OneRegisterInstruction
 import org.jf.dexlib2.iface.instruction.ReferenceInstruction
+import org.jf.dexlib2.iface.instruction.RegisterRangeInstruction
+import org.jf.dexlib2.iface.instruction.ThreeRegisterInstruction
+import org.jf.dexlib2.iface.instruction.TwoRegisterInstruction
+import org.jf.dexlib2.iface.instruction.VariableRegisterInstruction
 import org.jf.dexlib2.iface.reference.MethodReference
 import org.jf.dexlib2.immutable.ImmutableMethod
 import org.jf.dexlib2.immutable.ImmutableMethodImplementation
 import org.jf.dexlib2.immutable.instruction.ImmutableInstruction10x
+import org.jf.dexlib2.immutable.instruction.ImmutableInstruction20t
+import org.jf.dexlib2.immutable.instruction.ImmutableInstruction22x
 import org.jf.dexlib2.rewriter.DexFileRewriter
 import org.jf.dexlib2.rewriter.DexRewriter
 import org.jf.dexlib2.rewriter.MethodRewriter
@@ -24,11 +31,12 @@ import java.io.File
 /**
  * Opt-in "bypass integrity/signature check" patcher.
  *
- * Some apps read their own signature at startup and call [System.exit] when it does not match the
- * one they expect. A clone is re-signed with APK Toolbox's key, so the check fails and the app dies
- * before it shows. This patch finds the guard methods - the ones that both read a signature and call
- * System.exit - and turns their System.exit into a plain return, so the check-fail path falls
- * through instead of killing the process.
+ * Some apps read their own signature at startup and call a terminal guard - [System.exit],
+ * [Activity.finish] and friends - when it does not match the one they expect. A clone is re-signed
+ * with APK Toolbox's key, so the check fails and the app dies before it shows. This patch finds the
+ * guard methods - the ones that both read a signature and call a terminal guard - and turns each
+ * guard call into a no-op, so execution falls through to whatever follows instead of being skipped
+ * (return) or aborted (throw), which would cut code that must still run.
  *
  * It is opt-in and fail-safe: if anything goes wrong the original dex bytes are returned unchanged,
  * so a patch that does not apply never breaks the clone.
@@ -37,10 +45,18 @@ object SignatureBypass {
 
     private const val TAG = "SignatureBypass"
 
-    // java/lang/System -> exit(I)V, the call that terminates the clone.
-    private val SYSTEM_EXIT = "java/lang/System" to "exit"
+    // Terminal guards that kill the process or the activity - the end of a signature check.
+    // Neutralised surgically: the invoke is replaced with a no-op so execution falls through to
+    // whatever follows, instead of being skipped (return-void) or aborted (throw), which would
+    // cut code that must still run. Matched by class + name, descriptor ignored.
+    private val KILL_CALLS: Set<Pair<String, String>> = setOf(
+        "java/lang/System" to "exit",
+        "android/app/Activity" to "finish",
+        "android/app/Activity" to "finishAffinity",
+        "android/app/Activity" to "finishAndRemoveTask",
+    )
 
-    // Methods that read the app's own signature - the tell-tale companion to a System.exit guard.
+    // Methods that read the app's own signature - the tell-tale companion to a terminal guard.
     // Matched by defining class + method name, descriptor ignored (one reading per name is enough).
     private val SIGNATURE_READS: Set<String> = setOf(
         "android/content/pm/PackageInfo" to "getSignatures",
@@ -80,23 +96,25 @@ object SignatureBypass {
     private class BypassMethodRewriter(rewriters: Rewriters) : MethodRewriter(rewriters) {
         override fun rewrite(method: Method): Method {
             val impl = method.implementation ?: return method
-            val callsExit = impl.instructions.any { isSystemExit(it) }
-            if (!callsExit || method.returnType != "V") return method
-            val readsSignature = impl.instructions.any { readsSignature(it) }
-            if (!readsSignature) return method
+            // Guard methods are void. Require BOTH a signature read and a terminal guard so we only
+            // touch real sig-check guards and never an unrelated System.exit elsewhere.
+            if (method.returnType != "V") return method
+            if (!impl.instructions.any { readsSignature(it) }) return method
+            if (!impl.instructions.any { isKillCall(it) }) return method
 
             val instructions = impl.instructions.toList()
             val patched = ArrayList<Instruction>(instructions.size)
             var changed = false
             for (instruction in instructions) {
-                if (isSystemExit(instruction)) {
-                    patched.add(ImmutableInstruction10x(Opcode.RETURN_VOID))
+                if (isKillCall(instruction)) {
+                    patched.add(nop(instruction))
                     changed = true
                 } else {
                     patched.add(instruction)
                 }
             }
             if (!changed) return method
+
             val newImpl = ImmutableMethodImplementation(
                 impl.registerCount,
                 patched,
@@ -116,17 +134,30 @@ object SignatureBypass {
         }
     }
 
-    /** An invoke whose target is java/lang/System.exit(I)V. */
-    private fun isSystemExit(instruction: Instruction): Boolean {
+    /** An invoke whose target is one of [KILL_CALLS] (class + name, descriptor ignored). */
+    private fun isKillCall(instruction: Instruction): Boolean {
         val ref = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return false
-        if (ref.definingClass != SYSTEM_EXIT.first || ref.name != SYSTEM_EXIT.second) return false
-        val descriptor = "(" + ref.parameterTypes.joinToString(",") { it.toString() } + ")" + ref.returnType
-        return descriptor == "(I)V"
+        return (ref.definingClass to ref.name) in KILL_CALLS
     }
 
     /** An invoke or field access that reads the app's own signature. */
     private fun readsSignature(instruction: Instruction): Boolean {
         val ref = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return false
         return "${ref.definingClass}|${ref.name}" in SIGNATURE_READS
+    }
+
+    /**
+     * Replaces a terminal-guard invoke with a no-op that keeps the method valid and lets execution
+     * fall through to the next instruction. Uses `const/4 vA, 0x0` on the first operand register
+     * (or v0 when the guard takes no operands) - a valid instruction that consumes the register and
+     * continues, instead of return-void which would skip code that must still run.
+     */
+    private fun nop(instruction: Instruction): Instruction {
+        val reg = when (instruction) {
+            is RegisterRangeInstruction -> instruction.startRegister
+            is OneRegisterInstruction -> instruction.registerA
+            else -> 0
+        }
+        return ImmutableInstruction20t(Opcode.CONST_4, reg shl 12)
     }
 }

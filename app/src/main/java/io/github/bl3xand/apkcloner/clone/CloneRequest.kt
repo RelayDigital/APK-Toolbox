@@ -23,6 +23,11 @@ class CloneRequest(
      * that self-exits on a signature mismatch stays alive as a clone.
      */
     val bypassSignatureCheck: Boolean = false,
+    /**
+     * Opt-in: rewrite the dex string constants so package-name based core/plugin binding resolves
+     * under the clone package, fixing the CoreApi$CoreNotReadyException: apiProxy null bridge break.
+     */
+    val renameAlias: Boolean = false,
 ) {
     companion object {
         /** What a package name has to look like for the system to take it. */

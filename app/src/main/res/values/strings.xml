@@ -158,6 +158,7 @@
     <string name="key_replace_confirm">Replace</string>
     <string name="clone_badge">Mark the icon with a dot</string>
     <string name="clone_bypass">Bypass integrity/signature check</string>
+    <string name="clone_rename_alias">Rename core/plugin package-name binding</string>
     <string name="merge_too_large">This app cannot be merged on the device: its resource tables (%1$d MB) need more memory than Android gives an app. Deselecting splits you do not need may help; otherwise merge it on a computer.</string>
     <string name="tab_sources">Sources</string>
     <string name="settings_check_sources">Apps from sources</string>
@@ -215,6 +216,11 @@
     <string name="clone_permissions_removed">Permissions: %1$d removed</string>
     <string name="clone_permissions_hint">Everything the original asks for. Switch off what the clone should not have; the app may stop working without a permission it relies on.</string>
     <string name="clone_permissions_none">The app asks for no permissions.</string>
+    <string name="clone_patches">Patches</string>
+    <string name="clone_patches_on">Patches: %1$d of %2$d on</string>
+    <string name="clone_patches_hint">Changes to the code of the clone. Every patch is optional and applied only to this clone.</string>
+    <string name="clone_bypass_note">Neutralizes the self-check that exits the app when its signature does not match. Needed by apps that die right after starting as a clone.</string>
+    <string name="clone_rename_alias_note">Rewrites the package-name strings inside the code so core/plugin bindings resolve under the clone package. Needed by apps whose plugins fail to load in a clone.</string>
     <string name="clone_permission_absent">Not asked for by this version. Stays off if it comes back.</string>
     <string name="clone_permission_new">New in this version</string>
     <string name="button_done">Done</string>

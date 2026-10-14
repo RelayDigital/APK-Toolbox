@@ -28,6 +28,7 @@ class CloneSheet : BottomSheetDialogFragment() {
     private var _binding: SheetCloneBinding? = null
     private val binding get() = _binding!!
     private val viewModel: MainViewModel by activityViewModels()
+    private lateinit var settings: AppSettings
 
     // A generic type keeps the picker from rewriting the extension, which differs between a
     // single APK and an archive of splits.
@@ -52,11 +53,9 @@ class CloneSheet : BottomSheetDialogFragment() {
             binding.options.editName.setText(name)
         }
 
-        val settings = AppSettings(requireContext())
+        settings = AppSettings(requireContext())
         binding.options.switchBadge.isChecked = settings.cloneBadge
         binding.options.switchBadge.setOnCheckedChangeListener { _, checked -> settings.cloneBadge = checked }
-        binding.options.switchBypass.isChecked = settings.cloneBypass
-        binding.options.switchBypass.setOnCheckedChangeListener { _, checked -> settings.cloneBypass = checked }
         binding.options.editPackage.doAfterTextChanged {
             binding.options.layoutPackage.error = null
             renderConflict()
@@ -64,7 +63,9 @@ class CloneSheet : BottomSheetDialogFragment() {
         binding.buttonClone.setOnClickListener { startClone() }
         binding.buttonInstall.setOnClickListener { viewModel.cloning.installResult() }
         binding.options.buttonPermissions.setOnClickListener { pickPermissions(source) }
+        binding.options.buttonPatches.setOnClickListener { pickPatches() }
         renderPermissions()
+        renderPatches()
         binding.buttonSave.setOnClickListener { save() }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -142,7 +143,7 @@ class CloneSheet : BottomSheetDialogFragment() {
         binding.options.layoutPackage.isEnabled = !running && !done
         binding.options.layoutName.isEnabled = !running && !done
         binding.options.switchBadge.isEnabled = !running && !done
-        binding.options.switchBypass.isEnabled = !running && !done
+        binding.options.buttonPatches.isEnabled = !running && !done
         binding.options.buttonPermissions.isEnabled = !running && !done
         binding.buttonClone.isEnabled = !running
         binding.buttonClone.isVisible = !done
@@ -183,6 +184,31 @@ class CloneSheet : BottomSheetDialogFragment() {
         }
     }
 
+    private fun renderPatches() {
+        val patches = clonePatches()
+        binding.options.buttonPatches.text = requireContext().clonePatchesLabel(patches.count { it.get(settings) }, patches.size)
+    }
+
+    private fun pickPatches() {
+        val context = requireContext()
+        context.pickClonePatches(clonePatches(), settings) {
+            renderPatches()
+        }
+    }
+
+    private fun clonePatches(): List<ClonePatch> = listOf(
+        ClonePatch(
+            label = getString(R.string.clone_bypass),
+            note = getString(R.string.clone_bypass_note),
+            get = { it.cloneBypass }, set = { s, v -> s.cloneBypass = v },
+        ),
+        ClonePatch(
+            label = getString(R.string.clone_rename_alias),
+            note = getString(R.string.clone_rename_alias_note),
+            get = { it.cloneRenameAlias }, set = { s, v -> s.cloneRenameAlias = v },
+        ),
+    )
+
     /** Whether the previous render was still cloning, i.e. "Done" is news. */
     private var lastRunning = false
 
@@ -194,7 +220,7 @@ class CloneSheet : BottomSheetDialogFragment() {
         }
         val newName = binding.options.editName.text?.toString().orEmpty().trim()
             .ifEmpty { viewModel.cloning.selected?.label.orEmpty() }
-        viewModel.cloning.start(newPackage, newName, binding.options.switchBadge.isChecked, settings.cloneBypass)
+        viewModel.cloning.start(newPackage, newName, binding.options.switchBadge.isChecked, settings.cloneBypass, settings.cloneRenameAlias)
     }
 
     private fun save() {

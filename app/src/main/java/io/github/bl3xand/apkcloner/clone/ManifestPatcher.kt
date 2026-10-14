@@ -16,7 +16,25 @@ class ManifestPatcher(
     private val newLabel: String?,
     /** Permissions, by their name in the original, that the result must not ask for. */
     private val removedPermissions: Set<String> = emptySet(),
+    /**
+     * Keep the ORIGINAL package name (and provider authorities / sharedUserId) in the manifest
+     * instead of renaming to [newPackage]. The clone then thinks it is the original app: its
+     * manifest, resource table and component/process/authority identities all stay under the
+     * original package, so package-name based core/plugin binding resolves. The clone is then
+     * installed under [newPackage] with `pm install --package-name` (a unique name, so it does not
+     * collide with the original that may already be installed).
+     */
+    val keepPackage: Boolean = false,
+    /**
+     * True for a config/feature split APK of the bundle: its `android:split` name must be KEPT -
+     * stripping it turns the split into a second base and the install fails with "Split null was
+     * defined multiple times". Only the base APK has its split attributes dropped, so it no longer
+     * refuses to install as a self-contained APK.
+     */
+    private val isSplitApk: Boolean = false,
 ) {
+    /** When [keepPackage], resources.arsc keeps the original package name as well. */
+    val keepResourceTable: Boolean get() = keepPackage
 
     var oldPackage: String = ""
         private set
@@ -99,17 +117,28 @@ class ManifestPatcher(
                     name == "label" && tag == "application" -> applicationLabel = attr
                     name == "label" && (tag == "activity" || tag == "activity-alias") -> componentLabel = attr
                     value == null -> Unit
-                    tag == "manifest" && name == "package" -> setString(attr, newPackage)
+                    // When keepPackage the manifest keeps its ORIGINAL package name, so every
+                    // component/process/authority in it resolves under the original package and the
+                    // app thinks it is the original. Installed under a different name via pm.
+                    tag == "manifest" && name == "package" -> if (!keepPackage) setString(attr, newPackage)
                     // A split base APK (android:requiredSplitTypes="base__abi") refuses to install
-                    // as a single file. Drop the split requirement so the clone is one self-contained APK.
-                    tag == "manifest" && (name == "splitTypes" || name == "requiredSplitTypes") -> setString(attr, "")
-                    tag == "manifest" && name == "sharedUserId" -> setString(attr, rename(value))
+                    // as a single file. Drop the split requirement so the clone is one self-contained
+                    // APK - but only in the BASE apk: a split apk stripped of its android:split name
+                    // becomes a second base ("Split null was defined multiple times").
+                    !isSplitApk && tag == "manifest" && (name == "split" || name == "splitTypes" || name == "requiredSplitTypes")
+                        -> setString(attr, "")
+                    tag == "manifest" && name == "sharedUserId" -> if (!keepPackage) setString(attr, rename(value))
                     tag == "category" && name == "name" && value in LAUNCHER_CATEGORIES ->
                         if (componentLabel >= 0) launcherLabels += componentLabel
                     tag == "provider" && name == "authorities" ->
-                        setString(attr, value.split(';').joinToString(";") { rename(it.trim()) })
-                    // Relative class names are resolved against the manifest package, so they
-                    // have to be pinned to the original one before it changes.
+                        if (!keepPackage) setString(attr, value.split(';').joinToString(";") { rename(it.trim()) })
+                    // Class names are resolved against the manifest package. Relative names are
+                    // pinned to the ORIGINAL package; fully-qualified names keep the ORIGINAL
+                    // package. Either way the component keeps pointing at the class where it lives
+                    // in the dex (the package rename does not move dex classes), so the component
+                    // resolves and the app can start. The core/plugin binding that was reported as
+                    // broken (CoreApi$CoreNotReadyException: apiProxy null) is a runtime binder
+                    // binding, not a manifest package lookup, so it is unaffected by this.
                     (name == "name" && (tag in COMPONENTS || tag == "application")) || name in CLASS_ATTRS ->
                         qualify(value).let { if (it != value) setString(attr, it) }
                     name == "name" && (tag in PERMISSION_DECLARATIONS || tag in PERMISSION_USES) ||

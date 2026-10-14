@@ -150,6 +150,8 @@
     <string name="key_replace_message">用当前密钥签名的克隆应用将不再显示，也无法更新，除非重新导入该密钥。如果以后可能需要，请先导出。</string>
     <string name="key_replace_confirm">替换</string>
     <string name="clone_badge">用圆点标记图标</string>
+    <string name="clone_bypass">绕过完整性/签名校验</string>
+    <string name="clone_rename_alias">重命名 core/plugin 包名绑定</string>
     <string name="merge_too_large">无法在设备上合并此应用：其资源表（%1$d MB）所需内存超出了 Android 分配给应用的上限。取消勾选不需要的拆分包可能有帮助，否则请在电脑上合并。</string>
     <string name="tab_sources">来源</string>
     <string name="settings_check_sources">来源中的应用</string>
@@ -206,6 +208,11 @@
     <string name="clone_permissions_removed">权限：已移除 %1$d 项</string>
     <string name="clone_permissions_hint">原应用请求的全部权限。关闭克隆不应拥有的权限；缺少所依赖的权限时应用可能无法运行。</string>
     <string name="clone_permissions_none">该应用未请求任何权限。</string>
+    <string name="clone_patches">补丁</string>
+    <string name="clone_patches_on">补丁：已启用 %1$d / %2$d</string>
+    <string name="clone_patches_hint">对克隆代码的修改。每个补丁都是可选的，仅应用于此克隆。</string>
+    <string name="clone_bypass_note">禁用签名不匹配时退出应用的自检。适用于作为克隆启动后立即退出的应用。</string>
+    <string name="clone_rename_alias_note">改写代码中的包名字符串，使 core/plugin 绑定在克隆包名下解析。适用于插件在克隆中无法加载的应用。</string>
     <string name="clone_permission_absent">此版本未请求。若以后恢复,仍保持关闭。</string>
     <string name="clone_permission_new">此版本新增</string>
     <string name="button_done">完成</string>

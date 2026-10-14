@@ -51,14 +51,15 @@
         android:text="@string/clone_badge"
         android:textAppearance="?attr/textAppearanceBodyLarge" />
 
-    <!-- Opt-in: rewrite the dex to neutralize the app's own integrity/signature check. -->
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/switchBypass"
+    <!-- The patches a clone can be built with; opened in a picker of its own, like permissions. -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonPatches"
+        style="@style/Widget.ApkCloner.Button.Action"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="@string/clone_bypass"
-        android:textAppearance="?attr/textAppearanceBodyLarge" />
+        android:text="@string/clone_patches"
+        app:icon="@drawable/ic_tune" />
 
     <!-- Which of the original's permissions the clone keeps. -->
     <com.google.android.material.button.MaterialButton

@@ -46,11 +46,26 @@ class ApkCloner(private val context: Context) {
                     emptyMap()
                 }
 
-                val patcher = ManifestPatcher(request.newPackage, request.newLabel.takeIf { index == 0 }, request.removedPermissions)
+                val patcher = ManifestPatcher(request.newPackage, request.newLabel.takeIf { index == 0 }, request.removedPermissions, isSplitApk = index > 0)
                 val metadata = { METADATA_ENTRY to metadataOf(patcher.oldPackage, iconFiles.isNotEmpty(), request.removedPermissions) }
-                val dexPatcher = if (request.bypassSignatureCheck) { name: String, data: ByteArray -> SignatureBypass.patchDex(data) } else null
+                // originalPackage (A) is what the dex still names; clonePackage (B) is what it must look up.
+                val originalPackage = patcher.oldPackage
+                val clonePackage = request.newPackage
+                // Chain the dex patches: neutralize the self-exit first, then alias the package-name binding.
+                val dexPatcher: ((String, ByteArray) -> ByteArray)? = when {
+                    request.bypassSignatureCheck && request.renameAlias -> { name: String, data: ByteArray ->
+                        CoreRenameAlias.patchDexScoped(SignatureBypass.patchDex(data), originalPackage, clonePackage)
+                    }
+                    request.bypassSignatureCheck -> { name: String, data: ByteArray -> SignatureBypass.patchDex(data) }
+                    request.renameAlias -> { name: String, data: ByteArray -> CoreRenameAlias.patchDexScoped(data, originalPackage, clonePackage) }
+                    else -> null
+                }
                 ApkRebuilder.rebuild(apk, unsigned, patcher, iconFiles, metadata.takeIf { index == 0 }, dexPatcher = dexPatcher)
-                if (dexPatcher != null) AppLog.debug("$name: signature-check bypass enabled in dex")
+                when {
+                    request.bypassSignatureCheck && request.renameAlias -> AppLog.debug("$name: signature-check bypass + package-name alias enabled in dex")
+                    request.bypassSignatureCheck -> AppLog.debug("$name: signature-check bypass enabled in dex")
+                    request.renameAlias -> AppLog.debug("$name: package-name alias enabled in dex")
+                }
                 AppLog.debug("$name: ${patcher.oldPackage} renamed to ${request.newPackage}, ${unsigned.length()} bytes; signing")
                 sign(unsigned, output, request.key ?: keys.active)
                 output
