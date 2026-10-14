@@ -157,7 +157,7 @@
     <string name="key_replace_message">Clones signed with the current key will no longer be listed or updated unless you import that key again. Export it first if you may need it.</string>
     <string name="key_replace_confirm">Replace</string>
     <string name="clone_badge">Mark the icon with a dot</string>
-    <string name="clone_rename_alias">Point the code at the clone</string>
+    <string name="clone_rename_alias">Package name substitution</string>
     <string name="merge_too_large">This app cannot be merged on the device: its resource tables (%1$d MB) need more memory than Android gives an app. Deselecting splits you do not need may help; otherwise merge it on a computer.</string>
     <string name="tab_sources">Sources</string>
     <string name="settings_check_sources">Apps from sources</string>
