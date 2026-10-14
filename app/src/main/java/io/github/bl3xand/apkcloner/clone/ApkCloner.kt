@@ -51,21 +51,19 @@ class ApkCloner(private val context: Context) {
                 // originalPackage (A) is what the dex still names; clonePackage (B) is what it must look up.
                 val originalPackage = patcher.oldPackage
                 val clonePackage = request.newPackage
-                // Chain the dex patches: neutralize the self-exit first, then alias the package-name binding.
+                // Chain the dex patches; all of them emit no-ops/rewrites that compose in any order.
                 val dexPatcher: ((String, ByteArray) -> ByteArray)? = when {
-                    request.bypassSignatureCheck && request.renameAlias -> { name: String, data: ByteArray ->
-                        CoreRenameAlias.patchDexScoped(SignatureBypass.patchDex(data), originalPackage, clonePackage)
-                    }
-                    request.bypassSignatureCheck -> { name: String, data: ByteArray -> SignatureBypass.patchDex(data) }
-                    request.renameAlias -> { name: String, data: ByteArray -> CoreRenameAlias.patchDexScoped(data, originalPackage, clonePackage) }
+                    request.bypassSignatureCheck || request.renameAlias || request.keepAlive -> { name: String, data: ByteArray ->
+                    var patched = data
+                    if (request.bypassSignatureCheck) patched = SignatureBypass.patchDex(patched)
+                    if (request.keepAlive) patched = KeepAlive.patchDex(patched)
+                    if (request.renameAlias) patched = CoreRenameAlias.patchDexScoped(patched, originalPackage, clonePackage)
+                    patched
+                }
                     else -> null
                 }
                 ApkRebuilder.rebuild(apk, unsigned, patcher, iconFiles, metadata.takeIf { index == 0 }, dexPatcher = dexPatcher)
-                when {
-                    request.bypassSignatureCheck && request.renameAlias -> AppLog.debug("$name: signature-check bypass + package-name alias enabled in dex")
-                    request.bypassSignatureCheck -> AppLog.debug("$name: signature-check bypass enabled in dex")
-                    request.renameAlias -> AppLog.debug("$name: package-name alias enabled in dex")
-                }
+                if (dexPatcher != null) AppLog.debug("$name: dex patches on: ${request.patches.sorted().joinToString()}")
                 AppLog.debug("$name: ${patcher.oldPackage} renamed to ${request.newPackage}, ${unsigned.length()} bytes; signing")
                 sign(unsigned, output, request.key ?: keys.active)
                 output

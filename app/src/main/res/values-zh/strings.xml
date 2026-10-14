@@ -213,6 +213,8 @@
     <string name="clone_patches_hint">对克隆代码的修改。每个补丁都是可选的，仅应用于此克隆。</string>
     <string name="clone_bypass_note">禁用签名不匹配时退出应用的自检。适用于作为克隆启动后立即退出的应用。</string>
     <string name="clone_rename_alias_note">改写代码中的包名字符串，使 core/plugin 绑定在克隆包名下解析。适用于插件在克隆中无法加载的应用。</string>
+    <string name="clone_keep_alive">阻止应用自行退出</string>
+    <string name="clone_keep_alive_note">将应用的自退出调用（System.exit、Runtime.exit、Process.killProcess）变为空操作，使其无法在启动条件不满足时杀死自身进程——未登录、强制更新检查、插件看门狗。退出登录后应用可能残留后台；崩溃的应用仍会被系统终止。</string>
     <string name="clone_permission_absent">此版本未请求。若以后恢复,仍保持关闭。</string>
     <string name="clone_permission_new">此版本新增</string>
     <string name="button_done">完成</string>

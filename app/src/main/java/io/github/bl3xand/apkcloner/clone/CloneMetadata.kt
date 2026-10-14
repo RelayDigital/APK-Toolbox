@@ -4,8 +4,9 @@ package io.github.bl3xand.apkcloner.clone
 object PatchIds {
     const val BYPASS = "bypass"
     const val RENAME_ALIAS = "renameAlias"
+    const val KEEP_ALIVE = "keepAlive"
 
-    val ALL = listOf(BYPASS, RENAME_ALIAS)
+    val ALL = listOf(BYPASS, RENAME_ALIAS, KEEP_ALIVE)
 }
 
 class CloneMetadata(

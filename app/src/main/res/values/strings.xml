@@ -221,6 +221,8 @@
     <string name="clone_patches_hint">Changes to the code of the clone. Every patch is optional and applied only to this clone.</string>
     <string name="clone_bypass_note">Neutralizes the self-check that exits the app when its signature does not match. Needed by apps that die right after starting as a clone.</string>
     <string name="clone_rename_alias_note">Rewrites the package-name strings inside the code so core/plugin bindings resolve under the clone package. Needed by apps whose plugins fail to load in a clone.</string>
+    <string name="clone_keep_alive">Keep the app from exiting</string>
+    <string name="clone_keep_alive_note">Turns the app own self-exit calls (System.exit, Runtime.exit, Process.killProcess) into no-ops, so it cannot kill its process when a startup condition fails - no account signed in, a forced-update check, a plugin watchdog. The app may then stay in the background after logout; a crashing app is still killed by the system.</string>
     <string name="clone_permission_absent">Not asked for by this version. Stays off if it comes back.</string>
     <string name="clone_permission_new">New in this version</string>
     <string name="button_done">Done</string>
