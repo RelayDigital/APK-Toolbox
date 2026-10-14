@@ -47,7 +47,7 @@ class ApkCloner(private val context: Context) {
                 }
 
                 val patcher = ManifestPatcher(request.newPackage, request.newLabel.takeIf { index == 0 }, request.removedPermissions, isSplitApk = index > 0)
-                val metadata = { METADATA_ENTRY to metadataOf(patcher.oldPackage, iconFiles.isNotEmpty(), request.removedPermissions) }
+                val metadata = { METADATA_ENTRY to metadataOf(patcher.oldPackage, iconFiles.isNotEmpty(), request.removedPermissions, request.patches) }
                 // originalPackage (A) is what the dex still names; clonePackage (B) is what it must look up.
                 val originalPackage = patcher.oldPackage
                 val clonePackage = request.newPackage
@@ -89,7 +89,7 @@ class ApkCloner(private val context: Context) {
         try {
             val badged = readMetadata(installedBase.path)?.badged ?: false
             val patcher = ManifestPatcher(request.newPackage, request.newLabel, request.removedPermissions)
-            val metadata = { METADATA_ENTRY to metadataOf(patcher.oldPackage, badged, request.removedPermissions) }
+            val metadata = { METADATA_ENTRY to metadataOf(patcher.oldPackage, badged, request.removedPermissions, request.patches) }
             ApkRebuilder.rebuild(installedBase, unsigned, patcher, emptyMap(), metadata, originalManifest)
             sign(unsigned, output, request.key ?: keys.active)
             return output
@@ -117,10 +117,12 @@ class ApkCloner(private val context: Context) {
         private const val METADATA_ORIGINAL = "original"
         private const val METADATA_BADGE = "badge"
         private const val METADATA_REMOVED_PERMISSIONS = "removedPermissions"
+        private const val METADATA_PATCHES = "patches"
 
-        private fun metadataOf(original: String, badged: Boolean, removedPermissions: Set<String>): ByteArray = (
+        private fun metadataOf(original: String, badged: Boolean, removedPermissions: Set<String>, patches: Set<String>): ByteArray = (
             "$METADATA_ORIGINAL=$original\n$METADATA_BADGE=$badged\n" +
-                "$METADATA_REMOVED_PERMISSIONS=${removedPermissions.joinToString(",")}\n"
+                "$METADATA_REMOVED_PERMISSIONS=${removedPermissions.joinToString(",")}\n" +
+                "$METADATA_PATCHES=${patches.joinToString(",")}\n"
             ).toByteArray()
 
         /** What a clone records about itself, or null if [baseApk] is not one of ours. */
@@ -134,6 +136,7 @@ class ApkCloner(private val context: Context) {
                 CloneMetadata(
                     original, badged = values[METADATA_BADGE] == "true",
                     removedPermissions = values[METADATA_REMOVED_PERMISSIONS].orEmpty().split(',').filter { it.isNotBlank() }.toSet(),
+                    patches = values[METADATA_PATCHES].orEmpty().split(',').filter { it.isNotBlank() }.toSet(),
                 )
             }
         }.getOrNull()

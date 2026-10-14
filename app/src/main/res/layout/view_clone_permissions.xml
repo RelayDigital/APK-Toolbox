@@ -16,6 +16,16 @@
         android:text="@string/clone_permissions"
         app:icon="@drawable/ic_tune" />
 
+    <!-- The dex patches the clone is built with; a change is applied by an update. -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonPatches"
+        style="@style/Widget.ApkCloner.Button.Action"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/clone_patches"
+        app:icon="@drawable/ic_tune" />
+
     <com.google.android.material.button.MaterialButton
         android:id="@+id/buttonResetPermissions"
         style="@style/Widget.ApkCloner.Button.Action"

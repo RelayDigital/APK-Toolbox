@@ -185,29 +185,17 @@ class CloneSheet : BottomSheetDialogFragment() {
     }
 
     private fun renderPatches() {
-        val patches = clonePatches()
-        binding.options.buttonPatches.text = requireContext().clonePatchesLabel(patches.count { it.get(settings) }, patches.size)
+        val patches = requireContext().clonePatches()
+        binding.options.buttonPatches.text = requireContext().clonePatchesLabel(viewModel.cloning.patches.size, patches.size)
     }
 
     private fun pickPatches() {
         val context = requireContext()
-        context.pickClonePatches(clonePatches(), settings) {
+        context.pickClonePatches(context.clonePatches(), viewModel.cloning.patches) { chosen ->
+            viewModel.cloning.patches = chosen
             renderPatches()
         }
     }
-
-    private fun clonePatches(): List<ClonePatch> = listOf(
-        ClonePatch(
-            label = getString(R.string.clone_bypass),
-            note = getString(R.string.clone_bypass_note),
-            get = { it.cloneBypass }, set = { s, v -> s.cloneBypass = v },
-        ),
-        ClonePatch(
-            label = getString(R.string.clone_rename_alias),
-            note = getString(R.string.clone_rename_alias_note),
-            get = { it.cloneRenameAlias }, set = { s, v -> s.cloneRenameAlias = v },
-        ),
-    )
 
     /** Whether the previous render was still cloning, i.e. "Done" is news. */
     private var lastRunning = false
@@ -220,7 +208,7 @@ class CloneSheet : BottomSheetDialogFragment() {
         }
         val newName = binding.options.editName.text?.toString().orEmpty().trim()
             .ifEmpty { viewModel.cloning.selected?.label.orEmpty() }
-        viewModel.cloning.start(newPackage, newName, binding.options.switchBadge.isChecked, settings.cloneBypass, settings.cloneRenameAlias)
+        viewModel.cloning.start(newPackage, newName, binding.options.switchBadge.isChecked, viewModel.cloning.patches)
     }
 
     private fun save() {

@@ -34,7 +34,10 @@ import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.sources.net.Downloader
 import io.github.bl3xand.apkcloner.sources.telegram.TelegramClient
 import io.github.bl3xand.apkcloner.ui.add
+import io.github.bl3xand.apkcloner.ui.clonePatches
+import io.github.bl3xand.apkcloner.ui.clonePatchesLabel
 import io.github.bl3xand.apkcloner.ui.clonePermissionsLabel
+import io.github.bl3xand.apkcloner.ui.pickClonePatches
 import io.github.bl3xand.apkcloner.ui.column
 import io.github.bl3xand.apkcloner.ui.confirm
 import io.github.bl3xand.apkcloner.ui.dp
@@ -281,6 +284,13 @@ class AppDetailSheet : BottomSheetDialogFragment() {
             options.buttonPermissions.text = context.clonePermissionsLabel(app.cloneRemovedPermissions.size)
             options.buttonPermissions.isEnabled = !busy
             options.buttonPermissions.setOnClickListener { pickClonePermissions() }
+            options.buttonPatches.text = context.clonePatchesLabel(app.clonePatches.size, context.clonePatches().size)
+            options.buttonPatches.isEnabled = !busy
+            options.buttonPatches.setOnClickListener {
+                context.pickClonePatches(context.clonePatches(), app.clonePatches) { chosen ->
+                    viewModel.setClonePatches(appId, chosen)
+                }
+            }
         }
 
         binding.buttonCloneSettings.isVisible = active

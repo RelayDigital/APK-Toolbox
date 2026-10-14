@@ -100,6 +100,14 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
             if (tracked != null) sources.setClonePermissions(tracked.app.id, emptySet(), tracked.app.cloneRequestedPermissions)
             else viewModel.setClonePermissions(clone, emptySet())
         }
+        // The patches the clone was built with, shown and changed the same way as permissions.
+        binding.permissions.buttonPatches.text = context.clonePatchesLabel(clone.patches.size, context.clonePatches().size)
+        binding.permissions.buttonPatches.isEnabled = clone.canRebuild && !busy
+        binding.permissions.buttonPatches.setOnClickListener {
+            context.pickClonePatches(context.clonePatches(), clone.patches) { chosen ->
+                viewModel.setClonePatches(clone, chosen)
+            }
+        }
         // A clone lives on what it is rebuilt from. One that has only an installed original - an
         // app from Google Play, say - can be handed to a source that carries the same app, and
         // then goes on being updated when the original is gone.

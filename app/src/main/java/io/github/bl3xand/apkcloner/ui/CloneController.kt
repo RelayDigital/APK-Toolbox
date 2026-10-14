@@ -40,6 +40,9 @@ class CloneController(
     /** Permissions unticked for the clone being made; forgotten when another app is picked. */
     var removedPermissions: Set<String> = emptySet()
 
+    /** Patches ticked for the clone being made; forgotten when another app is picked. */
+    var patches: Set<String> = emptySet()
+
     /**
      * Package and app name to offer for a new clone of [source]: `.clone` and "Clone", or the
      * first numbered variant that is not installed yet, so an app can be cloned more than once.
@@ -61,6 +64,7 @@ class CloneController(
         if (_state.value is CloneState.Running) return
         selected = source
         removedPermissions = emptySet()
+        patches = emptySet()
         _state.value = CloneState.Idle
         events.tryEmit(MainEvent.SourceReady(source))
     }
@@ -84,7 +88,7 @@ class CloneController(
         }
     }
 
-    fun start(newPackage: String, newLabel: String, badgeIcon: Boolean, bypassSignatureCheck: Boolean = false, renameAlias: Boolean = false) {
+    fun start(newPackage: String, newLabel: String, badgeIcon: Boolean, patches: Set<String> = emptySet()) {
         val source = selected ?: return
         if (_state.value is CloneState.Running) return
         _state.value = CloneState.Running(source.label, 0, source.apkPaths.size)
@@ -93,9 +97,8 @@ class CloneController(
                 try {
                     AppLog.info("Cloning ${source.packageName} ${source.versionName.orEmpty()} as $newPackage (${source.apkPaths.size} files)")
                     if (removedPermissions.isNotEmpty()) AppLog.info("Clone is made without: ${removedPermissions.joinToString()}")
-                    if (bypassSignatureCheck) AppLog.info("Clone has the integrity/signature check bypassed")
-                    if (renameAlias) AppLog.info("Clone has the core/plugin package-name binding rename-aliased")
-                    val request = source.cloneRequest(newPackage, newLabel, badgeIcon, removedPermissions = removedPermissions, bypassSignatureCheck = bypassSignatureCheck, renameAlias = renameAlias)
+                    if (patches.isNotEmpty()) AppLog.info("Clone is made with patches: ${patches.joinToString()}")
+                    val request = source.cloneRequest(newPackage, newLabel, badgeIcon, removedPermissions = removedPermissions, patches = patches)
                     CloneState.Done(cloner.clone(request, sheetOutput) { file, index, total ->
                         _state.value = CloneState.Running(file, index, total)
                     }).also { AppLog.info("Cloned $newPackage: ${it.apks.sumOf(File::length) / ApkOutput.BYTES_IN_MB} MB") }

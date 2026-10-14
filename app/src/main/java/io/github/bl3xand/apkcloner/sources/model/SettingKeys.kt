@@ -25,6 +25,7 @@ object SettingKeys {
     const val CLONE_NAME = "cloneName"
     const val CLONE_BADGE = "cloneBadge"
     const val CLONE_REMOVED_PERMISSIONS = "cloneRemovedPermissions"
+    const val CLONE_PATCHES = "clonePatches"
     const val CLONE_KNOWN_PERMISSIONS = "cloneKnownPermissions"
     const val CLONE_REQUESTED_PERMISSIONS = "cloneRequestedPermissions"
     const val CLONE_SOURCE_SIGNER = "cloneSourceSigner"

@@ -16,6 +16,8 @@ class CloneInfo(
     val badged: Boolean,
     /** Permissions the clone was made without; an update leaves them out again. */
     val removedPermissions: Set<String> = emptySet(),
+    /** Dex patches the clone was built with; an update keeps them on again. */
+    val patches: Set<String> = emptySet(),
     /**
      * The tracked app this clone is installed as, when it is one that is installed as a clone of
      * itself. Its source is then what keeps the clone current, whether or not an original is
@@ -40,11 +42,11 @@ class CloneInfo(
         else original != null && original.versionCode > app.versionCode
 
     /** The same clone as [entry] now has it: tracked by it, or by nothing. */
-    fun withTracked(entry: AppEntry?) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, entry, keptAsIs, ownCategories)
+    fun withTracked(entry: AppEntry?) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, patches, entry, keptAsIs, ownCategories)
 
-    fun withFrozen(value: Boolean) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, tracked, value, ownCategories)
+    fun withFrozen(value: Boolean) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, patches, tracked, value, ownCategories)
 
-    fun withCategories(value: Set<String>) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, tracked, keptAsIs, value)
+    fun withCategories(value: Set<String>) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, patches, tracked, keptAsIs, value)
 
     /** Whether the clone can be built again: from its source, or from the installed original. */
     val canRebuild: Boolean get() = tracked != null || original != null
@@ -53,7 +55,7 @@ class CloneInfo(
      * Re-cloning the original under this clone's package name. Both builds are signed with the
      * same key, so installing the result is an ordinary in-place update that keeps the data.
      */
-    fun updateRequest(): CloneRequest? = original?.takeIf { tracked == null }?.cloneRequest(app.packageName, app.label, badged, key, removedPermissions)
+    fun updateRequest(): CloneRequest? = original?.takeIf { tracked == null }?.cloneRequest(app.packageName, app.label, badged, key, removedPermissions, patches)
 
     /**
      * Re-cloning the original under this clone's package name without [removed] instead of what it
@@ -61,5 +63,13 @@ class CloneInfo(
      * ordinary in-place update that keeps the data.
      */
     fun permissionsRequest(removed: Set<String>): CloneRequest? =
-        original?.takeIf { tracked == null }?.cloneRequest(app.packageName, app.label, badged, key, removed)
+        original?.takeIf { tracked == null }?.cloneRequest(app.packageName, app.label, badged, key, removed, patches)
+
+    /**
+     * Re-cloning the original under this clone's package name with [withPatches] instead of what
+     * it was built with. Both builds are signed with the same key, so installing the result is an
+     * ordinary in-place update that keeps the data.
+     */
+    fun patchesRequest(withPatches: Set<String>): CloneRequest? =
+        original?.takeIf { tracked == null }?.cloneRequest(app.packageName, app.label, badged, key, removedPermissions, withPatches)
 }

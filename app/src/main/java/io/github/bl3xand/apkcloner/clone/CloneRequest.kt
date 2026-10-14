@@ -19,16 +19,21 @@ class CloneRequest(
     /** Permissions of the original, by name, that the clone is made without. */
     val removedPermissions: Set<String> = emptySet(),
     /**
-     * Opt-in: rewrite the dex to neutralize the app's own integrity/signature check, so an app
-     * that self-exits on a signature mismatch stays alive as a clone.
+     * Dex patches the clone is built with, by their stable [PatchIds] names - the same pattern as
+     * [removedPermissions]: opt-in, universal for any app, recorded in the clone's metadata and
+     * kept on when the clone is rebuilt or updated.
      */
-    val bypassSignatureCheck: Boolean = false,
-    /**
-     * Opt-in: rewrite the dex string constants so package-name based core/plugin binding resolves
-     * under the clone package, fixing the CoreApi$CoreNotReadyException: apiProxy null bridge break.
-     */
-    val renameAlias: Boolean = false,
+    val patches: Set<String> = emptySet(),
 ) {
+    /** The signature-check bypass patch: an app that self-exits on a signature mismatch stays alive. */
+    val bypassSignatureCheck: Boolean get() = PatchIds.BYPASS in patches
+
+    /**
+     * The package-name alias patch: rewrites the dex string constants so package-name based
+     * core/plugin binding resolves under the clone package.
+     */
+    val renameAlias: Boolean get() = PatchIds.RENAME_ALIAS in patches
+
     companion object {
         /** What a package name has to look like for the system to take it. */
         val PACKAGE_NAME = Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+")

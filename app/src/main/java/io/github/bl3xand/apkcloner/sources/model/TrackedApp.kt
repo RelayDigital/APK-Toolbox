@@ -75,6 +75,9 @@ data class TrackedApp(
     /** What the last APK seen of this app asks for; empty until one has been downloaded. */
     val cloneRequestedPermissions: Set<String> get() = listSetting(SettingKeys.CLONE_REQUESTED_PERMISSIONS)
 
+    /** Dex patches (PatchIds) the clone of this app is built with. */
+    val clonePatches: Set<String> get() = listSetting(SettingKeys.CLONE_PATCHES)
+
     /** Every permission the user has been shown for this app. */
     val cloneKnownPermissions: Set<String> get() = listSetting(SettingKeys.CLONE_KNOWN_PERMISSIONS)
 

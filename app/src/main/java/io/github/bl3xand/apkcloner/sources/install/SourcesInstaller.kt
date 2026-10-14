@@ -746,10 +746,10 @@ class SourcesInstaller private constructor(private val context: Context) {
             sourceDir = apks.first().path
             publicSourceDir = apks.first().path
         }
-        AppLog.info("Building ${app.id} ${app.latestVersion} as the clone $target, without: ${removed.sorted().joinToString().ifEmpty { "-" }}")
+        AppLog.info("Building ${app.id} ${app.latestVersion} as the clone $target, without: ${removed.sorted().joinToString().ifEmpty { "-" }}, with patches: ${app.clonePatches.sorted().joinToString().ifEmpty { "-" }}")
         val name = app.settings.getStringOrNull(SettingKeys.CLONE_NAME)?.takeIf { it.isNotBlank() }
         keepOriginalManifest(app, apks.first(), info?.versionCode ?: 0)
-        return cloner.clone(CloneRequest(apks, target, name, key, icon, removed), cloneDir(app.id)) { _, _, _ -> }
+        return cloner.clone(CloneRequest(apks, target, name, key, icon, removed, app.clonePatches), cloneDir(app.id)) { _, _, _ -> }
     }
 
     /**

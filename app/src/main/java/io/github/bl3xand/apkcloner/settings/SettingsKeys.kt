@@ -11,8 +11,6 @@ internal object SettingsKeys {
     const val MERGE_SIGN = "merge_sign"
     const val INSTALL_SIGN = "install_sign"
     const val CLONE_BADGE = "clone_badge"
-    const val CLONE_BYPASS = "clone_bypass"
-    const val CLONE_RENAME_ALIAS = "clone_rename_alias"
     const val FROZEN_CLONES = "frozen_clones"
     const val CLONE_CATEGORIES = "clone_categories"
     const val MERGE_FORCE = "merge_force"

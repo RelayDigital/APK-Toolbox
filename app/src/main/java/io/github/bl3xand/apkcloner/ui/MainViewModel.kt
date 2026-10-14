@@ -135,6 +135,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         rebuildClones(listOf(clone), "Changing the permissions (${removed.size} removed) of") { it.permissionsRequest(removed) }
     }
 
+    /**
+     * Re-builds a clone with [patches] instead of what it was built with. Like an update it
+     * installs over the same package, so the data is kept, and shows progress for the whole wait.
+     */
+    fun setClonePatches(clone: CloneInfo, patches: Set<String>) {
+        if (patches == clone.patches) return
+        rebuildClones(listOf(clone), "Changing the patches (${patches.size} on) of") { it.patchesRequest(patches) }
+    }
+
     /** Files a clone under [categories]; a clone that a source keeps current is filed there instead. */
     fun setCloneCategories(clone: CloneInfo, categories: Set<String>) {
         val settings = AppSettings(getApplication())

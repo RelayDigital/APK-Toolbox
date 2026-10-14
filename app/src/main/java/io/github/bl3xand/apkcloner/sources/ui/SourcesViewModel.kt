@@ -521,6 +521,18 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    /**
+     * The dex patches (PatchIds) the clone [id] is installed as is built with. An installed clone
+     * is built again from the latest release and installed over itself, so its data stays.
+     */
+    fun setClonePatches(id: String, patches: Set<String>) = saving {
+        val app = repo.entry(id)?.app ?: return@saving
+        repo.saveApps(listOf(app.withSetting(SettingKeys.CLONE_PATCHES, patches.sorted().joinToString(","))))
+        if (patches != app.clonePatches && app.clonePackage != null && !installer.rebuildInstalledClone(id)) {
+            obtain(listOf(id))
+        }
+    }
+
     /** Whether [packageName] cannot be the clone of [id]: another app has it, tracked or installed. */
     fun isTakenForClone(id: String, packageName: String): Boolean {
         if (repo.all().any { it.app.id != id && it.app.devicePackage == packageName }) return true
