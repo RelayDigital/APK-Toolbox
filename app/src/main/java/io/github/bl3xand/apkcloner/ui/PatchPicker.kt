@@ -49,19 +49,16 @@ fun Context.clonePatchesLabel(on: Int, total: Int): String =
 
 /** Every patch the app knows, in the order they are offered in. */
 fun Context.clonePatches(): List<ClonePatch> = listOf(
+    // PatchIds.BYPASS is kept for the metadata of clones made before it merged into KEEP_ALIVE;
+    // it is no longer offered on its own.
     ClonePatch(
-        id = PatchIds.BYPASS,
-        label = getString(R.string.clone_bypass),
-        note = getString(R.string.clone_bypass_note),
+        id = PatchIds.KEEP_ALIVE,
+        label = getString(R.string.clone_keep_alive),
+        note = getString(R.string.clone_keep_alive_note),
     ),
     ClonePatch(
         id = PatchIds.RENAME_ALIAS,
         label = getString(R.string.clone_rename_alias),
         note = getString(R.string.clone_rename_alias_note),
-    ),
-    ClonePatch(
-        id = PatchIds.KEEP_ALIVE,
-        label = getString(R.string.clone_keep_alive),
-        note = getString(R.string.clone_keep_alive_note),
     ),
 )

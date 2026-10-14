@@ -150,8 +150,7 @@
     <string name="key_replace_message">Клоны, подписанные текущим ключом, пропадут из списка и перестанут обновляться, пока вы снова не импортируете этот ключ. Сначала экспортируйте его, если он может понадобиться.</string>
     <string name="key_replace_confirm">Заменить</string>
     <string name="clone_badge">Пометить значок точкой</string>
-    <string name="clone_bypass">Выход по подписи</string>
-    <string name="clone_rename_alias">Строки пакета</string>
+    <string name="clone_rename_alias">Код ищет клона</string>
     <string name="merge_too_large">Это приложение нельзя объединить на устройстве: его таблицы ресурсов (%1$d МБ) требуют больше памяти, чем Android даёт приложению. Может помочь снятие ненужных сплитов; иначе объедините его на компьютере.</string>
     <string name="tab_sources">Источники</string>
     <string name="settings_check_sources">Приложения из источников</string>
@@ -214,10 +213,9 @@
     <string name="clone_patches">Патчи</string>
     <string name="clone_patches_on">Патчи: включено %1$d из %2$d</string>
     <string name="clone_patches_hint">Изменения кода клона. Каждый патч необязателен и применяется только к этому клону.</string>
-    <string name="clone_bypass_note">В методах, которые читают подпись приложения и затем вызывают System.exit или finish, вызов выхода удаляется — приложение больше не завершает себя из-за несовпадения подписи (клон всегда подписан другим ключом).</string>
-    <string name="clone_rename_alias_note">Переписывает строковые константы в коде, которые всё ещё называют оригинальный пакет (используются в createPackageContext, bindService и поиске), на пакет клона — клон находит себя, а не оригинал.</string>
-    <string name="clone_keep_alive">Без само-выхода</string>
-    <string name="clone_keep_alive_note">Каждый вызов System.exit, Runtime.exit и Process.killProcess превращается в пустую операцию — приложение вообще не может убить свой процесс. Для приложений, которые закрываются без аккаунта или при неудачной проверке. После выхода приложение может остаться в фоне.</string>
+    <string name="clone_rename_alias_note">В коде остались строковые константы с именем ОРИГИНАЛЬНОГО пакета — по ним приложение ищет само себя (createPackageContext, bindService, запросы PackageManager) — и находит оригинал, а не клон. Патч переписывает их на пакет клона, так что код находит клон.</string>
+    <string name="clone_keep_alive">Подавление выхода</string>
+    <string name="clone_keep_alive_note">Каждый вызов, завершающий приложение — System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask — превращается в пустую операцию: приложение не может ни убить себя, ни выкинуть пользователя, по любой причине — проверка подписи, нет аккаунта, неудачная проверка при запуске. После выхода приложение может остаться в фоне вместо закрытия.</string>
     <string name="clone_permission_absent">В этой версии не запрашивается. Если вернётся — останется выключенным.</string>
     <string name="clone_permission_new">Новое в этой версии</string>
     <string name="button_done">Готово</string>

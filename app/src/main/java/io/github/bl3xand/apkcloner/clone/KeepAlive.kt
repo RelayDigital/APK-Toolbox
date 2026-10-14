@@ -43,11 +43,15 @@ object KeepAlive {
 
     private const val TAG = "KeepAlive"
 
-    // The three ways an app can end itself. Matched by class + name, descriptor ignored.
+    // The ways an app can end itself or throw the user out: killing the process, or finishing
+    // every activity. Matched by class + name, descriptor ignored.
     private val SELF_EXIT_CALLS: Set<Pair<String, String>> = setOf(
         "java/lang/System" to "exit",
         "java/lang/Runtime" to "exit",
         "android/os/Process" to "killProcess",
+        "android/app/Activity" to "finish",
+        "android/app/Activity" to "finishAffinity",
+        "android/app/Activity" to "finishAndRemoveTask",
     )
 
     /** Patches [data] (the bytes of one dex file). Returns the original bytes on any failure. */
