@@ -157,8 +157,8 @@
     <string name="key_replace_message">Clones signed with the current key will no longer be listed or updated unless you import that key again. Export it first if you may need it.</string>
     <string name="key_replace_confirm">Replace</string>
     <string name="clone_badge">Mark the icon with a dot</string>
-    <string name="clone_bypass">Remove exit on signature check</string>
-    <string name="clone_rename_alias">Point package-name strings at the clone</string>
+    <string name="clone_bypass">Signature check exit</string>
+    <string name="clone_rename_alias">Package strings</string>
     <string name="merge_too_large">This app cannot be merged on the device: its resource tables (%1$d MB) need more memory than Android gives an app. Deselecting splits you do not need may help; otherwise merge it on a computer.</string>
     <string name="tab_sources">Sources</string>
     <string name="settings_check_sources">Apps from sources</string>
@@ -221,7 +221,7 @@
     <string name="clone_patches_hint">Changes to the code of the clone. Every patch is optional and applied only to this clone.</string>
     <string name="clone_bypass_note">In methods that read the app signature and then call System.exit or finish, the exit call is removed - so the app no longer kills itself over a signature mismatch (a clone is always signed with a different key).</string>
     <string name="clone_rename_alias_note">Rewrites the string constants in the code that still name the original package (used for createPackageContext, bindService and lookups) to the clone package, so the clone finds itself instead of the original app.</string>
-    <string name="clone_keep_alive">Remove all self-exit calls</string>
+    <string name="clone_keep_alive">No self-exit</string>
     <string name="clone_keep_alive_note">Every call to System.exit, Runtime.exit and Process.killProcess becomes a no-op, so the app cannot kill its own process at all - for apps that close themselves when no account is signed in or a check fails. After logout the app may stay in the background.</string>
     <string name="clone_permission_absent">Not asked for by this version. Stays off if it comes back.</string>
     <string name="clone_permission_new">New in this version</string>

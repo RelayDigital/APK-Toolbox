@@ -150,8 +150,8 @@
     <string name="key_replace_message">用当前密钥签名的克隆应用将不再显示，也无法更新，除非重新导入该密钥。如果以后可能需要，请先导出。</string>
     <string name="key_replace_confirm">替换</string>
     <string name="clone_badge">用圆点标记图标</string>
-    <string name="clone_bypass">移除签名校验导致的退出</string>
-    <string name="clone_rename_alias">将包名字符串改为指向克隆</string>
+    <string name="clone_bypass">签名退出</string>
+    <string name="clone_rename_alias">包名字符串</string>
     <string name="merge_too_large">无法在设备上合并此应用：其资源表（%1$d MB）所需内存超出了 Android 分配给应用的上限。取消勾选不需要的拆分包可能有帮助，否则请在电脑上合并。</string>
     <string name="tab_sources">来源</string>
     <string name="settings_check_sources">来源中的应用</string>
@@ -213,7 +213,7 @@
     <string name="clone_patches_hint">对克隆代码的修改。每个补丁都是可选的，仅应用于此克隆。</string>
     <string name="clone_bypass_note">在读取应用签名并随后调用 System.exit 或 finish 的方法中，删除退出调用——应用不再因签名不匹配而自杀（克隆总是用不同的密钥签名）。</string>
     <string name="clone_rename_alias_note">改写代码中仍指向原始包的字符串常量（用于 createPackageContext、bindService 和查找），使其指向克隆包——克隆查找的是自己而不是原应用。</string>
-    <string name="clone_keep_alive">移除所有自退出调用</string>
+    <string name="clone_keep_alive">禁止自退出</string>
     <string name="clone_keep_alive_note">将每个 System.exit、Runtime.exit 和 Process.killProcess 调用变为空操作——应用完全无法杀死自身进程。适用于未登录或检查失败时自动关闭的应用。退出登录后应用可能残留后台。</string>
     <string name="clone_permission_absent">此版本未请求。若以后恢复,仍保持关闭。</string>
     <string name="clone_permission_new">此版本新增</string>
