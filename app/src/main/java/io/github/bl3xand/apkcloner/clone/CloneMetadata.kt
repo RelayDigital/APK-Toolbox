@@ -5,8 +5,9 @@ object PatchIds {
     const val BYPASS = "bypass"
     const val RENAME_ALIAS = "renameAlias"
     const val KEEP_ALIVE = "keepAlive"
+    const val SPOOF_SIGNATURE = "spoofSignature"
 
-    val ALL = listOf(BYPASS, RENAME_ALIAS, KEEP_ALIVE)
+    val ALL = listOf(BYPASS, RENAME_ALIAS, KEEP_ALIVE, SPOOF_SIGNATURE)
 }
 
 class CloneMetadata(

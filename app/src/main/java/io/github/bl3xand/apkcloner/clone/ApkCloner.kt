@@ -51,12 +51,16 @@ class ApkCloner(private val context: Context) {
                 // originalPackage (A) is what the dex still names; clonePackage (B) is what it must look up.
                 val originalPackage = patcher.oldPackage
                 val clonePackage = request.newPackage
+                // The original's signing certificate, for the signature-spoof patch. Read once from the source
+                // APK's v2/v3 (or v1/JAR) signature block; null when it cannot be read (patch then no-ops).
+                val originalCertificate = if (request.spoofSignature) readCertificate(apk) else null
                 // Chain the dex patches; all of them emit no-ops/rewrites that compose in any order.
                 val dexPatcher: ((String, ByteArray) -> ByteArray)? = when {
-                    request.bypassSignatureCheck || request.renameAlias || request.keepAlive -> { name: String, data: ByteArray ->
+                    request.bypassSignatureCheck || request.renameAlias || request.keepAlive || originalCertificate != null -> { name: String, data: ByteArray ->
                     var patched = data
                     if (request.bypassSignatureCheck) patched = SignatureBypass.patchDex(patched)
                     if (request.keepAlive) patched = KeepAlive.patchDex(patched)
+                    if (originalCertificate != null) patched = SignatureSpoof.patchDex(patched, name, originalCertificate)
                     if (request.renameAlias) patched = CoreRenameAlias.patchDexScoped(patched, originalPackage, clonePackage)
                     patched
                 }
@@ -122,6 +126,17 @@ class ApkCloner(private val context: Context) {
                 "$METADATA_REMOVED_PERMISSIONS=${removedPermissions.joinToString(",")}\n" +
                 "$METADATA_PATCHES=${patches.joinToString(",")}\n"
             ).toByteArray()
+
+        /**
+         * The signing certificate of [apk], as the app itself would see it in
+         * PackageInfo.signatures (the certificate bytes, DER). Null when it cannot be read.
+         */
+        fun readCertificate(apk: File): ByteArray? = runCatching {
+            val result = com.android.apksig.ApkVerifier.Builder(apk).build().verify()
+            val signer = result.signerCertificates.firstOrNull() ?: result.v1SchemeSigners.firstOrNull()?.certificate
+                ?: return null
+            signer.encoded
+        }.getOrNull()
 
         /** What a clone records about itself, or null if [baseApk] is not one of ours. */
         fun readMetadata(baseApk: String): CloneMetadata? = runCatching {

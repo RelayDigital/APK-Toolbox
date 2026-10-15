@@ -37,6 +37,9 @@ class CloneRequest(
     /** The keep-alive patch: neutralizes the app's self-exit calls (System.exit and friends). */
     val keepAlive: Boolean get() = PatchIds.KEEP_ALIVE in patches
 
+    /** The signature-spoof patch: the app sees the original's signing certificate in itself. */
+    val spoofSignature: Boolean get() = PatchIds.SPOOF_SIGNATURE in patches
+
     companion object {
         /** What a package name has to look like for the system to take it. */
         val PACKAGE_NAME = Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+")
