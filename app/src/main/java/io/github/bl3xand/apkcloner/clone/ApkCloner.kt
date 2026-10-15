@@ -134,7 +134,7 @@ class ApkCloner(private val context: Context) {
         fun readCertificate(apk: File): ByteArray? = runCatching {
             val result = com.android.apksig.ApkVerifier.Builder(apk).build().verify()
             val signer = result.signerCertificates.firstOrNull() ?: result.v1SchemeSigners.firstOrNull()?.certificate
-                ?: return null
+                ?: return@runCatching null
             signer.encoded
         }.getOrNull()
 

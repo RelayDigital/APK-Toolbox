@@ -18,6 +18,7 @@ import org.jf.dexlib2.immutable.instruction.ImmutableInstruction
 import org.jf.dexlib2.immutable.instruction.ImmutableInstruction11n
 import org.jf.dexlib2.immutable.instruction.ImmutableInstruction11x
 import org.jf.dexlib2.immutable.instruction.ImmutableInstruction21c
+import org.jf.dexlib2.immutable.instruction.ImmutableInstruction22c
 import org.jf.dexlib2.immutable.instruction.ImmutableInstruction23x
 import org.jf.dexlib2.immutable.instruction.ImmutableInstruction31c
 import org.jf.dexlib2.immutable.instruction.ImmutableInstruction35c
@@ -162,7 +163,7 @@ object SignatureSpoof {
                     4,
                     listOf(
                         ImmutableInstruction11n(Opcode.CONST_4, 0, 1),
-                        ImmutableInstruction31c(Opcode.NEW_ARRAY, 0, ImmutableTypeReference(SIGNATURE_ARRAY)),
+                        ImmutableInstruction22c(Opcode.NEW_ARRAY, 0, 3, ImmutableTypeReference(SIGNATURE_ARRAY)),
                         ImmutableInstruction21c(Opcode.NEW_INSTANCE, 1, ImmutableTypeReference(SIGNATURE)),
                         ImmutableInstruction21c(Opcode.CONST_STRING, 2, ImmutableStringReference(java.util.Base64.getEncoder().encodeToString(certificateDer))),
                         ImmutableInstruction11n(Opcode.CONST_4, 3, 0),
