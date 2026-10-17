@@ -28,7 +28,7 @@ import java.io.File
  * A clone hits those conditions far more often than the original (it starts fresh, without the
  * account the original was logged in as), and dies instead of showing its login screen.
  *
- * This patch replaces every invoke of those three calls with a no-op, so execution falls through
+ * This patch replaces every invoke of those calls with size-preserving no-ops, so execution falls through
  * to whatever follows (usually a plain return). Unlike the signature-check bypass it has no
  * precondition on what else the method does: the exit helpers are routinely tiny obfuscated
  * wrappers with no markers at all, so any heuristic would miss them. What is lost is spelled out
@@ -44,14 +44,15 @@ object KeepAlive {
     private const val TAG = "KeepAlive"
 
     // The ways an app can end itself or throw the user out: killing the process, or finishing
-    // every activity. Matched by class + name, descriptor ignored.
+    // every activity. Matched by class + name, descriptor ignored. A method reference's defining
+    // class is the descriptor form (Ljava/lang/System;), so the set stores that form.
     private val SELF_EXIT_CALLS: Set<Pair<String, String>> = setOf(
-        "java/lang/System" to "exit",
-        "java/lang/Runtime" to "exit",
-        "android/os/Process" to "killProcess",
-        "android/app/Activity" to "finish",
-        "android/app/Activity" to "finishAffinity",
-        "android/app/Activity" to "finishAndRemoveTask",
+        "Ljava/lang/System;" to "exit",
+        "Ljava/lang/Runtime;" to "exit",
+        "Landroid/os/Process;" to "killProcess",
+        "Landroid/app/Activity;" to "finish",
+        "Landroid/app/Activity;" to "finishAffinity",
+        "Landroid/app/Activity;" to "finishAndRemoveTask",
     )
 
     /** Patches [data] (the bytes of one dex file). Returns the original bytes on any failure. */
@@ -88,7 +89,7 @@ object KeepAlive {
             val instructions = impl.instructions.toList()
             if (instructions.none { isSelfExit(it) }) return method
 
-            val patched = instructions.map { if (isSelfExit(it)) nop() else it }
+            val patched = instructions.flatMap { if (isSelfExit(it)) nops(it) else listOf(it) }
             val newImpl = ImmutableMethodImplementation(
                 impl.registerCount,
                 patched,
@@ -114,6 +115,12 @@ object KeepAlive {
         return (ref.definingClass to ref.name) in SELF_EXIT_CALLS
     }
 
-    /** A plain no-op; the invoke's arguments become dead register loads, which is safe. */
-    private fun nop() = ImmutableInstruction10x(Opcode.NOP)
+    /**
+     * No-ops replacing [instruction], sized to keep every later offset valid: an invoke is 3-5
+     * code units, a single nop is 1, so a lone nop shifts try-block starts and branch targets
+     * into the middle of instructions and the dex fails verification ("Invalid try_item
+     * start_addr"). One nop per code unit keeps the method byte-for-byte the same length.
+     */
+    private fun nops(instruction: Instruction): List<org.jf.dexlib2.immutable.instruction.ImmutableInstruction> =
+        List(instruction.codeUnits) { ImmutableInstruction10x(Opcode.NOP) }
 }

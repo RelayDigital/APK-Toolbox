@@ -85,6 +85,7 @@ android {
     }
 
     testOptions {
+        unitTests.isReturnDefaultValues = true
         unitTests.all {
             // Tests that reach real sites only run on request: -Plive=true [-Plive.only=<Source>].
             it.systemProperty("live", providers.gradleProperty("live").getOrElse("false"))

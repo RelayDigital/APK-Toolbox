@@ -6,6 +6,7 @@ object PatchIds {
     const val RENAME_ALIAS = "renameAlias"
     const val KEEP_ALIVE = "keepAlive"
     const val SPOOF_SIGNATURE = "spoofSignature"
+    const val MIMICRY = "mimicry"
 
     val ALL = listOf(BYPASS, RENAME_ALIAS, KEEP_ALIVE, SPOOF_SIGNATURE)
 }

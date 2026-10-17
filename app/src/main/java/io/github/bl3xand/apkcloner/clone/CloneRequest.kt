@@ -40,6 +40,9 @@ class CloneRequest(
     /** The signature-spoof patch: the app sees the original's signing certificate in itself. */
     val spoofSignature: Boolean get() = PatchIds.SPOOF_SIGNATURE in patches
 
+    /** The mimicry patch: the app reports the ORIGINAL's package name about itself (identity spoof). */
+    val mimicry: Boolean get() = PatchIds.MIMICRY in patches
+
     companion object {
         /** What a package name has to look like for the system to take it. */
         val PACKAGE_NAME = Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+")

@@ -48,15 +48,17 @@ class ApkCloner(private val context: Context) {
 
                 val patcher = ManifestPatcher(request.newPackage, request.newLabel.takeIf { index == 0 }, request.removedPermissions, isSplitApk = index > 0)
                 val metadata = { METADATA_ENTRY to metadataOf(patcher.oldPackage, iconFiles.isNotEmpty(), request.removedPermissions, request.patches) }
-                // originalPackage (A) is what the dex still names; clonePackage (B) is what it must look up.
-                val originalPackage = patcher.oldPackage
+                // originalPackage (A) is what the dex still names; clonePackage (B) is what it must look
+                // up. oldPackage is only known once the manifest is patched inside rebuild(), so the
+                // chain reads it lazily, like the metadata entry below.
+                val originalPackage = { patcher.oldPackage }
                 val clonePackage = request.newPackage
                 // The original's signing certificate, for the signature-spoof patch. Read once from the source
                 // APK's v2/v3 (or v1/JAR) signature block; null when it cannot be read (patch then no-ops).
                 val originalCertificate = if (request.spoofSignature) readCertificate(apk) else null
                 // Chain the dex patches; all of them emit no-ops/rewrites that compose in any order.
                 val dexPatcher: ((String, ByteArray) -> ByteArray)? = when {
-                    request.bypassSignatureCheck || request.renameAlias || request.keepAlive || originalCertificate != null ->
+                    request.bypassSignatureCheck || request.renameAlias || request.keepAlive || originalCertificate != null || request.mimicry ->
                         DexPatchChain(request.patches, originalCertificate, originalPackage, clonePackage)::apply
                     else -> null
                 }
@@ -166,15 +168,16 @@ class ApkCloner(private val context: Context) {
 private class DexPatchChain(
     private val patches: Set<String>,
     private val certificate: ByteArray?,
-    private val originalPackage: String,
+    private val originalPackage: () -> String,
     private val clonePackage: String,
 ) {
     fun apply(name: String, data: ByteArray): ByteArray {
         var patched = data
+        val original = originalPackage()
         if (PatchIds.BYPASS in patches) patched = SignatureBypass.patchDex(patched)
         if (PatchIds.KEEP_ALIVE in patches) patched = KeepAlive.patchDex(patched)
-        if (certificate != null) patched = SignatureSpoof.patchDex(patched, name, certificate)
-        if (PatchIds.RENAME_ALIAS in patches) patched = CoreRenameAlias.patchDexScoped(patched, originalPackage, clonePackage)
+        if (certificate != null) patched = SignatureSpoof.patchDex(patched, name, certificate, original, clonePackage, PatchIds.MIMICRY in patches)
+        if (PatchIds.RENAME_ALIAS in patches) patched = CoreRenameAlias.patchDexScoped(patched, original, clonePackage)
         return patched
     }
 

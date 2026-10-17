@@ -48,21 +48,22 @@ object SignatureBypass {
     // Terminal guards that kill the process or the activity - the end of a signature check.
     // Neutralised surgically: the invoke is replaced with a no-op so execution falls through to
     // whatever follows, instead of being skipped (return-void) or aborted (throw), which would
-    // cut code that must still run. Matched by class + name, descriptor ignored.
+    // cut code that must still run. Matched by class + name; the defining class is the
+    // descriptor form (Ljava/lang/System;).
     private val KILL_CALLS: Set<Pair<String, String>> = setOf(
-        "java/lang/System" to "exit",
-        "android/app/Activity" to "finish",
-        "android/app/Activity" to "finishAffinity",
-        "android/app/Activity" to "finishAndRemoveTask",
+        "Ljava/lang/System;" to "exit",
+        "Landroid/app/Activity;" to "finish",
+        "Landroid/app/Activity;" to "finishAffinity",
+        "Landroid/app/Activity;" to "finishAndRemoveTask",
     )
 
     // Methods that read the app's own signature - the tell-tale companion to a terminal guard.
     // Matched by defining class + method name, descriptor ignored (one reading per name is enough).
     private val SIGNATURE_READS: Set<String> = setOf(
-        "android/content/pm/PackageInfo" to "getSignatures",
-        "android/content/pm/PackageInfo" to "getPackageSignatures",
-        "android/content/pm/PackageManager" to "getPackageSignatures",
-        "android/content/pm/Signature" to "getMessageDigest",
+        "Landroid/content/pm/PackageInfo;" to "getSignatures",
+        "Landroid/content/pm/PackageInfo;" to "getPackageSignatures",
+        "Landroid/content/pm/PackageManager;" to "getPackageSignatures",
+        "Landroid/content/pm/Signature;" to "getMessageDigest",
     ).map { "${it.first}|${it.second}" }.toSet()
 
     /** Patches [data] (the bytes of one dex file). Returns the original bytes on any failure. */

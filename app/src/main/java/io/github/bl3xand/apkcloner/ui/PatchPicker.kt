@@ -66,4 +66,9 @@ fun Context.clonePatches(): List<ClonePatch> = listOf(
         label = getString(R.string.clone_spoof_signature),
         note = getString(R.string.clone_spoof_signature_note),
     ),
+    ClonePatch(
+        id = PatchIds.MIMICRY,
+        label = getString(R.string.clone_mimicry),
+        note = getString(R.string.clone_mimicry_note),
+    ),
 )
