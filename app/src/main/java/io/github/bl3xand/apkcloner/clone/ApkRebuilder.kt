@@ -26,7 +26,6 @@ object ApkRebuilder {
     private const val NATIVE_LIBRARY_ALIGNMENT = 16384
     private const val DEFAULT_ALIGNMENT = 4
     private val SIGNATURE_FILE = Regex("META-INF/([^/]+\\.(SF|RSA|DSA|EC)|MANIFEST\\.MF)", RegexOption.IGNORE_CASE)
-    private val DEX_FILE = Regex("^classes\\d*\\.dex$", RegexOption.IGNORE_CASE)
 
     /**
      * [replacements] swaps whole entries by name. [extraEntry] is evaluated after the manifest
@@ -73,24 +72,31 @@ object ApkRebuilder {
                         if (entry.method == ZipEntry.STORED) {
                             val checksum = CRC32()
                             renamed(CheckedOutputStream(Discard, checksum))
-                            copy.storedAt(counter.count, entry, checksum.value)
+                            copy.storedAt(counter.count, entry.size, checksum.value)
                         }
                         out.putNextEntry(copy)
                         renamed(out)
                     } else if (entry.name in replacements) {
                         out.putNextEntry(copy)
                         out.write(replacements.getValue(entry.name))
+                    } else if (dexPatcher != null && isDexEntry(entry.name)) {
+                        // Opt-in: neutralize the app's own integrity/signature check in the dex.
+                        // Checked before STORED: uncompressed dex entries (common - APKs are built
+                        // with them extract-native-libs-free) must be patched too, and then
+                        // re-stored with the patched bytes' own size and CRC.
+                        val patched = dexPatcher(entry.name, zip.getInputStream(entry).use { it.readBytes() })
+                        if (entry.method == ZipEntry.STORED) {
+                            val checksum = CRC32().apply { patched.forEach { update(it.toInt()) } }
+                            copy.storedAt(counter.count, patched.size.toLong(), checksum.value)
+                        }
+                        out.putNextEntry(copy)
+                        out.write(patched)
                     } else if (entry.method == ZipEntry.STORED) {
                         // resources.arsc and uncompressed native libraries are mmap-ed straight
                         // out of the APK, so they must stay stored and aligned.
-                        copy.storedAt(counter.count, entry, entry.crc)
+                        copy.storedAt(counter.count, entry.size, entry.crc)
                         out.putNextEntry(copy)
                         zip.getInputStream(entry).use { it.copyTo(out, 1 shl 16) }
-                    } else if (dexPatcher != null && DEX_FILE.matches(entry.name)) {
-                        // Opt-in: neutralize the app's own integrity/signature check in the dex.
-                        val patched = dexPatcher(entry.name, zip.getInputStream(entry).use { it.readBytes() })
-                        out.putNextEntry(copy)
-                        out.write(patched)
                     } else {
                         out.putNextEntry(copy)
                         zip.getInputStream(entry).use { it.copyTo(out, 1 shl 16) }
@@ -106,11 +112,20 @@ object ApkRebuilder {
         }
     }
 
-    /** Makes this entry a stored, aligned copy of [source] with the given checksum. */
-    private fun ZipEntry.storedAt(offset: Long, source: ZipEntry, checksum: Long) {
+    /** A classes*.dex entry, without a Regex: R8-minified Kotlin Regex broke this check once. */
+    private fun isDexEntry(name: String): Boolean {
+        val verdict = name.endsWith(".dex") && run {
+            val base = name.removeSuffix(".dex")
+            base == "classes" || (base.startsWith("classes") && base.substring("classes".length).all { it in '0'..'9' })
+        }
+        return verdict
+    }
+
+    /** Makes this entry a stored, aligned copy with the given size and checksum. */
+    private fun ZipEntry.storedAt(offset: Long, size: Long, checksum: Long) {
         method = ZipEntry.STORED
-        size = source.size
-        compressedSize = source.size
+        this.size = size
+        compressedSize = size
         crc = checksum
         val alignment = if (name.endsWith(".so")) NATIVE_LIBRARY_ALIGNMENT else DEFAULT_ALIGNMENT
         val nameLength = name.toByteArray(Charsets.UTF_8).size

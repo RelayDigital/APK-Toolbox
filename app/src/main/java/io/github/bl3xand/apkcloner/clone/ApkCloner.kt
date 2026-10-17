@@ -56,14 +56,8 @@ class ApkCloner(private val context: Context) {
                 val originalCertificate = if (request.spoofSignature) readCertificate(apk) else null
                 // Chain the dex patches; all of them emit no-ops/rewrites that compose in any order.
                 val dexPatcher: ((String, ByteArray) -> ByteArray)? = when {
-                    request.bypassSignatureCheck || request.renameAlias || request.keepAlive || originalCertificate != null -> { name: String, data: ByteArray ->
-                    var patched = data
-                    if (request.bypassSignatureCheck) patched = SignatureBypass.patchDex(patched)
-                    if (request.keepAlive) patched = KeepAlive.patchDex(patched)
-                    if (originalCertificate != null) patched = SignatureSpoof.patchDex(patched, name, originalCertificate)
-                    if (request.renameAlias) patched = CoreRenameAlias.patchDexScoped(patched, originalPackage, clonePackage)
-                    patched
-                }
+                    request.bypassSignatureCheck || request.renameAlias || request.keepAlive || originalCertificate != null ->
+                        DexPatchChain(request.patches, originalCertificate, originalPackage, clonePackage)::apply
                     else -> null
                 }
                 ApkRebuilder.rebuild(apk, unsigned, patcher, iconFiles, metadata.takeIf { index == 0 }, dexPatcher = dexPatcher)
@@ -134,8 +128,13 @@ class ApkCloner(private val context: Context) {
         fun readCertificate(apk: File): ByteArray? = try {
             val result = com.android.apksig.ApkVerifier.Builder(apk).build().verify()
             val signer = result.signerCertificates.firstOrNull() ?: result.v1SchemeSigners.firstOrNull()?.certificate
-                ?: return null
-            signer.encoded
+            if (signer == null) {
+                AppLog.warn("SignatureSpoof: no signer certificate in ${apk.name} (verified=${result.isVerified})")
+                null
+            } else {
+                AppLog.debug("SignatureSpoof: original certificate read from ${apk.name}, ${signer.encoded.size} bytes")
+                signer.encoded
+            }
         } catch (e: Throwable) {
             AppLog.warn("SignatureSpoof: cannot read the original's certificate from ${apk.name}: ${e.message ?: e}")
             null
@@ -157,4 +156,26 @@ class ApkCloner(private val context: Context) {
             }
         }.getOrNull()
     }
+}
+
+/**
+ * The dex patch chain, as a named class: R8 merges structurally identical lambda bodies and was
+ * observed mangling the certificate capture (the spoof patch silently received null in release
+ * builds while the debug build worked). A named class keeps each field honest.
+ */
+private class DexPatchChain(
+    private val patches: Set<String>,
+    private val certificate: ByteArray?,
+    private val originalPackage: String,
+    private val clonePackage: String,
+) {
+    fun apply(name: String, data: ByteArray): ByteArray {
+        var patched = data
+        if (PatchIds.BYPASS in patches) patched = SignatureBypass.patchDex(patched)
+        if (PatchIds.KEEP_ALIVE in patches) patched = KeepAlive.patchDex(patched)
+        if (certificate != null) patched = SignatureSpoof.patchDex(patched, name, certificate)
+        if (PatchIds.RENAME_ALIAS in patches) patched = CoreRenameAlias.patchDexScoped(patched, originalPackage, clonePackage)
+        return patched
+    }
+
 }
