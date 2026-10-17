@@ -46,3 +46,11 @@
 
 # TDLib's native code finds the Java classes of its API, their fields and constructors by name.
 -keep class org.drinkless.tdlib.** { *; }
+
+# dexlib2 walks its own class hierarchy by name (Opcodes lookup, immutable instruction
+# factories, DexPool writers) and guava's immutables underneath it. R8 renaming any of it
+# makes every dex patch (SignatureSpoof, KeepAlive, SignatureBypass, CoreRenameAlias) throw
+# at run time into its fail-safe catch, silently producing an unpatched clone.
+-keep class org.jf.dexlib2.** { *; }
+-keep class com.google.common.collect.** { *; }
+-dontwarn org.jf.dexlib2.**
