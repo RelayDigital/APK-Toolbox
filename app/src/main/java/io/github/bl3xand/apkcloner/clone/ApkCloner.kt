@@ -131,12 +131,15 @@ class ApkCloner(private val context: Context) {
          * The signing certificate of [apk], as the app itself would see it in
          * PackageInfo.signatures (the certificate bytes, DER). Null when it cannot be read.
          */
-        fun readCertificate(apk: File): ByteArray? = runCatching {
+        fun readCertificate(apk: File): ByteArray? = try {
             val result = com.android.apksig.ApkVerifier.Builder(apk).build().verify()
             val signer = result.signerCertificates.firstOrNull() ?: result.v1SchemeSigners.firstOrNull()?.certificate
-                ?: return@runCatching null
+                ?: return null
             signer.encoded
-        }.getOrNull()
+        } catch (e: Throwable) {
+            AppLog.warn("SignatureSpoof: cannot read the original's certificate from ${apk.name}: ${e.message ?: e}")
+            null
+        }
 
         /** What a clone records about itself, or null if [baseApk] is not one of ours. */
         fun readMetadata(baseApk: String): CloneMetadata? = runCatching {
