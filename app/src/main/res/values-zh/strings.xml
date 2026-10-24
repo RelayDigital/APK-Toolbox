@@ -197,6 +197,9 @@
     <string name="button_show_log">显示日志</string>
     <string name="log_empty">暂无日志。</string>
     <string name="log_save">保存</string>
+    <plurals name="log_show_more">
+        <item quantity="other">显示更早的 %d 条</item>
+    </plurals>
     <string name="button_refresh">刷新</string>
     <string name="clones_up_to_date">所有克隆均为最新</string>
     <plurals name="log_days">

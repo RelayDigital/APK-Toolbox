@@ -195,7 +195,7 @@ class SettingsSheet : BottomSheetDialogFragment() {
         binding.buttonLanguage.text = if (language == AppLanguage.SYSTEM) getString(R.string.language_system) else language.ownName
         binding.buttonLanguage.setOnClickListener { pickLanguage(language) }
         binding.buttonShowLog.setOnClickListener {
-            requireContext().showLogSheet { fileName, text ->
+            requireContext().showLogSheet(viewLifecycleOwner) { fileName, text ->
                 logToSave = text
                 saveLogFile.launch(fileName)
             }

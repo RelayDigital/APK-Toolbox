@@ -204,6 +204,10 @@
     <string name="button_show_log">Show the log</string>
     <string name="log_empty">Nothing has been logged yet.</string>
     <string name="log_save">Save</string>
+    <plurals name="log_show_more">
+        <item quantity="one">Show %d older entry</item>
+        <item quantity="other">Show %d older entries</item>
+    </plurals>
     <string name="button_refresh">Refresh</string>
     <string name="clones_up_to_date">All clones are up to date</string>
     <plurals name="log_days">

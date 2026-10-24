@@ -197,6 +197,12 @@
     <string name="button_show_log">Показать журнал</string>
     <string name="log_empty">В журнале пока пусто.</string>
     <string name="log_save">Сохранить</string>
+    <plurals name="log_show_more">
+        <item quantity="one">Показать ещё %d запись</item>
+        <item quantity="few">Показать ещё %d записи</item>
+        <item quantity="many">Показать ещё %d записей</item>
+        <item quantity="other">Показать ещё %d записи</item>
+    </plurals>
     <string name="button_refresh">Обновить</string>
     <string name="clones_up_to_date">Все клоны актуальны</string>
     <plurals name="log_days">
