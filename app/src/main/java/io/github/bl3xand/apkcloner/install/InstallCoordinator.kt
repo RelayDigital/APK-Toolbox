@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.install
 
+import io.github.bl3xand.apkcloner.testing.TestHooks
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -84,9 +85,11 @@ object InstallCoordinator {
             // The enclosing batch holds the global queue; only this package's turn is taken.
             packageMutex.withLock {
                 _installs.update { it + 1 }
+                TestHooks.installStarted(packageName)
                 try {
                     run(Phase(background = true))
                 } finally {
+                    TestHooks.installFinished(packageName)
                     _installs.update { it - 1 }
                 }
             }
@@ -96,9 +99,11 @@ object InstallCoordinator {
             foregroundQueue.withLock {
                 packageMutex.withLock {
                     _installs.update { it + 1 }
+                    TestHooks.installStarted(packageName)
                     try {
                         run(Phase(background = false))
                     } finally {
+                        TestHooks.installFinished(packageName)
                         _installs.update { it - 1 }
                     }
                 }
