@@ -79,7 +79,7 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
                         failed += clone.app.label
                         continue
                     }
-                    UpdateNotifications.showProgress(context, clone.app.label)
+                    UpdateNotifications.showProgress(context, clone.app.label, clone.app.packageName)
                     // One broken app must not keep the rest from updating.
                     val outcome = try {
                         val apks = cloner.clone(request, output) { _, _, _ -> }
@@ -88,6 +88,8 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
                         }
                     } catch (e: Exception) {
                         InstallOutcome.Failed(e.message.orEmpty())
+                    } finally {
+                        UpdateNotifications.cancelProgress(context, clone.app.packageName)
                     }
                     if (outcome is InstallOutcome.Failed) {
                         AppLog.error("Background update of clone ${clone.app.packageName} failed: ${outcome.reason}")
@@ -99,7 +101,8 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 }
             }
         } finally {
-            UpdateNotifications.cancelProgress(context)
+            // Old single-id leftovers from versions that had one progress notification.
+            UpdateNotifications.cancelAllProgress(context)
             output.deleteRecursively()
         }
         if (available.isNotEmpty()) UpdateNotifications.showAvailable(context, available.joinToString())

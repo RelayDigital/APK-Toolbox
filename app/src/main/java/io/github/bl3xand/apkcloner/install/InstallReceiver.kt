@@ -65,7 +65,10 @@ class InstallReceiver : BroadcastReceiver() {
             finish(SessionResult(sessionId, intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME), status))
             return
         }
-        if (status != PackageInstaller.STATUS_SUCCESS) {
+        // A session whose caller waits for it (InstallCoordinator users) reports the
+        // outcome itself, with the installer's own words; only an unwitnessed background
+        // install is reported here.
+        if (status != PackageInstaller.STATUS_SUCCESS && !unclaimSelfReport(sessionId)) {
             UpdateNotifications.showFailed(context, intent.getStringExtra(EXTRA_LABEL).orEmpty())
         }
         finish(SessionResult(sessionId, intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME), status))

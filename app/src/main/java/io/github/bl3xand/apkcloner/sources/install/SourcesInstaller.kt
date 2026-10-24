@@ -498,8 +498,28 @@ class SourcesInstaller private constructor(private val context: Context) {
             InstallOutcome.Success -> true
             is InstallOutcome.Pending -> {
                 if (background) {
-                    // The result of a background session is not delivered here; look for it.
-                    waitForPackageInstall(appId, before, attempts = BACKGROUND_CONFIRM_ATTEMPTS)
+                    // This session's answer, with a poll for a success that is never
+                    // broadcast as one (some system installs just land). A failure is
+                    // thrown as the installer's own words, so it is reported once, by
+                    // whoever ran this pass - not again by the receiver.
+                    val answer = withTimeoutOrNull(BACKGROUND_CONFIRM_TIMEOUT_MS) {
+                        val answered = async { InstallReceiver.awaitSession(outcome.sessionId) }
+                        val landed = async { waitForPackageInstall(appId, before, INSTALL_CONFIRM_POLLS, 1000) }
+                        @Suppress("UNCHECKED_CAST")
+                        kotlinx.coroutines.selects.select<Any?> {
+                            answered.onAwait { result -> result }
+                            landed.onAwait { null }
+                        } as InstallReceiver.SessionResult?
+                    }
+                    when {
+                        answer?.succeeded == true -> true
+                        answer != null && !answer.succeeded -> {
+                            AppLog.error("Install of $appId failed: ${answer.reasonText}")
+                            throw SourceError(answer.reasonText)
+                        }
+                        // No answer within the timeout: what landed on the device decides.
+                        else -> waitForPackageInstall(appId, before, attempts = BACKGROUND_CONFIRM_ATTEMPTS)
+                    }
                 } else {
                     // Whichever comes first: this session's answer or the package changing.
                     withTimeoutOrNull(INSTALL_CONFIRM_TIMEOUT_MS) {
@@ -953,6 +973,9 @@ class SourcesInstaller private constructor(private val context: Context) {
         private const val BACKGROUND_CONFIRM_ATTEMPTS = 20
         private const val INSTALL_CONFIRM_POLLS = 300
         private const val INSTALL_CONFIRM_TIMEOUT_MS = 10 * 60_000L
+
+        /** How long a background session waits for the system's answer to its commit. */
+        private const val BACKGROUND_CONFIRM_TIMEOUT_MS = 3 * 60_000L
 
         /** Apps that verify an APK shared with them before it is installed. */
         private val verifierPackages = listOf(

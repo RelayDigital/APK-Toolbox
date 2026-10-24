@@ -9,6 +9,7 @@ import androidx.core.app.NotificationCompat
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.ui.MainActivity
 import io.github.bl3xand.apkcloner.ui.MainTabs
+import kotlin.math.abs
 
 /** Everything the background update shows. Dropped by the system if notifications are not allowed. */
 object UpdateNotifications {
@@ -16,19 +17,27 @@ object UpdateNotifications {
     private const val CHANNEL = "updates"
     private const val ID_PROGRESS = 1
     private const val ID_AVAILABLE = 2
+    private const val PROGRESS_BASE = 1_000_000_000
+    private const val PROGRESS_RANGE = 900_000_000
+
+    /** A stable notification id per package, the pattern SourcesNotifications.idForKey uses. */
+    fun progressIdFor(packageName: String): Int = PROGRESS_BASE + abs(packageName.hashCode() % PROGRESS_RANGE)
 
     /** Ongoing, with an indeterminate bar, for as long as a clone is being rebuilt. */
-    fun showProgress(context: Context, label: String) {
+    fun showProgress(context: Context, label: String, packageName: String) {
         val notification = builder(context)
             .setContentTitle(context.getString(R.string.notification_updating, label))
             .setProgress(0, 0, true)
             .setOngoing(true)
             .setSilent(true)
             .build()
-        manager(context).notify(ID_PROGRESS, notification)
+        manager(context).notify(progressIdFor(packageName), notification)
     }
 
-    fun cancelProgress(context: Context) = manager(context).cancel(ID_PROGRESS)
+    fun cancelProgress(context: Context, packageName: String) = manager(context).cancel(progressIdFor(packageName))
+
+    /** Everything an update pass had shown as its progress, once the pass is over. */
+    fun cancelAllProgress(context: Context) = manager(context).cancel(ID_PROGRESS)
 
     /** Drops a leftover "available"/"failed" notice once it may no longer be true. */
     fun cancelOutdated(context: Context) = manager(context).cancel(ID_AVAILABLE)
