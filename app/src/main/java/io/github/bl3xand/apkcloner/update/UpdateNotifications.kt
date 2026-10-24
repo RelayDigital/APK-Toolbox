@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.update
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -97,6 +98,4 @@ object UpdateNotifications {
         )
         return NotificationCompat.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_notification)
     }
-
-    private fun manager(context: Context) = context.getSystemService(NotificationManager::class.java)
 }
