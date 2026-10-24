@@ -152,7 +152,7 @@
     <string name="key_replace_message">用当前密钥签名的克隆应用将不再显示，也无法更新，除非重新导入该密钥。如果以后可能需要，请先导出。</string>
     <string name="key_replace_confirm">替换</string>
     <string name="clone_badge">用圆点标记图标</string>
-    <string name="clone_rename_alias">包名替换</string>
+    <string name="clone_rename_alias">按克隆包名寻址</string>
     <string name="merge_too_large">无法在设备上合并此应用：其资源表（%1$d MB）所需内存超出了 Android 分配给应用的上限。取消勾选不需要的拆分包可能有帮助，否则请在电脑上合并。</string>
     <string name="tab_sources">来源</string>
     <string name="settings_check_sources">来源中的应用</string>
@@ -215,7 +215,7 @@
     <string name="clone_patches">补丁</string>
     <string name="clone_patches_on">补丁：已启用 %1$d / %2$d</string>
     <string name="clone_patches_hint">对克隆代码的修改。每个补丁都是可选的，仅应用于此克隆。</string>
-    <string name="clone_rename_alias_note">代码中仍带有指向原始包名的字符串常量——应用据此查找自身（createPackageContext、bindService、PackageManager 查询）——找到的是原应用而不是克隆。此补丁将其改写为克隆包名，让代码找到克隆本身。</string>
+    <string name="clone_rename_alias_note">改写克隆代码中的包名，使其能找到自己的文件和组件。而身份伪装恰恰相反：让克隆以原应用的身份面对检查。</string>
     <string name="clone_mimicry">身份伪装</string>
     <string name="clone_mimicry_note">克隆完全以 ORIGINAL 原应用的身份出现——包名和签名：对自身的检查、服务器和分析。克隆自身组件的查找通过备用方案继续工作。</string>
     <string name="clone_keep_alive">抑制退出</string>

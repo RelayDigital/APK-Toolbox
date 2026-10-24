@@ -159,7 +159,7 @@
     <string name="key_replace_message">Clones signed with the current key will no longer be listed or updated unless you import that key again. Export it first if you may need it.</string>
     <string name="key_replace_confirm">Replace</string>
     <string name="clone_badge">Mark the icon with a dot</string>
-    <string name="clone_rename_alias">Package name substitution</string>
+    <string name="clone_rename_alias">Addressing by the clone name</string>
     <string name="merge_too_large">This app cannot be merged on the device: its resource tables (%1$d MB) need more memory than Android gives an app. Deselecting splits you do not need may help; otherwise merge it on a computer.</string>
     <string name="tab_sources">Sources</string>
     <string name="settings_check_sources">Apps from sources</string>
@@ -224,7 +224,7 @@
     <string name="clone_patches">Patches</string>
     <string name="clone_patches_on">Patches: %1$d of %2$d on</string>
     <string name="clone_patches_hint">Changes to the code of the clone. Every patch is optional and applied only to this clone.</string>
-    <string name="clone_rename_alias_note">The code still carries string constants naming the ORIGINAL package - used when it looks itself up (createPackageContext, bindService, PackageManager queries) - and those find the original app, not the clone. This rewrites them to the clone package, so the code looks up and finds the clone itself.</string>
+    <string name="clone_rename_alias_note">Rewrites the package name in the clone code so it finds its own files and components. Mimicry, the other way round, presents the clone as the original to checks.</string>
     <string name="clone_mimicry">Mimicry</string>
     <string name="clone_mimicry_note">The clone presents itself as the ORIGINAL entirely - package name and signature: to its own checks, servers and analytics. Lookups of the clone\'s own components keep working through a fallback.</string>
     <string name="clone_keep_alive">Exit suppression</string>

@@ -152,7 +152,7 @@
     <string name="key_replace_message">Клоны, подписанные текущим ключом, пропадут из списка и перестанут обновляться, пока вы снова не импортируете этот ключ. Сначала экспортируйте его, если он может понадобиться.</string>
     <string name="key_replace_confirm">Заменить</string>
     <string name="clone_badge">Пометить значок точкой</string>
-    <string name="clone_rename_alias">Подмена имени пакета</string>
+    <string name="clone_rename_alias">Адресация по имени клона</string>
     <string name="merge_too_large">Это приложение нельзя объединить на устройстве: его таблицы ресурсов (%1$d МБ) требуют больше памяти, чем Android даёт приложению. Может помочь снятие ненужных сплитов; иначе объедините его на компьютере.</string>
     <string name="tab_sources">Источники</string>
     <string name="settings_check_sources">Приложения из источников</string>
@@ -221,7 +221,7 @@
     <string name="clone_patches">Патчи</string>
     <string name="clone_patches_on">Патчи: включено %1$d из %2$d</string>
     <string name="clone_patches_hint">Изменения кода клона. Каждый патч необязателен и применяется только к этому клону.</string>
-    <string name="clone_rename_alias_note">В коде остались строковые константы с именем ОРИГИНАЛЬНОГО пакета — по ним приложение ищет само себя (createPackageContext, bindService, запросы PackageManager) — и находит оригинал, а не клон. Патч переписывает их на пакет клона, так что код находит клон.</string>
+    <string name="clone_rename_alias_note">Переписывает имя пакета в коде клона, чтобы он находил свои файлы и компоненты. Мимикрия, наоборот, представляет клон оригиналом для проверок.</string>
     <string name="clone_mimicry">Мимикрия</string>
     <string name="clone_mimicry_note">Клон полностью представляется оригиналом — имя пакета и подпись: своим проверкам, серверам и аналитике. Поиск собственных компонентов клона продолжает работать через запасной вариант.</string>
     <string name="clone_keep_alive">Подавление выхода</string>
