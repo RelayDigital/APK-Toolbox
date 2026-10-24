@@ -121,6 +121,10 @@ class UiBaselineCaptureTest : BaseUiTest() {
     }
 
     private fun openLogFromSettings() {
+        // The log's lines carry timestamps of this very run; a compared screen must be the
+        // same every time, so the log is emptied first and the sheet opens on its own
+        // empty-state text - a stable screen that still shows the chips and the layout.
+        runCatching { io.github.bl3xand.apkcloner.log.AppLog.clear() }
         val showLog = scrollSheetUntil(string("button_show_log"))
             ?: error("No 'Show the log' button in the settings sheet. Screen:\n${dumpVisibleTexts()}")
         showLog.click()
