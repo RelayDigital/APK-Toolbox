@@ -312,4 +312,40 @@ class CoreTest {
         assertNull(plain.preferredBranchKey)
         assertFalse(plain.releaseBranchGone)
     }
+
+    // ---- the remembered pick of a release file ----------------------------------------------
+
+    @Test
+    fun rememberedApkResolvesByExactUrlThenNameThenDigitsOut() {
+        val choices = listOf(
+            NamedUrl("app-1.3.0-arm64-v8a.apk", "https://e.com/v2/app-arm64.apk"),
+            NamedUrl("app-1.3.0-armeabi-v7a.apk", "https://e.com/v2/app-arm32.apk"),
+        )
+        // The same URL, wherever the file sits now.
+        val byUrl = ApkFilter.resolvePreferredApk(NamedUrl("old.apk", "https://e.com/v2/app-arm32.apk"), choices)
+        assertEquals(choices[1], byUrl)
+        // The same name, on a new URL.
+        val byName = ApkFilter.resolvePreferredApk(NamedUrl("app-1.3.0-armeabi-v7a.apk", "https://e.com/v1/x.apk"), choices)
+        assertEquals(choices[1], byName)
+        // A new release, new names: the digits out, when they leave one choice standing.
+        val byDigits = ApkFilter.resolvePreferredApk(NamedUrl("app-1.2.9-armeabi-v7a.apk", "https://e.com/v1/x.apk"), choices)
+        assertEquals(choices[1], byDigits)
+        // Two choices that differ only in their digits match nothing by name: the place decides.
+        val same = listOf(NamedUrl("app-1.0.apk", "u1"), NamedUrl("app-2.0.apk", "u2"))
+        val byPlace = ApkFilter.resolvePreferredApk(NamedUrl("app-0.9.apk", "u0"), same, preferredApkIndex = 1)
+        assertEquals(same[1], byPlace)
+        // Nothing remembered, nothing chosen.
+        assertNull(ApkFilter.resolvePreferredApk(null, same))
+        assertNull(ApkFilter.resolvePreferredApk(null, emptyList()))
+    }
+
+    @Test
+    fun rememberedApkStaysStoredAndReadsBack() {
+        val pick = NamedUrl("app-1.2.9-armeabi-v7a.apk", "https://e.com/v1/x.apk")
+        val stored = TrackedApp.namedUrlsToJson(listOf(pick))
+        assertEquals(pick, ApkFilter.storedPreferredApk(stored))
+        assertNull(ApkFilter.storedPreferredApk(null))
+        assertNull(ApkFilter.storedPreferredApk(""))
+        assertNull(ApkFilter.storedPreferredApk("nonsense"))
+    }
 }
