@@ -27,6 +27,7 @@ import io.github.bl3xand.apkcloner.ui.confirm
 import io.github.bl3xand.apkcloner.ui.label
 import io.github.bl3xand.apkcloner.ui.scrollable
 import io.github.bl3xand.apkcloner.ui.showError
+import io.github.bl3xand.apkcloner.ui.setSwipeColors
 import io.github.bl3xand.apkcloner.ui.showSheet
 import io.github.bl3xand.apkcloner.ui.toast
 import java.io.File
@@ -75,6 +76,9 @@ class SourcesTab(private val activity: AppCompatActivity, private val binding: A
         (binding.listSources.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
         binding.chipSourcesRefresh.text = Tr.get("refresh")
         binding.chipSourcesRefresh.setOnClickListener { viewModel.refresh() }
+        // Pulling the list down checks everything too; the chip stays for those who use it.
+        binding.swipeSources.setSwipeColors()
+        binding.swipeSources.setOnRefreshListener { viewModel.refresh() }
         binding.chipSourcesFilter.setOnClickListener {
             activity.lifecycleScope.launch { dialogs.askFilter(state.filter)?.let(::applyFilter) }
         }
@@ -125,7 +129,7 @@ class SourcesTab(private val activity: AppCompatActivity, private val binding: A
     /** Shows or hides everything that belongs to this tab. */
     fun setActive(value: Boolean, ready: Boolean) {
         active = value
-        binding.listSources.isVisible = value
+        binding.swipeSources.isVisible = value
         binding.sourcesChips.isVisible = value
         if (value) {
             render(ready)
@@ -156,6 +160,8 @@ class SourcesTab(private val activity: AppCompatActivity, private val binding: A
         setProgressMode(indeterminate = progress == null || progress <= 0.0)
         binding.progress.isVisible = state.loading || progress != null
         if (progress != null && progress > 0.0) binding.progress.setProgressCompat((progress * 100).toInt(), true)
+        // The pull-to-refresh spinner goes and stops with the check itself.
+        binding.swipeSources.isRefreshing = progress != null
         binding.textEmpty.isVisible = ready && !state.loading && state.rows.isEmpty()
         binding.textEmpty.text = if (state.total == 0) activity.getString(R.string.sources_empty) else Tr.get("noAppsForFilter")
     }

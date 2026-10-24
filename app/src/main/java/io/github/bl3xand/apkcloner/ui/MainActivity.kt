@@ -143,6 +143,9 @@ class MainActivity : AppCompatActivity() {
             sourcesTab.onQuery(it?.toString().orEmpty())
         }
         binding.chipClonesRefresh.setOnClickListener { viewModel.refreshClones() }
+        // Pulling the clones list down refreshes the same way; the chip stays for those who use it.
+        binding.swipeClones.setSwipeColors()
+        binding.swipeClones.setOnRefreshListener { viewModel.refreshClones() }
         binding.chipSystem.setOnCheckedChangeListener { _, checked -> viewModel.setShowSystem(checked) }
         binding.chipClonesFilter.setOnClickListener {
             lifecycleScope.launch { askClonesFilter(viewModel.clonesFilter)?.let(::applyClonesFilter) }
@@ -308,7 +311,7 @@ class MainActivity : AppCompatActivity() {
         binding.chipClonesClearFilter.isVisible = tab == MainTabs.CLONES && !viewModel.clonesFilter.isNeutral
         binding.chipClonesRefresh.isEnabled = state.updatingClone == null
         binding.listApps.isVisible = appsTab
-        binding.listClones.isVisible = tab == MainTabs.CLONES
+        binding.swipeClones.isVisible = tab == MainTabs.CLONES
         binding.listInstall.isVisible = tab == MainTabs.INSTALL
         binding.listSplit.isVisible = tab == MainTabs.SPLIT
         // The Clones side has nothing to pick; its one action is the Refresh chip.
@@ -321,6 +324,8 @@ class MainActivity : AppCompatActivity() {
             else -> getString(R.string.button_pick_apk)
         }
         binding.progress.isVisible = state.loading || (tab == MainTabs.CLONES && state.updatingClone != null)
+        // The pull-to-refresh spinner goes and stops with the same work the bar shows.
+        if (tab == MainTabs.CLONES) binding.swipeClones.isRefreshing = state.loading || state.updatingClone != null
 
         val empty = when (tab) {
             MainTabs.CLONES -> state.clones.isEmpty()

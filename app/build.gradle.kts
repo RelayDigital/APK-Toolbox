@@ -117,6 +117,8 @@ dependencies {
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.recyclerview)
+    // Pull-to-refresh around the Sources and Clones lists.
+    implementation(libs.androidx.swiperefreshlayout)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.material)

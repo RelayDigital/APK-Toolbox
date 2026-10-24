@@ -406,14 +406,24 @@
                 android:paddingBottom="8dp"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/listClones"
+            <!-- Pulled down on the Clones tab, this refreshes what the Refresh chip refreshes.
+                 The indicator keeps to the theme's progress colours (see setSwipeColors). -->
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/swipeClones"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:clipToPadding="false"
-                android:paddingTop="4dp"
-                android:paddingBottom="8dp"
-                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+                android:visibility="gone">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/listClones"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="8dp"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/listInstall"
@@ -433,15 +443,23 @@
                 android:paddingBottom="8dp"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/listSources"
+            <!-- Pulled down on the Sources tab, this runs the same check as the Refresh chip. -->
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/swipeSources"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:clipToPadding="false"
-                android:paddingTop="4dp"
-                android:paddingBottom="8dp"
-                android:visibility="gone"
-                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+                android:visibility="gone">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/listSources"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="8dp"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
             <TextView
                 android:id="@+id/textEmpty"
