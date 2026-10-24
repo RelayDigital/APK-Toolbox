@@ -96,6 +96,8 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch { TelegramClient.auth.collect { settingsVersion.value++ } }
         // So does a check that failed, or went through after one that had.
         viewModelScope.launch { repo.checkErrors.collect { settingsVersion.value++ } }
+        // A differently-signed build being removed for a new one re-renders its page's bar.
+        viewModelScope.launch { installer.uninstalling.collect { settingsVersion.value++ } }
         reload()
     }
 

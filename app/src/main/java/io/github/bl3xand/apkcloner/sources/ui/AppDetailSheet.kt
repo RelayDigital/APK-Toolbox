@@ -98,6 +98,8 @@ class AppDetailSheet : BottomSheetDialogFragment() {
                 // Signing in or out changes what the page of an app of that source offers.
                 launch { TelegramClient.auth.collect { rerender() } }
                 launch { viewModel.repo.checkErrors.collect { rerender() } }
+                // The removal of a differently-signed build, whichever side started it.
+                launch { viewModel.installer.uninstalling.collect { rerender() } }
                 combine(
                     viewModel.repo.apps, viewModel.repo.downloads, viewModel.uninstalling, viewModel.candidate,
                 ) { _, downloads, uninstalling, _ ->

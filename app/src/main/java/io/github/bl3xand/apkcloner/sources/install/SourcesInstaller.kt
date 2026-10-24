@@ -55,7 +55,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
@@ -74,6 +76,13 @@ class SourcesInstaller private constructor(private val context: Context) {
     /** Whether the app's window is in front; installs that ask a question need it. */
     @Volatile
     var isForeground = false
+
+    /**
+     * The apps whose differently-signed installed build is being removed through the system
+     * prompt, for the wait to show as the removal it is.
+     */
+    private val _uninstalling = MutableStateFlow<Set<String>>(emptySet())
+    val uninstalling: kotlinx.coroutines.flow.StateFlow<Set<String>> = _uninstalling
 
     /** The installer the whole app uses for this kind of install. */
     private fun installer(background: Boolean): Installer = Installer.choose(context, background)
@@ -896,6 +905,27 @@ class SourcesInstaller private constructor(private val context: Context) {
         val errors = MultiAppMultiError()
         val toInstall = ArrayList<String>()
         val trackOnly = ArrayList<String>()
+
+        // Removes the app installed under [entry]'s own package through the system prompt,
+        // keeping the record honest about no longer being installed. False when the user backed
+        // out of the prompt or the removal did not finish: the install then does not begin.
+        suspend fun removeThenInstall(entry: AppEntry, prompts: InstallPrompts): Boolean {
+            if (!prompts.removeThenInstall(entry.name)) return false
+            AppLog.info("${entry.app.id}: removing the differently-signed installed build before installing ${entry.app.latestVersion}")
+            _uninstalling.update { it + entry.app.id }
+            try {
+                if (!Installer.uninstall(context, entry.app.id)) return false
+            } finally {
+                _uninstalling.update { it - entry.app.id }
+            }
+            // Gone from the device: the record stops claiming an install it cannot name, so
+            // the page and the list say "not installed" until this very build lands on it.
+            repo.entry(entry.app.id)?.let {
+                repo.saveApps(listOf(it.app.copy(installedVersion = null)), attemptToCorrectInstallStatus = false)
+            }
+            return true
+        }
+
         for (id in appIds) {
             var entry = repo.entry(id) ?: throw SourceError(Tr.get("appNotFound"))
             if (entry.needsRefreshBeforeDownload) {
@@ -935,6 +965,21 @@ class SourcesInstaller private constructor(private val context: Context) {
                         }.withSetting(SettingKeys.PREFERRED_APK, TrackedApp.namedUrlsToJson(listOf(picked))),
                     ),
                 )
+            }
+            // A file signed differently from the installed build cannot go over it, so the
+            // question is asked before anything is downloaded, and the app in the way is
+            // removed when the user chooses the file. What stays installed afterwards is
+            // judged live - another app may have been removed meanwhile.
+            if (prompts != null) {
+                val entryNow = repo.entry(id)!!
+                if (checkClashWithInstalled(
+                        entryNow.app, picked,
+                        Clash(installedSigner = entryNow.certificateHashes.toSet(), offeredSigner = repo.storedApkCertHashes(id)),
+                    ) &&
+                    !removeThenInstall(entryNow, prompts)
+                ) {
+                    continue
+                }
             }
             if (!background || canInstallSilentlyInBackground(repo.entry(id)!!.app)) toInstall.add(id)
         }
