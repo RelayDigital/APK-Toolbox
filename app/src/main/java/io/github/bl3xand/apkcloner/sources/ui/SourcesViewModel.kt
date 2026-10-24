@@ -307,6 +307,9 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
                 block()
             } catch (e: CancellationSignal) {
                 // Stopped on purpose: there is nothing to report.
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // The scope itself was cancelled: that is teardown, not an error of the sources.
+                throw e
             } catch (e: Exception) {
                 // CheckUpdatesException carries its report in toString (the message itself is
                 // empty), so a plain "Sources: " line would say nothing at all.

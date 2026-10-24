@@ -49,6 +49,9 @@ object TelegramClient : TelegramGateway {
     /** The most messages Telegram gives in one answer. */
     private const val PAGE_SIZE = 100
 
+    /** How long startOver() waits for the old client to close before wiping its data regardless. */
+    private const val DESTROY_TIMEOUT_S = 30L
+
     /** A download that brings nothing for this long is taken for stuck and started again. */
     private const val STALL_MS = 90_000L
     private const val DOWNLOAD_ATTEMPTS = 3
@@ -392,6 +395,18 @@ object TelegramClient : TelegramGateway {
         _auth.value = TelegramAuth.Starting
         val running = client ?: return start()
         running.send(TdApi.Destroy()) {}
+        // Destroy() may go unanswered while the client is wedged, and the old client would
+        // then hold the sign-in that is being dropped. After a while it is wiped anyway and a
+        // fresh client started; the old one is left to close on its own, and nothing more is
+        // asked of it.
+        watchdog.schedule({
+            if (client === running) {
+                AppLog.warn("Telegram: Destroy got no answer in ${DESTROY_TIMEOUT_S}s; starting over anyway")
+                client = null
+                sessionDir().deleteRecursively()
+                start()
+            }
+        }, DESTROY_TIMEOUT_S, TimeUnit.SECONDS)
     }
 
     // ---- the gateway -------------------------------------------------------------------------

@@ -47,6 +47,9 @@ private const val QR_MARGIN_MODULES = 2
 /** How long the sheet stays locked for an answer that never comes before it lets go again. */
 private const val ANSWER_TIMEOUT_MS = 20_000L
 
+/** How long the Connecting step waits before the sheet says the start took too long. */
+private const val CONNECTING_TIMEOUT_MS = 30_000L
+
 /**
  * Signing in to Telegram, in one sheet that follows what Telegram asks for next: a phone number
  * or a QR code scanned from another device, then the code, an e-mail step and the password if
@@ -96,6 +99,10 @@ fun Context.showTelegramSignIn(scope: CoroutineScope) {
         scope.launch {
             try {
                 withContext(Dispatchers.IO) { action() }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // The sheet was closed or its scope torn down: not a sign-in failure, and
+                // swallowing it here would break the cancellation of the coroutine itself.
+                throw e
             } catch (e: Exception) {
                 // A wrong number, code or password: said under the field, to be tried again.
                 error.text = errorText(e)
@@ -141,6 +148,9 @@ fun Context.showTelegramSignIn(scope: CoroutineScope) {
     /** The code on screen, while one is: Telegram replaces it every half a minute. */
     var qrView: ImageView? = null
 
+    /** Keeps an eye on the Connecting step, so a wedged start does not hold it forever. */
+    var connectTimeout: Job? = null
+
     fun render(state: TelegramAuth) {
         // A fresh code goes into the picture that is there; redrawing the whole step would blink.
         val shown = qrView
@@ -155,6 +165,13 @@ fun Context.showTelegramSignIn(scope: CoroutineScope) {
         (error.parent as? LinearLayout)?.removeView(error)
         error.text = ""
         setBusy(state is TelegramAuth.Starting)
+        // Connecting can go on forever when TDLib is wedged: a start that has said nothing for
+        // this long is reported, with a way out, instead of an endless "Connecting…" label.
+        connectTimeout?.cancel()
+        connectTimeout = if (state is TelegramAuth.Starting) scope.launch {
+            delay(CONNECTING_TIMEOUT_MS)
+            if (TelegramClient.auth.value is TelegramAuth.Starting) render(TelegramAuth.Unsupported("Connecting"))
+        } else null
         when (state) {
             TelegramAuth.Starting -> step.add(label(Tr.get("telegramConnecting"), colorAttr = MaterialR.attr.colorOnSurfaceVariant))
             TelegramAuth.WaitPhone -> {
@@ -227,6 +244,7 @@ fun Context.showTelegramSignIn(scope: CoroutineScope) {
     dialog.setOnDismissListener {
         watching.cancel()
         unlock?.cancel()
+        connectTimeout?.cancel()
     }
     dialog.show()
 }
