@@ -67,6 +67,13 @@ class SourcesRepository private constructor(private val context: Context) {
 
     private val saveCounter = AtomicInteger()
 
+    /**
+     * Counts writes and removals of the app files. Two uses: the temp names a save writes
+     * never collide, and loadApps can tell whether anything was stored while it was reading
+     * the files.
+     */
+    private val storageMutations = AtomicInteger()
+
     /** Checking the sources for new versions. */
     val updates = UpdateChecker(context, this)
 
@@ -232,6 +239,9 @@ class SourcesRepository private constructor(private val context: Context) {
             val corrected = ArrayList<TrackedApp>()
             val invalid = ArrayList<Triple<String, String, String>>()
             val loaded = LinkedHashMap<String, AppEntry>()
+            // Read before the files: whether anything is stored while they are being read is
+            // what the swap below decides on.
+            val mutationsBefore = storageMutations.get()
             val files = appsDir.listFiles { file -> file.name.lowercase().endsWith(".json") }
                 ?.sortedBy { it.lastModified() } ?: emptyList()
             for (file in files) {
@@ -263,9 +273,21 @@ class SourcesRepository private constructor(private val context: Context) {
                     invalid.add(Triple(app.id, app.finalName, errorText(e)))
                 }
             }
+            // The swap runs under the same lock as saveApps and removeApps, and on whether anything was
+            // stored while the files were being read. Nothing was: the loaded snapshot replaces
+            // the memory. Something was: the memory holds the fresher records for that change,
+            // so the snapshot is laid over it without the clear() - the saved and removed apps
+            // keep what their writers put there, and an app the snapshot no longer has a file
+            // for goes. What used to happen - clear() and putAll() wiping a save that landed
+            // between the snapshot and the swap - cannot anymore.
             synchronized(lock) {
-                entries.clear()
-                entries.putAll(loaded)
+                if (mutationsBefore == storageMutations.get()) {
+                    entries.clear()
+                    entries.putAll(loaded)
+                } else {
+                    for ((id, entry) in loaded) entries[id] = entry
+                    entries.keys.retainAll(loaded.keys)
+                }
             }
             if (invalid.isNotEmpty()) {
                 invalid.forEach { AppLog.error("Removing app ${it.first} (${it.second}) due to load error: ${it.third}") }
@@ -320,8 +342,7 @@ class SourcesRepository private constructor(private val context: Context) {
         return if (onlyIfExists && existing == null) null else app to info
     }
 
-    /**
-     * The part of saving that runs under the entries lock, so that the record a save builds from
+    /** The part of saving that runs under the entries lock, so that the record a save builds from
      * the state of the list is stored against that same state. The lock spans the whole
      * read-modify-write: read the entry, build the record, write the file, put it in the map.
      * Nothing in it runs for long - the file write is the rename of a temp file written just
@@ -339,6 +360,7 @@ class SourcesRepository private constructor(private val context: Context) {
             val (app, info) = prepareForSave(input, existing, attemptToCorrectInstallStatus, onlyIfExists, reuseInstalledInfo)
                 ?: continue
             writeAppJson(app)
+            storageMutations.incrementAndGet()
             val sourceType = existing?.sourceType ?: runCatching { sourceOf(app).sourceIdentifier }.getOrNull()
             entries[app.id] = AppEntry(app, info, sourceType)
         }
@@ -364,12 +386,17 @@ class SourcesRepository private constructor(private val context: Context) {
         // was never stored.
         if (ids.isNotEmpty()) AppLog.info("No longer tracked: ${ids.joinToString()}")
         val downloads = apkDir.listFiles() ?: emptyArray()
-        for (id in ids) {
-            File(appsDir, "$id.json").delete()
-            forgetApkCertHashes(id)
-            setCheckError(id, null)
-            downloads.filter { it.name.startsWith("$id-") }.forEach { it.deleteRecursively() }
-            synchronized(lock) { entries.remove(id) }
+        // The lock spans the file deletion and the entry removal, so no save of an app being
+        // removed can land its file and entry back after them (a save running concurrently on
+        // another thread sees the entry gone and, with onlyIfExists, stores nothing).
+        synchronized(lock) {
+            for (id in ids) {
+                File(appsDir, "$id.json").delete()
+                forgetApkCertHashes(id)
+                setCheckError(id, null)
+                downloads.filter { it.name.startsWith("$id-") }.forEach { it.deleteRecursively() }
+                entries.remove(id)
+            }
         }
         if (ids.isNotEmpty()) {
             publish()
