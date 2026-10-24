@@ -142,4 +142,12 @@ dependencies {
     testImplementation(libs.junit)
     // The org.json classes in android.jar are stubs; unit tests need a real implementation.
     testImplementation(libs.org.json)
+
+    // ---- UI instrumentation tests (app/src/androidTest) ----
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.rules)
+    androidTestImplementation(libs.androidx.uiautomator)
+    // A tiny in-process HTTP server; the fake update source tests serve an APK from it.
+    androidTestImplementation(libs.nanohttpd)
 }

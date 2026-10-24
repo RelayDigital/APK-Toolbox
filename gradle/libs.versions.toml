@@ -21,6 +21,9 @@ commonsCompress = "1.27.1"
 xz = "1.10"
 tdlib = "1.8.56"
 zxing = "3.5.4"
+androidxTestRunner = "1.7.0"
+uiautomator = "2.3.0"
+nanohttpd = "2.3.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -46,6 +49,10 @@ xz = { group = "org.tukaani", name = "xz", version.ref = "xz" }
 tdlib = { group = "com.github.tdlibx", name = "td", version.ref = "tdlib" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
+androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "androidxTestRunner" }
+androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
+nanohttpd = { group = "org.nanohttpd", name = "nanohttpd", version.ref = "nanohttpd" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
