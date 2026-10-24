@@ -637,10 +637,21 @@ class SourcesInstaller private constructor(private val context: Context) {
         try {
             verifySignatures(entry, apkHashes, prompts, asClone = target != null)
         } catch (e: SigningCertMismatchError) {
-            // A refused file is of no use; do not keep it for a retry.
-            downloaded.file.delete()
-            downloaded.dir?.deleteRecursively()
-            throw e
+            // The first time a differently-signed file meets the app it replaces, nothing knew
+            // its signer beforehand - the download itself was the discovery. The user can still
+            // have the last word over it: remove the installed app and install this build
+            // fresh, while the file is already in hand. Only the soft refusal (the installed
+            // app is in the way); a user-pinned certificate stays final.
+            if (!background && !e.hardBlock && target == null && prompts != null &&
+                removeForInstall(entry, prompts)
+            ) {
+                // The signer on record is this file's now, so the page stops telling about a
+                // conflict the removal just resolved.
+                repo.storeApkCertHashes(id, apkHashes)
+                verifySignatures(repo.entry(id) ?: entry, apkHashes, prompts, asClone = false)
+            } else {
+                throw e
+            }
         }
         repo.setDownload(id, DownloadState(-1.0))
         try {
@@ -888,6 +899,29 @@ class SourcesInstaller private constructor(private val context: Context) {
     }
 
     /**
+     * Removes the app installed under [entry]'s own package, once the user has agreed to lose
+     * it, through the system prompt, keeping the record honest about no longer being installed.
+     * False when the user backed out of the prompt or the removal did not finish: the install
+     * then does not go ahead.
+     */
+    private suspend fun removeForInstall(entry: AppEntry, prompts: InstallPrompts): Boolean {
+        if (!prompts.removeThenInstall(entry.name)) return false
+        AppLog.info("${entry.app.id}: removing the differently-signed installed build before installing ${entry.app.latestVersion}")
+        _uninstalling.update { it + entry.app.id }
+        try {
+            if (!Installer.uninstall(context, entry.app.id)) return false
+        } finally {
+            _uninstalling.update { it - entry.app.id }
+        }
+        // Gone from the device: the record stops claiming an install it cannot name, so
+        // the page and the list say "not installed" until this very build lands on it.
+        repo.entry(entry.app.id)?.let {
+            repo.saveApps(listOf(it.app.copy(installedVersion = null)), attemptToCorrectInstallStatus = false)
+        }
+        return true
+    }
+
+    /**
      * Downloads and installs the newest version of the given apps. With [prompts] the user can
      * be asked; without, only what installs silently is attempted. Returns the installed ids;
      * failures of single apps are thrown together at the end.
@@ -902,26 +936,6 @@ class SourcesInstaller private constructor(private val context: Context) {
         val errors = MultiAppMultiError()
         val toInstall = ArrayList<String>()
         val trackOnly = ArrayList<String>()
-
-        // Removes the app installed under [entry]'s own package through the system prompt,
-        // keeping the record honest about no longer being installed. False when the user backed
-        // out of the prompt or the removal did not finish: the install then does not begin.
-        suspend fun removeThenInstall(entry: AppEntry, prompts: InstallPrompts): Boolean {
-            if (!prompts.removeThenInstall(entry.name)) return false
-            AppLog.info("${entry.app.id}: removing the differently-signed installed build before installing ${entry.app.latestVersion}")
-            _uninstalling.update { it + entry.app.id }
-            try {
-                if (!Installer.uninstall(context, entry.app.id)) return false
-            } finally {
-                _uninstalling.update { it - entry.app.id }
-            }
-            // Gone from the device: the record stops claiming an install it cannot name, so
-            // the page and the list say "not installed" until this very build lands on it.
-            repo.entry(entry.app.id)?.let {
-                repo.saveApps(listOf(it.app.copy(installedVersion = null)), attemptToCorrectInstallStatus = false)
-            }
-            return true
-        }
 
         for (id in appIds) {
             var entry = repo.entry(id) ?: throw SourceError(Tr.get("appNotFound"))
@@ -973,7 +987,7 @@ class SourcesInstaller private constructor(private val context: Context) {
                         entryNow.app, picked,
                         Clash(installedSigner = entryNow.certificateHashes.toSet(), offeredSigner = repo.storedApkCertHashes(id)),
                     ) &&
-                    !removeThenInstall(entryNow, prompts)
+                    !removeForInstall(entryNow, prompts)
                 ) {
                     continue
                 }
