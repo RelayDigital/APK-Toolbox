@@ -12,8 +12,12 @@ class ApkCloner(private val context: Context) {
      * A signature cannot be carried over from the original (it is bound to the developer's
      * private key and to the unmodified contents), so everything this app produces is signed
      * with one of its own keys.
+     *
+     * Read lazily: a build whose [CloneRequest] names its key never reads the store (only the
+     * sign call's fallback does), so a desktop test can drive the whole build with its own key
+     * without the Android storage behind the keys.
      */
-    val keys: SigningKeys = SigningKeys.get(context)
+    val keys: SigningKeys by lazy { SigningKeys.get(context) }
 
     /** Writes the cloned APKs into [outputDir], in the same order as [CloneRequest.apks]. */
     fun clone(
