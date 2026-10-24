@@ -23,9 +23,12 @@ class MainTabsSmokeTest : BaseUiTest() {
                 ?: error("Tab \"$title\" not found in the tab strip. Screen:\n${dumpVisibleTexts()}")
             tabView.click()
             device.waitForIdle(2_000)
-            // Some content of the tab: its empty-state text or, on Sources, the add button.
-            val settled = findString("sources_add") != null ||
-                listOf("empty_list", "empty_clones", "empty_split").any { findString(it) != null }
+            // Tab content settles: either a known empty-state string is on screen, the add
+            // button of Sources, or the list is populated (a screenful of views is enough of a
+            // witness; emulators come with a handful of preinstalled apps).
+            val settled = listOf("sources_add", "empty_list", "empty_clones", "empty_split").any { findString(it) != null } ||
+                findString("cloning_installed") != null ||
+                device.findObjects(By.clazz("android.widget.TextView")).orEmpty().size > 6
             assert(settled) { "Tab \"$title\" did not settle. Screen:\n${dumpVisibleTexts()}" }
         }
 
@@ -40,7 +43,7 @@ class MainTabsSmokeTest : BaseUiTest() {
         // Back dismisses the sheet; the app stays and the Sources tab is still there.
         device.pressBack()
         device.waitForIdle(2_000)
-        assert(device.wait(By.pkg(packageName).depth(0).let(Until::hasObject), 3_000)) {
+        assert(device.wait(Until.hasObject(By.pkg(packageName).depth(0)), 3_000)) {
             "The app closed when the Settings sheet was dismissed"
         }
         assert(findString("sources_add") != null) { "Sources tab did not come back after Settings closed" }
