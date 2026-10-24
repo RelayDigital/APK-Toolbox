@@ -257,8 +257,8 @@ object SignatureSpoof {
             emptyList<org.jf.dexlib2.iface.Annotation>(),
             emptyList<org.jf.dexlib2.iface.Field>(),
             listOf(
-            helperMethod(access, "I", certificate, clonePackage),
-            helperMethod(access, FLAGS, certificate, clonePackage),
+            helperMethod(access, "I", certificate, originalPackage, clonePackage),
+            helperMethod(access, FLAGS, certificate, originalPackage, clonePackage),
             packageNameMethod(access, originalPackage),
             componentLookupMethod(access, "I", "getProviderInfo", "Landroid/content/pm/ProviderInfo;", clonePackage),
             componentLookupMethod(access, FLAGS, "getProviderInfo", "Landroid/content/pm/ProviderInfo;", clonePackage),
@@ -348,29 +348,42 @@ object SignatureSpoof {
      * PackageInfo un-substituted there hands it the CLONER's certificate - the classic check
      * the patch exists for.
      *
-     * The retry (NameNotFoundException) re-queries with the clone's own package, which is
-     * always visible to itself: with the package-name spoof the asked-for name can be the
-     * ORIGINAL's, which the clone may not see (Android 11+ package visibility filters it).
+     * The retry (NameNotFoundException) answers for exactly two names: the CLONE's own package
+     * and the ORIGINAL's. The clone's name is the always-visible self, and covers the mimicry
+     * case: with the package-name spoof on, the app asks by the ORIGINAL's name, which the
+     * clone may not see (Android 11+ package visibility filters it), and the retry must answer
+     * clone-self data with the substituted certificate. The original's name is the same query
+     * when the original happens to be visible. A query about any OTHER package that the app
+     * cannot see or that is absent rethrows NameNotFoundException - exactly what the real
+     * manager would have thrown - so apps that enumerate packages or branch on a package's
+     * absence keep their unpatched behavior instead of getting clone-self answers.
      *
      * Code shape (register map: 13 registers, three params in the LAST ones: v10=pm, v11=name,
-     * v12=flags; v0-v9 scratch), in code-unit addresses:
+     * v12=flags; v0-v9 scratch), in code-unit addresses - the handler's rethrow is deliberately
+     * NOT covered by the try, so it propagates (the same shape d8 emits for a conditional
+     * rethrow inside a catch):
      *
      * ```
      * try {
      *   v0 = pm.getPackageInfo(v11, v12);   // units 0..3 (invoke=3, move=1)
      *   goto tail;                          // unit 4: over the handler, into the tail
      * } catch (NameNotFoundException -> unit 5) {
-     *   v11 = clonePackage;                 // units 5..7 (const-string=2, move=1)
-     *   v0 = pm.getPackageInfo(v11, v12);   // units 8..11, flags passed through
+     *   v9 = exception;                     // unit 5: MOVE_EXCEPTION opens the handler
+     *   if (v11 != clonePackage) goto 10;   // units 6..9: is it the clone's name?
+     *   if (v11 == originalPackage) goto 15;// units 10..13: or the original's?
+     *   throw v9;                           // unit 14: neither - propagate NameNotFound
+     *   retry: v11 = clonePackage;          // units 15..17 (const-string=2, move=1)
+     *   v0 = pm.getPackageInfo(v11, v12);   // units 18..21, flags passed through
      * }
-     * tail: // units 12..29: v0.signatures = { new Signature(Base64.decode(cert)) }; return v0;
+     * tail: // units 22..29: v0.signatures = { new Signature(Base64.decode(cert)) }; return v0;
      * ```
      *
-     * The goto is load-bearing: without it the success path falls INTO the handler. The single
-     * RETURN at the end is shared by both paths - the substitution tail applies to the
-     * successful result and the retry alike.
+     * The gotos are load-bearing: without the first, the success path falls INTO the handler;
+     * without the retry's conditional jumps the handler would answer clone-self for every
+     * absent package. The single RETURN at the end is shared by both surviving paths - the
+     * substitution tail applies to the successful result and the retry alike.
      */
-    private fun helperMethod(access: Int, flagsType: String, certificate: String, clonePackage: String): ImmutableMethod {
+    private fun helperMethod(access: Int, flagsType: String, certificate: String, originalPackage: String, clonePackage: String): ImmutableMethod {
         val code = mutableListOf<ImmutableInstruction>()
         // try { v0 = pm.getPackageInfo(v11, v12); goto tail; } -> units 0..4 (invoke=3, move=1,
         // goto=1). NO return here: control jumps to the shared substitution tail, so the
@@ -380,18 +393,32 @@ object SignatureSpoof {
             ImmutableMethodReference(PACKAGE_MANAGER, "getPackageInfo", listOf("Ljava/lang/String;", flagsType), PACKAGE_INFO),
         )
         code += ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0)
-        code += ImmutableInstruction10t(Opcode.GOTO, 8)
-        // catch (NameNotFoundException) at unit 5: retry with the clone's own package,
-        // v1 = clonePackage; v11 = v1 (name := clonePackage): plain MOVE_OBJECT (12x) - both
-        // registers are < 16; then v0 = pm.getPackageInfo(clonePackage, v12), flags unchanged
-        // (the int variant's flags and the PackageInfoFlags object both pass through as-is).
+        code += ImmutableInstruction10t(Opcode.GOTO, 18)
+        // catch (NameNotFoundException) at unit 5. MOVE_EXCEPTION must open a handler; the
+        // caught exception lives in v9 for the rethrow below.
+        code += ImmutableInstruction11x(Opcode.MOVE_EXCEPTION, 9)
+        // The name guard, in two comparisons (a String's value is a constant here; comparing
+        // register to register keeps it one instruction each):
+        // if (v11 != clonePackage) goto 10 (compare with the original's name next);
+        code += ImmutableInstruction21c(Opcode.CONST_STRING, 1, ImmutableStringReference(clonePackage))
+        code += ImmutableInstruction22t(Opcode.IF_NE, 11, 1, 10)
+        // if (v11 == originalPackage) goto 15 (the retry);
+        code += ImmutableInstruction21c(Opcode.CONST_STRING, 1, ImmutableStringReference(originalPackage))
+        code += ImmutableInstruction22t(Opcode.IF_EQ, 11, 1, 15)
+        // throw v9 (unit 14): the queried name is neither the clone's nor the original's - a
+        // foreign absent/invisible package keeps its NameNotFoundException.
+        code += ImmutableInstruction11x(Opcode.THROW, 9)
+        // retry (unit 15): v1 = clonePackage; v11 = v1 (name := clonePackage): plain
+        // MOVE_OBJECT (12x) - both registers are < 16; then v0 = pm.getPackageInfo(v11, v12),
+        // flags passed through unchanged (the int variant's flags and the PackageInfoFlags
+        // object both flow as they were).
         code += ImmutableInstruction21c(Opcode.CONST_STRING, 1, ImmutableStringReference(clonePackage))
         code += ImmutableInstruction12x(Opcode.MOVE_OBJECT, 11, 1)
         code += ImmutableInstruction35c(
             Opcode.INVOKE_VIRTUAL, 3, 10, 11, 12, 0, 0,
             ImmutableMethodReference(PACKAGE_MANAGER, "getPackageInfo", listOf("Ljava/lang/String;", flagsType), PACKAGE_INFO),
         )
-        // Substitution tail (units 12..29), shared by both paths: v0.signatures =
+        // Substitution tail (units 22..29), shared by both surviving paths: v0.signatures =
         // { new Signature(Base64.decode(certificate)) }.
         val instructions = code + listOf<ImmutableInstruction>(
             ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
@@ -431,7 +458,8 @@ object SignatureSpoof {
             ImmutableMethodImplementation(
                 13, instructions,
                 // The try covers the real call and the goto over the handler (units 0..5);
-                // the handler starts at unit 5, straight after the covered range.
+                // the handler starts at unit 5, and its own rethrow at unit 14 is outside the
+                // covered range, so it propagates out of the method.
                 listOf(ImmutableTryBlock(0, 5, listOf(ImmutableExceptionHandler(NAME_NOT_FOUND, 5)))),
                 emptyList<org.jf.dexlib2.iface.debug.DebugItem>(),
             ),

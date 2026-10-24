@@ -213,12 +213,17 @@ class DexPatchTest {
 
     @org.junit.Test
     fun spoofHelperSubstitutesOnTheSuccessPathToo() {
-        // The helper's try must NOT return the successful getPackageInfo result directly: the
-        // classic self-check queries the app by its own (visible) package name, which goes
-        // through the SUCCESS path - returning the real info there hands the app the CLONER's
-        // certificate. The success result must instead jump over the NameNotFoundException
-        // handler into the shared substitution tail, so both paths return the info with the
-        // ORIGINAL's certificate written into `signatures`.
+        // The helper's contract, in code-unit shape:
+        // - the try must NOT return the successful getPackageInfo result: the classic
+        //   self-check queries the app by its own (visible) package name, which goes through
+        //   the SUCCESS path - returning the real info there hands the app the CLONER's
+        //   certificate. The success result must instead jump over the NameNotFoundException
+        //   handler into the shared substitution tail, so both paths return the info with the
+        //   ORIGINAL's certificate written into `signatures`;
+        // - the handler compares the queried name against the CLONE's and the ORIGINAL's
+        //   package; only those retry with the clone's package (mimicry's redirect), any
+        //   other absent/invisible package rethrows NameNotFoundException - the app keeps its
+        //   unpatched behavior for foreign-package queries.
         val before = dex(
             Triple("a", "(I)V", listOf(invokeStatic("Landroid/content/pm/PackageManager;", "getPackageInfo", listOf("Ljava/lang/String;", "I"), "Landroid/content/pm/PackageInfo;"))),
         )
@@ -265,11 +270,25 @@ class DexPatchTest {
                 "Landroid/content/pm/PackageManager\$NameNotFoundException;",
                 tryBlock.exceptionHandlers.first().exceptionType,
             )
-            // The handler's re-query must ask for the CLONE's package (the always-visible self),
-            // and the spoofing tail must still write the signatures field before returning.
+            // The handler's re-query must ask for the CLONE's package (the always-visible
+            // self), guarded by both names (clone first, then original), and the spoofing
+            // tail must still write the signatures field before returning.
             val strings = withAddr.filter { it.first.opcode == Opcode.CONST_STRING }
                 .map { ((it.first as ReferenceInstruction).reference as StringReference).string }
-            org.junit.Assert.assertEquals(listOf("com.example.app.clone"), strings.filter { it.startsWith("com.example.") })
+            org.junit.Assert.assertEquals(
+                "the guard and the retry carry both names, clone twice",
+                listOf("com.example.app.clone", "com.example.app", "com.example.app.clone"),
+                strings.filter { it.startsWith("com.example.") },
+            )
+            org.junit.Assert.assertTrue(
+                "the handler rethrows for names that are neither the clone's nor the original's",
+                withAddr.any { it.first.opcode == Opcode.THROW },
+            )
+            val throwAddr = withAddr.filter { it.first.opcode == Opcode.THROW }.first().second
+            org.junit.Assert.assertTrue(
+                "the rethrow must be outside the try's covered range (it propagates out)",
+                throwAddr >= tryBlock.startCodeAddress + tryBlock.codeUnitCount,
+            )
             org.junit.Assert.assertTrue(
                 "the tail still substitutes the signature",
                 withAddr.any { it.first.opcode == Opcode.IPUT_OBJECT && (it.first as ReferenceInstruction).let { r -> (r.reference as org.jf.dexlib2.iface.reference.FieldReference).name == "signatures" } },
