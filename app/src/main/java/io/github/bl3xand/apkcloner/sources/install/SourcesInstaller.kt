@@ -13,6 +13,7 @@ import android.os.Environment
 import androidx.core.content.FileProvider
 import io.github.bl3xand.apkcloner.clone.ApkCloner
 import io.github.bl3xand.apkcloner.clone.CloneRequest
+import io.github.bl3xand.apkcloner.install.InstallCoordinator
 import io.github.bl3xand.apkcloner.install.InstallOutcome
 import io.github.bl3xand.apkcloner.install.InstallReceiver
 import io.github.bl3xand.apkcloner.install.Installer
@@ -55,7 +56,6 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
@@ -478,12 +478,15 @@ class SourcesInstaller private constructor(private val context: Context) {
         }
         val before = baseline(appId)
         AppLog.debug("Installing $appId with ${installer(background).javaClass.simpleName}, ${apks.size} file(s), background=$background")
+        // One install of a package at a time, across every update driver; the hand-off to
+        // the system goes through the coordinator's commit, so a background pass and an
+        // obtain asked for on screen cannot interleave their prompts.
         // The outcome is reported by whoever asked for the install.
         InstallReceiver.reportedByCaller = true
         val outcome = try {
-            installer(background).install(
-                context, apks, background, entry.name, if (pretendPlay) Installer.PLAY_STORE_PACKAGE else null,
-            )
+            InstallCoordinator.installing(appId, background = background) {
+                commit { installer(background).install(context, apks, background, entry.name, if (pretendPlay) Installer.PLAY_STORE_PACKAGE else null) }
+            }
         } catch (e: Exception) {
             InstallReceiver.reportedByCaller = false
             throw e
@@ -837,7 +840,6 @@ class SourcesInstaller private constructor(private val context: Context) {
         // This app goes last: installing it ends the process.
         toInstall.sortBy { it == context.packageName }
         val installed = Collections.synchronizedList(ArrayList<String>())
-        val installLock = Mutex()
 
         suspend fun handle(id: String) {
             val downloaded = try {
@@ -852,9 +854,9 @@ class SourcesInstaller private constructor(private val context: Context) {
             }
             val resolvedId = downloaded.appId
             repo.setDownload(resolvedId, DownloadState(100.0))
-            // Installs happen one at a time, in the order the downloads finish.
-            installLock.lock()
             try {
+                // The long foreground wait happens before the install proper, so it blocks
+                // no other install (lock discipline: long waits outside every lock).
                 if (!background && !isForeground && installer(false) is StockInstaller) {
                     // The system prompt can only be shown over our own window.
                     SourcesNotifications.completeInstallation(context)
@@ -866,21 +868,25 @@ class SourcesInstaller private constructor(private val context: Context) {
                 synchronized(errors) { errors.add(resolvedId, e, appName = repo.entry(resolvedId)?.name) }
                 AppLog.error("Install failed for $resolvedId", e)
             } finally {
-                installLock.unlock()
                 repo.setDownload(resolvedId, null)
             }
         }
 
-        try {
-            if (forceSerialDownloads || !settings.parallelDownloads) {
-                for (id in toInstall) handle(id)
-            } else {
-                coroutineScope { toInstall.map { async { handle(it) } }.awaitAll() }
+        // A background batch installs as one unit: an obtain asked for on screen while it
+        // runs waits for it instead of interleaving its notifications and prompts.
+        val installBatch: suspend () -> Unit = {
+            try {
+                if (forceSerialDownloads || !settings.parallelDownloads) {
+                    for (id in toInstall) handle(id)
+                } else {
+                    coroutineScope { toInstall.map { async { handle(it) } }.awaitAll() }
+                }
+            } finally {
+                toInstall.forEach { repo.setDownload(it, null) }
+                cloneRequests.removeAll(appIds.toSet())
             }
-        } finally {
-            toInstall.forEach { repo.setDownload(it, null) }
-            cloneRequests.removeAll(appIds.toSet())
         }
+        if (background) InstallCoordinator.backgroundBatch(installBatch) else installBatch()
         if (errors.idsByErrorString.isNotEmpty()) throw errors
         installed.toList()
     }

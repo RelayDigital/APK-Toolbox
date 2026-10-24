@@ -8,6 +8,7 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Color
 import io.github.bl3xand.apkcloner.clone.ApkCloner
+import io.github.bl3xand.apkcloner.install.InstallCoordinator
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.doStringsMatchUnderRegEx
@@ -94,7 +95,11 @@ class SourcesRepository private constructor(private val context: Context) {
         _downloads.value = _downloads.value.toMutableMap().also { if (state == null) it.remove(id) else it[id] = state }
     }
 
-    fun areDownloadsRunning(): Boolean = _downloads.value.isNotEmpty()
+    /**
+     * Whether anything is being downloaded or installed: by this tab, or by a background
+     * worker through the shared install coordinator. What the "already busy" guards check.
+     */
+    fun areDownloadsRunning(): Boolean = _downloads.value.isNotEmpty() || InstallCoordinator.isInstalling
 
     fun installedInfo(packageName: String?): PackageInfo? {
         if (packageName == null) return null

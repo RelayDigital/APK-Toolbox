@@ -17,6 +17,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import io.github.bl3xand.apkcloner.clone.ApkCloner
 import io.github.bl3xand.apkcloner.data.AppRepository
+import io.github.bl3xand.apkcloner.install.InstallCoordinator
 import io.github.bl3xand.apkcloner.install.InstallOutcome
 import io.github.bl3xand.apkcloner.install.Installer
 import io.github.bl3xand.apkcloner.log.AppLog
@@ -62,33 +63,39 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
             // Without the network or the charger the settings ask for, updates are only reported.
             val mayInstall = autoInstall && restrictionsMet(context, settings)
             val clones = if (settings.checkClones) AppRepository(context, cloner).installed().clones else emptyList()
-            for (clone in clones) {
-                if (!clone.wantsUpdate) continue
-                val request = clone.updateRequest() ?: continue
-                if (!mayInstall) {
-                    available += clone.app.label
-                    continue
-                }
-                // Decided up front, so a clone the system would only install after a
-                // confirmation is not rebuilt for nothing.
-                if (!installer.canInstallSilently(context, clone.app)) {
-                    failed += clone.app.label
-                    continue
-                }
-                UpdateNotifications.showProgress(context, clone.app.label)
-                // One broken app must not keep the rest from updating.
-                val outcome = try {
-                    val apks = cloner.clone(request, output) { _, _, _ -> }
-                    installer.install(context, apks, background = true, label = clone.app.label)
-                } catch (e: Exception) {
-                    InstallOutcome.Failed(e.message.orEmpty())
-                }
-                if (outcome is InstallOutcome.Failed) {
-                    AppLog.error("Background update of clone ${clone.app.packageName} failed: ${outcome.reason}")
-                    failed += clone.app.label
-                } else {
-                    AppLog.info("Clone ${clone.app.packageName} updated in the background")
-                    updated++
+            // The whole pass installs as one unit, so an obtain asked for on screen waits
+            // for it instead of interleaving its prompts (InstallCoordinator).
+            InstallCoordinator.backgroundBatch {
+                for (clone in clones) {
+                    if (!clone.wantsUpdate) continue
+                    val request = clone.updateRequest() ?: continue
+                    if (!mayInstall) {
+                        available += clone.app.label
+                        continue
+                    }
+                    // Decided up front, so a clone the system would only install after a
+                    // confirmation is not rebuilt for nothing.
+                    if (!installer.canInstallSilently(context, clone.app)) {
+                        failed += clone.app.label
+                        continue
+                    }
+                    UpdateNotifications.showProgress(context, clone.app.label)
+                    // One broken app must not keep the rest from updating.
+                    val outcome = try {
+                        val apks = cloner.clone(request, output) { _, _, _ -> }
+                        InstallCoordinator.installing(clone.app.packageName, background = true) {
+                            commit { installer.install(context, apks, background = true, label = clone.app.label) }
+                        }
+                    } catch (e: Exception) {
+                        InstallOutcome.Failed(e.message.orEmpty())
+                    }
+                    if (outcome is InstallOutcome.Failed) {
+                        AppLog.error("Background update of clone ${clone.app.packageName} failed: ${outcome.reason}")
+                        failed += clone.app.label
+                    } else {
+                        AppLog.info("Clone ${clone.app.packageName} updated in the background")
+                        updated++
+                    }
                 }
             }
         } finally {
