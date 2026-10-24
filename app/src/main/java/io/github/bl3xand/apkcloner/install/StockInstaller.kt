@@ -34,8 +34,7 @@ object StockInstaller : Installer {
         context: Context, apks: List<File>, background: Boolean, label: String, installerPackage: String?,
     ): InstallOutcome =
         try {
-            withContext(Dispatchers.IO) { ApkInstaller.install(context, apks, background, label) }
-            InstallOutcome.Pending
+            withContext(Dispatchers.IO) { InstallOutcome.Pending(ApkInstaller.install(context, apks, background, label)) }
         } catch (e: Exception) {
             InstallOutcome.Failed(e.message ?: e.javaClass.simpleName)
         }

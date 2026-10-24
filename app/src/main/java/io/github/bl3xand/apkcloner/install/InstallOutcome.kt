@@ -4,6 +4,9 @@ sealed interface InstallOutcome {
     data object Success : InstallOutcome
     data class Failed(val reason: String) : InstallOutcome
 
-    /** Handed to the system; the result arrives later through [InstallReceiver]. */
-    data object Pending : InstallOutcome
+    /**
+     * Handed to the system; the result arrives later through [InstallReceiver], keyed by
+     * [sessionId] so concurrent installs each answer their own waiter.
+     */
+    data class Pending(val sessionId: Int) : InstallOutcome
 }

@@ -11,15 +11,12 @@ import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -57,20 +54,18 @@ class ApkOutput(
 
     /** Returns once the install has actually ended, so progress can be shown for all of it. */
     suspend fun install(apks: List<File>) = coroutineScope {
-        // Subscribed before the install starts: a silent update can finish before we get to wait.
-        val finished = async(start = CoroutineStart.UNDISPATCHED) {
-            withTimeoutOrNull(INSTALL_TIMEOUT_MS) { InstallReceiver.sessionFinished.first() }
-        }
         when (val outcome = Installer.choose(application, background = false).install(application, apks)) {
-            // The system installer reports its own result later, as a toast.
-            InstallOutcome.Pending -> finished.await()
+            is InstallOutcome.Pending -> {
+                // The outcome is reported by this app's own sheets, not by the receiver.
+                InstallReceiver.claimSelfReport(outcome.sessionId)
+                withTimeoutOrNull(INSTALL_TIMEOUT_MS) { InstallReceiver.awaitSession(outcome.sessionId) }
+            }
             InstallOutcome.Success -> Unit
             is InstallOutcome.Failed -> {
                 AppLog.error("Install failed: ${outcome.reason}")
                 events.tryEmit(MainEvent.Message(R.string.install_failed, outcome.reason))
             }
         }
-        finished.cancel()
     }
 
     /** A single APK is written as is; an app with splits becomes an .apks archive of all parts. */

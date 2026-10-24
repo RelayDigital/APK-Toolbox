@@ -481,32 +481,30 @@ class SourcesInstaller private constructor(private val context: Context) {
         // One install of a package at a time, across every update driver; the hand-off to
         // the system goes through the coordinator's commit, so a background pass and an
         // obtain asked for on screen cannot interleave their prompts.
-        // The outcome is reported by whoever asked for the install.
-        InstallReceiver.reportedByCaller = true
-        val outcome = try {
-            InstallCoordinator.installing(appId, background = background) {
-                commit { installer(background).install(context, apks, background, entry.name, if (pretendPlay) Installer.PLAY_STORE_PACKAGE else null) }
+        // The outcome is reported here and by the callers: a claimed session makes the
+        // receiver stay silent about it, and the claim is consumed by its own result.
+        val outcome = InstallCoordinator.installing(appId, background = background) {
+            commit {
+                val result = installer(background).install(context, apks, background, entry.name, if (pretendPlay) Installer.PLAY_STORE_PACKAGE else null)
+                if (result is InstallOutcome.Pending) InstallReceiver.claimSelfReport(result.sessionId)
+                result
             }
-        } catch (e: Exception) {
-            InstallReceiver.reportedByCaller = false
-            throw e
         }
         val succeeded = when (outcome) {
             is InstallOutcome.Failed -> {
-                InstallReceiver.reportedByCaller = false
                 AppLog.error("Install of $appId failed: ${outcome.reason}")
                 throw SourceError(outcome.reason)
             }
             InstallOutcome.Success -> true
-            InstallOutcome.Pending -> {
+            is InstallOutcome.Pending -> {
                 if (background) {
                     // The result of a background session is not delivered here; look for it.
                     waitForPackageInstall(appId, before, attempts = BACKGROUND_CONFIRM_ATTEMPTS)
                 } else {
-                    // Whichever comes first: the installer's answer or the package changing.
+                    // Whichever comes first: this session's answer or the package changing.
                     withTimeoutOrNull(INSTALL_CONFIRM_TIMEOUT_MS) {
                         coroutineScope {
-                            val answered = async { InstallReceiver.sessionFinished.first() }
+                            val answered = async { InstallReceiver.awaitSession(outcome.sessionId) }
                             val landed = async { waitForPackageInstall(appId, before, INSTALL_CONFIRM_POLLS, 1000) }
                             kotlinx.coroutines.selects.select<Unit> {
                                 answered.onAwait { }
@@ -520,7 +518,6 @@ class SourcesInstaller private constructor(private val context: Context) {
                 }
             }
         }
-        InstallReceiver.reportedByCaller = false
         AppLog.info(if (succeeded) "Installed $appId ${newInfo.versionName}" else "Install of $appId was not confirmed")
         if (succeeded) {
             repo.entry(id)?.let { repo.saveApps(listOf(it.app.copy(installedVersion = it.app.latestVersion))) }

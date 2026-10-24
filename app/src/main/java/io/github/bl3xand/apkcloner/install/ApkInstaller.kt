@@ -14,7 +14,7 @@ object ApkInstaller {
      * [background] marks sessions started without the app on screen: if the system insists on a
      * confirmation, it is offered as a notification instead of being launched directly.
      */
-    fun install(context: Context, apks: List<File>, background: Boolean = false, label: String = "") {
+    fun install(context: Context, apks: List<File>, background: Boolean = false, label: String = ""): Int {
         val installer = context.packageManager.packageInstaller
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
         // Lets the system skip the confirmation when updating a clone this app installed itself.
@@ -24,11 +24,17 @@ object ApkInstaller {
         }
         val sessionId = installer.createSession(params)
         installer.openSession(sessionId).use { session ->
-            for (apk in apks) {
-                session.openWrite(apk.name, 0, apk.length()).use { out ->
-                    apk.inputStream().use { it.copyTo(out, 1 shl 16) }
-                    session.fsync(out)
+            try {
+                for (apk in apks) {
+                    session.openWrite(apk.name, 0, apk.length()).use { out ->
+                        apk.inputStream().use { it.copyTo(out, 1 shl 16) }
+                        session.fsync(out)
+                    }
                 }
+            } catch (e: Exception) {
+                // A half-staged session would only block the same package's next install.
+                runCatching { session.abandon() }
+                throw e
             }
             val callback = PendingIntent.getBroadcast(
                 context,
@@ -40,5 +46,6 @@ object ApkInstaller {
             )
             session.commit(callback.intentSender)
         }
+        return sessionId
     }
 }

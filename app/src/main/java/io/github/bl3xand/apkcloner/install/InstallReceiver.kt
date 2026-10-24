@@ -9,8 +9,10 @@ import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.ui.Messages
 import io.github.bl3xand.apkcloner.update.UpdateNotifications
+import java.util.Collections
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
 
 class InstallReceiver : BroadcastReceiver() {
 
@@ -21,6 +23,10 @@ class InstallReceiver : BroadcastReceiver() {
             return
         }
         val packageName = intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME) ?: "?"
+        // Results belong to their own session: concurrent installs each answer their own
+        // waiter, and a session whose caller reports the outcome itself is left to it.
+        val sessionId = intent.getIntExtra(PackageInstaller.EXTRA_SESSION_ID, NO_SESSION)
+        val selfReported = unclaimSelfReport(sessionId)
         when (status) {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                 AppLog.debug("System installer: asking the user to confirm $packageName")
@@ -29,18 +35,18 @@ class InstallReceiver : BroadcastReceiver() {
             }
             PackageInstaller.STATUS_SUCCESS -> {
                 AppLog.info("System installer: installed $packageName")
-                if (!reportedByCaller) Messages.show(context, context.getString(R.string.install_success))
-                finished.tryEmit(Unit)
+                if (!selfReported) Messages.show(context, context.getString(R.string.install_success))
+                finish(SessionResult(sessionId, packageName, status))
             }
             PackageInstaller.STATUS_FAILURE_ABORTED -> {
                 AppLog.info("System installer: cancelled by the user ($packageName)")
-                finished.tryEmit(Unit)
+                finish(SessionResult(sessionId, packageName, status))
             }
             else -> {
                 val reason = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE).orEmpty()
                 AppLog.error("System installer: failed for $packageName, status $status: $reason")
-                Messages.show(context, context.getString(R.string.install_failed, reason))
-                finished.tryEmit(Unit)
+                if (!selfReported) Messages.show(context, context.getString(R.string.install_failed, reason))
+                finish(SessionResult(sessionId, packageName, status, reason))
             }
         }
     }
@@ -57,28 +63,68 @@ class InstallReceiver : BroadcastReceiver() {
         if (status != PackageInstaller.STATUS_SUCCESS) {
             UpdateNotifications.showFailed(context, intent.getStringExtra(EXTRA_LABEL).orEmpty())
         }
-        if (status != PackageInstaller.STATUS_PENDING_USER_ACTION) finished.tryEmit(Unit)
+        if (status != PackageInstaller.STATUS_PENDING_USER_ACTION) {
+            val sessionId = intent.getIntExtra(PackageInstaller.EXTRA_SESSION_ID, NO_SESSION)
+            finish(SessionResult(sessionId, intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME), status))
+        }
+    }
+
+    private fun finish(result: SessionResult) {
+        finished.tryEmit(result)
+    }
+
+    /** How the end of one install session looks to whoever waits for it. */
+    class SessionResult(val sessionId: Int, val packageName: String?, val status: Int, val reason: String? = null) {
+        val succeeded: Boolean get() = status == PackageInstaller.STATUS_SUCCESS
+
+        /** The system's own words about what went wrong, or at least its status number. */
+        val reasonText: String get() = reason.orEmpty().ifBlank { "status $status" }
     }
 
     companion object {
-        /**
-         * Set while a caller that reports the outcome itself waits for the installer, so that a
-         * successful install is announced once and not twice.
-         */
-        @Volatile
-        var reportedByCaller = false
-
         const val EXTRA_BACKGROUND = "background"
         const val EXTRA_LABEL = "label"
 
-        private val finished = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        /** Stands in for the sessionId when an installer has no session to name. */
+        const val NO_SESSION = -1
 
-        /** Fires whenever an install ends, successfully or not. */
+        // The last results are replayed, so a waiter that starts only after handing the
+        // session to the system still sees how it ended.
+        private val finished = MutableSharedFlow<SessionResult>(extraBufferCapacity = 16, replay = 32)
+
+        /** Fires whenever an install ends, successfully or not, carrying whose it was. */
         val sessionFinished = finished.asSharedFlow()
 
-        /** For installers that learn the result themselves instead of through this receiver. */
-        fun notifyFinished() {
-            finished.tryEmit(Unit)
+        private val selfReporting = Collections.synchronizedSet(HashSet<Int>())
+
+        /**
+         * Says the caller of [sessionId] reports the outcome itself, so the receiver stays
+         * silent about it. Must be called before the session is committed; the claim is
+         * consumed by the result that belongs to it.
+         */
+        fun claimSelfReport(sessionId: Int) {
+            selfReporting.add(sessionId)
+        }
+
+        /** Whether [sessionId] has a self-reporting claim standing (tests). */
+        internal fun isSelfReported(sessionId: Int): Boolean = sessionId in selfReporting
+
+        private fun unclaimSelfReport(sessionId: Int): Boolean = selfReporting.remove(sessionId)
+
+        /** Waits for how [sessionId] ended; a recent end is replayed to a late waiter. */
+        suspend fun awaitSession(sessionId: Int): SessionResult = sessionFinished.first { it.sessionId == sessionId }
+
+        /**
+         * For installers that learn the result themselves instead of through this receiver.
+         * Names the package when it is known; waiters for a particular session are not woken.
+         */
+        fun notifyFinished(packageName: String? = null) {
+            finished.tryEmit(SessionResult(NO_SESSION, packageName, PackageInstaller.STATUS_SUCCESS))
+        }
+
+        /** An install session's end, as the system's broadcast would report it (tests). */
+        internal fun reportForTest(sessionId: Int, packageName: String?, status: Int, reason: String? = null) {
+            finished.tryEmit(SessionResult(sessionId, packageName, status, reason))
         }
     }
 }
