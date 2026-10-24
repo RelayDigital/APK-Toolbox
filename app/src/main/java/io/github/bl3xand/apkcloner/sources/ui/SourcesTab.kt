@@ -246,6 +246,12 @@ class SourcesTab(private val activity: AppCompatActivity, private val binding: A
                     viewModel.repo.entry(single.id)?.let(menus::editOptions)
                 })
             }
+            // A remembered pick of a release file is a thing to change one's mind about.
+            if (single.apkUrls.size > 1 || single.releaseBranchGone) {
+                actions.add(SheetAction(R.drawable.ic_install, Tr.get("chooseApkAgain")) {
+                    viewModel.repo.entry(single.id)?.let(menus::chooseApkAgain)
+                })
+            }
         }
         val pin = apps.none { it.pinned }
         actions.add(SheetAction(R.drawable.ic_pin, Tr.get(if (pin) "pinToTop" else "unpinFromTop")) {

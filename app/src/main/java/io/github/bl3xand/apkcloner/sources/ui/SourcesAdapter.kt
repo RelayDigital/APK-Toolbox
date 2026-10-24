@@ -116,7 +116,9 @@ class SourcesAdapter(
             listOfNotNull(row.entry.author.takeIf { it.isNotBlank() }, app.devicePackage.takeIf { !app.hasTempId }).joinToString(" · ")
         // What stands in the way of the app, most pressing first. A repository that moved is a
         // thing to know; the rest are things that are wrong, and are said in the colour of an error.
-        val trouble = row.signInNote ?: row.checkError?.let { Tr.get("srcCheckFailedShort") }
+        val trouble = row.signInNote
+            ?: if (app.releaseBranchGone) Tr.get("releaseBranchGone") else null
+            ?: row.checkError?.let { Tr.get("srcCheckFailedShort") }
         // Otherwise the fourth line says where the app comes from and what it is installed as:
         // itself, or a clone of itself.
         val asClone = app.clonePackage != null || (app.cloneTarget != null && row.entry.installedInfo == null)

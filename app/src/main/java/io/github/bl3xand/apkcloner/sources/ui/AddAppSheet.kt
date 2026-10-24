@@ -525,7 +525,14 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     // asked when the app is installed.
                     val picked = installer.confirmAppFileUrl(app, prompts = null, pickAnyAsset = false)
                         ?: throw SourceError(Tr.get("cancelled"))
-                    app = app.copy(preferredApkIndex = app.apkUrls.indexOfFirst { it.url == picked.url })
+                    // The branch of the file that told the package name is remembered from the
+                    // start, so the first check judges by it and not by the place in the list.
+                    val pickedIndex = app.apkUrls.indexOfFirst { it.url == picked.url }
+                    app = app.copy(
+                        preferredApkIndex = pickedIndex,
+                        preferredBranchKey = pickedIndex.takeIf { it >= 0 }?.let { source.releaseBranchKeyOf(app.apkUrls[it]) },
+                        releaseBranchGone = false,
+                    )
                     // Some sources can tell from a small part of the file; the others have it downloaded.
                     val peek = withContext(Dispatchers.IO) {
                         runCatching { source.peekAsset(picked.url, app.additionalSettings) }.getOrNull()

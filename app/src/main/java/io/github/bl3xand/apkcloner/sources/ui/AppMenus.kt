@@ -9,6 +9,7 @@ import io.github.bl3xand.apkcloner.sources.data.AppEntry
 import io.github.bl3xand.apkcloner.sources.form.cloneItems
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
+import io.github.bl3xand.apkcloner.sources.source.TelegramChannel
 import io.github.bl3xand.apkcloner.ui.Spacing
 import io.github.bl3xand.apkcloner.ui.add
 import io.github.bl3xand.apkcloner.ui.column
@@ -62,6 +63,24 @@ class AppMenus(private val context: Context, private val viewModel: SourcesViewM
             if (form.isValid) applyOptions(entry.app, form.values) else context.toast(Tr.get("invalidInput"))
             form.isValid
         }
+    }
+
+    /**
+     * Asks again which file of the release this app is to use: the remembered pick is dropped
+     * and the install flow starts over, which offers the choice. For a Telegram app whose kind
+     * is set in its settings, the kind is the pick - the settings are where it is changed.
+     */
+    fun chooseApkAgain(entry: AppEntry) {
+        val app = entry.app
+        if (viewModel.repo.sourceOf(app) is TelegramChannel) {
+            editOptions(entry)
+            return
+        }
+        viewModel.update(listOf(app.id)) {
+            it.copy(preferredApkIndex = -1, releaseBranchGone = false)
+                .withSetting(SettingKeys.PREFERRED_APK, null)
+        }
+        viewModel.obtain(listOf(app.id))
     }
 
     private fun applyOptions(original: TrackedApp, values: Map<String, Any?>) {

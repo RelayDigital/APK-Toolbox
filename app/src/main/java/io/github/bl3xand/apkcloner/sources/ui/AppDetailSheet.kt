@@ -32,6 +32,7 @@ import io.github.bl3xand.apkcloner.sources.data.DownloadState
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.sources.net.Downloader
+import io.github.bl3xand.apkcloner.sources.source.TelegramChannel
 import io.github.bl3xand.apkcloner.sources.telegram.TelegramClient
 import io.github.bl3xand.apkcloner.ui.add
 import io.github.bl3xand.apkcloner.ui.clonePatches
@@ -67,6 +68,7 @@ class AppDetailSheet : BottomSheetDialogFragment() {
     private val binding get() = _binding!!
     private lateinit var dialogs: SourcesDialogs
     private val appId: String get() = requireArguments().getString(ARG_ID)!!
+    private val menus by lazy { AppMenus(requireContext(), viewModel) }
     private var probedSize: Long? = null
     private var probedKey: String? = null
     private var lastRendered: RenderKey? = null
@@ -390,11 +392,13 @@ class AppDetailSheet : BottomSheetDialogFragment() {
         // The same card as everywhere else; a tap opens the app's page in the system settings. On a
         // signer conflict it is the build being added, not the differently-signed one installed.
         binding.appCard.bindTracked(entry, treatAsNotInstalled = conflict)
-        // What the source needs before it can be asked for this app, if anything; and why the
-        // last check failed, if it did.
+        // What the source needs before it can be asked for this app, if anything; why the last
+        // check failed, if it did; and when the branch the app follows is gone, that - a choice
+        // the page offers the way out of - over the check error, which a gone branch is not.
         val signInNote = source?.signInNote?.takeUnless { conflict }
-        val checkError = repo.checkErrors.value[appId]?.takeUnless { conflict || signInNote != null }
-        val trouble = conflict || signInNote != null || checkError != null
+        val branchGone = app.releaseBranchGone && !conflict && signInNote == null
+        val checkError = repo.checkErrors.value[appId]?.takeUnless { conflict || signInNote != null || branchGone }
+        val trouble = conflict || signInNote != null || branchGone || checkError != null
         binding.notice.root.isVisible = app.hasPendingRepoRename || trouble
         binding.notice.buttonNotice.isVisible = binding.notice.root.isVisible
         binding.notice.look(trouble)
@@ -409,6 +413,19 @@ class AppDetailSheet : BottomSheetDialogFragment() {
             binding.notice.textNotice.text = Tr.get("telegramSignInFirst")
             binding.notice.buttonNotice.text = Tr.get("telegramSignIn")
             binding.notice.buttonNotice.setOnClickListener { context.showTelegramSignIn(viewLifecycleOwner.lifecycleScope) }
+        } else if (branchGone) {
+            binding.notice.textNotice.text = Tr.get("releaseBranchGoneBody", app.finalName)
+            binding.notice.buttonNotice.text = Tr.get("chooseBranch")
+            binding.notice.buttonNotice.setOnClickListener {
+                // A Telegram app whose kind is chosen in its settings is re-pointed there; the
+                // kind field says which file to follow. Everything else chooses a file of the
+                // release right here - the pick is asked for on purpose, whatever the count.
+                if (source is TelegramChannel) {
+                    viewModel.repo.entry(appId)?.let(menus::editOptions)
+                } else {
+                    viewModel.obtain(listOf(appId))
+                }
+            }
         } else if (checkError != null) {
             binding.notice.textNotice.text = Tr.get("srcCheckFailed", checkError)
             binding.notice.buttonNotice.text = Tr.get("srcCheckAgain")
