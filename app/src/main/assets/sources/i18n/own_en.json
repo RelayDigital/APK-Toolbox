@@ -251,5 +251,10 @@
   "xReleaseBranchGoneNotif": "The branch {} followed is gone; another file has to be chosen",
   "chooseBranch": "Choose a branch",
   "branchGoneNotifChannel": "Gone release branches",
-  "chooseApkAgain": "Choose the APK again"
+  "chooseApkAgain": "Choose the APK again",
+  "removeThenInstallTitle": "Different signing key",
+  "removeThenInstallBody": "{} is signed with a different key than the app installed on the device, so it cannot be installed over it. To install it, the installed app has to be removed first — its data will be erased. You can also stay on the current version without updates.",
+  "removeThenInstallConfirm": "Remove and install",
+  "removeThenInstallCancel": "Stay on current",
+  "removeThenInstallDone": "Removed. Install {} again to continue."
 }

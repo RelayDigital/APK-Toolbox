@@ -78,6 +78,48 @@ class SourcesInstaller private constructor(private val context: Context) {
     /** The installer the whole app uses for this kind of install. */
     private fun installer(background: Boolean): Installer = Installer.choose(context, background)
 
+    /**
+     * The APK whose install is about to begin, the signer the source last offered, and the one
+     * the installed app carries: the pair of hashes a clash is judged from, as
+     * [checkClashWithInstalled] decides it.
+     */
+    data class Clash(
+        /** The signer of what is on the device, by the app's own package. Empty when it is not installed. */
+        val installedSigner: Set<String>,
+        /** The signer the source last offered for this app. Empty when it was never learned. */
+        val offeredSigner: Set<String>,
+    )
+
+    /**
+     * Whether installing [picked] over what is on the device is blocked by a signing clash that
+     * the user could still do something about: the signer of the installed build is known, the
+     * source's say-so about the file is known, and the two disagree. The user can remove the
+     * installed app and install the offered build fresh; that is the decision the caller asks
+     * about. Everything else - an unknown signer, nothing installed, a clone that carries this
+     * app's key - is not this clash and stays with the checks that already handle it.
+     */
+    fun checkClashWithInstalled(app: TrackedApp, picked: NamedUrl, clash: Clash): Boolean {
+        if (app.clonePackage != null || app.cloneTarget != null) return false
+        val installed = repo.installedInfo(app.id) ?: return false
+        if (!settings.verifySigningCertHashes) return false
+        if (clash.installedSigner.isEmpty() || clash.offeredSigner.isEmpty()) return false
+        if (clash.installedSigner.containsAll(clash.offeredSigner)) return false
+        // What the source offered last is the file it offers now only by name: a source whose
+        // names carry versions renames every file. The signer of the very file this install is
+        // about is the one to judge, and it is known when it was downloaded already.
+        val downloads = apkCertHashes(listOfNotNull(pickDownloadedApk(app, picked)))
+        if (downloads.isNotEmpty()) return !clash.installedSigner.containsAll(downloads)
+        return true
+    }
+
+    /** The file an earlier download of [picked] left in the cache, when it is still there. */
+    private fun pickDownloadedApk(app: TrackedApp, picked: NamedUrl): File? {
+        val suffix = "-${picked.url.hashCode()}"
+        return repo.apkDir.listFiles()?.firstOrNull {
+            it.isFile && it.name.startsWith("${app.id}-") && it.name.substringBeforeLast('.') == "${app.id}$suffix"
+        }
+    }
+
     fun cancelDownload(appId: String) {
         cancellations[appId]?.cancel()
         repo.setDownload(appId, null)

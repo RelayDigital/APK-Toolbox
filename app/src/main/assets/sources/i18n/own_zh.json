@@ -250,5 +250,10 @@
   "xReleaseBranchGoneNotif": "{} 跟随的分支已不存在——需要选择另一个文件",
   "chooseBranch": "选择分支",
   "branchGoneNotifChannel": "已消失的发布分支",
-  "chooseApkAgain": "重新选择 APK 文件"
+  "chooseApkAgain": "重新选择 APK 文件",
+  "removeThenInstallTitle": "签名密钥不同",
+  "removeThenInstallBody": "{}的签名密钥与设备上已安装的应用不同，无法直接覆盖安装。要安装它，必须先删除已安装的应用——其数据将被清除。你也可以继续留在当前版本、不更新。",
+  "removeThenInstallConfirm": "删除并安装",
+  "removeThenInstallCancel": "留在当前版本",
+  "removeThenInstallDone": "已删除。请重新安装{}以继续。"
 }

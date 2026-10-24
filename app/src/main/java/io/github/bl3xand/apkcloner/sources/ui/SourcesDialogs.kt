@@ -100,6 +100,15 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         )
     }
 
+    override suspend fun removeThenInstall(appName: String): Boolean = withContext(Dispatchers.Main) {
+        context.confirm(
+            Tr.get("removeThenInstallTitle"),
+            Tr.get("removeThenInstallBody", appName),
+            confirmText = Tr.get("removeThenInstallConfirm"),
+            cancelText = Tr.get("removeThenInstallCancel"),
+        )
+    }
+
     override suspend fun signingMismatch(
         appName: String,
         expected: Set<String>,
