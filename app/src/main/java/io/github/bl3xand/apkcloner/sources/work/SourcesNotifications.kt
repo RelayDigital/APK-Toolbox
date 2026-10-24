@@ -29,6 +29,7 @@ object SourcesNotifications {
     const val ID_TRACK_ONLY_UPDATES = BASE + 7
     const val ID_POSSIBLY_UPDATED = BASE + 8
     const val ID_BRANCH_GONE = BASE + 9
+    const val ID_TELEGRAM_SESSION_ENDED = BASE + 10
     private const val DOWNLOAD_BASE = 100_000
     private const val DOWNLOAD_RANGE = 1_000_000_000
 
@@ -135,6 +136,13 @@ object SourcesNotifications {
         context, ID_APPS_REMOVED, "APPS_REMOVED", Tr.get("appsRemovedNotifChannel"), NotificationManager.IMPORTANCE_HIGH,
         Tr.get("appsRemoved"),
         namedReasons.joinToString("\n") { Tr.get("xWasRemovedDueToErrorY", it.first, it.second) },
+    )
+
+    /** The Telegram session was ended from outside; channel-tracked apps need a new sign-in. */
+    fun telegramSessionEnded(context: Context) = show(
+        context, ID_TELEGRAM_SESSION_ENDED, "TELEGRAM_SESSION_ENDED", Tr.get("telegramSessionEndedNotifChannel"),
+        NotificationManager.IMPORTANCE_HIGH,
+        Tr.get("telegramSessionEnded"), Tr.get("telegramSessionEndedText"),
     )
 
     /** A decision is needed, so it is said loudly - once per incident, however many apps. */

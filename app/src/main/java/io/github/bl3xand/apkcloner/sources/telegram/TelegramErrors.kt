@@ -16,6 +16,8 @@ object TelegramErrors {
     /** Names that mean the account can no longer be used from here, in any request. */
     private val ACCOUNT_REFUSED = listOf(
         "AUTH_KEY_UNREGISTERED", "AUTH_KEY_INVALID", "SESSION_REVOKED", "SESSION_EXPIRED", "USER_DEACTIVATED", "Unauthorized",
+        // TDLib's wording for a request that reached a client that is gone already.
+        "Wrong client id",
     )
 
     private val MESSAGES = mapOf(

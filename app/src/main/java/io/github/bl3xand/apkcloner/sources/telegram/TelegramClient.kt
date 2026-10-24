@@ -89,6 +89,15 @@ object TelegramClient : TelegramGateway {
     private val _auth = MutableStateFlow<TelegramAuth>(TelegramAuth.Starting)
     val auth: StateFlow<TelegramAuth> = _auth.asStateFlow()
 
+    /**
+     * True once a session that held was ended - from outside, or because it cannot be opened -
+     * and false again from the next sign-in. Reading it costs nothing, so the background check
+     * can consult it instead of starting the client; [auth] says the same only after the client
+     * has been started and has said where signing in stands.
+     */
+    private val _sessionEnded = MutableStateFlow(false)
+    val sessionEnded: StateFlow<Boolean> = _sessionEnded.asStateFlow()
+
     /** Called when the session is ended by someone else than the user of this app. */
     @Volatile
     var onSessionEnded: (() -> Unit)? = null
@@ -153,6 +162,7 @@ object TelegramClient : TelegramGateway {
             is TdApi.AuthorizationStateWaitPassword -> _auth.value = TelegramAuth.WaitPassword(state.passwordHint.orEmpty())
             is TdApi.AuthorizationStateReady -> {
                 prefs.edit().putBoolean(KEY_SIGNED_IN, true).apply()
+                _sessionEnded.value = false
                 AppLog.info("Telegram: signed in")
                 _auth.value = TelegramAuth.Ready
             }
@@ -175,6 +185,7 @@ object TelegramClient : TelegramGateway {
         } else if (hadSession) {
             // Ended from another device, revoked by Telegram, or the account was closed.
             AppLog.warn("Telegram: the session was ended from outside; apps tracked from channels need a new sign-in")
+            _sessionEnded.value = true
             onSessionEnded?.invoke()
         }
         closingOnRequest = false
@@ -277,6 +288,10 @@ object TelegramClient : TelegramGateway {
                 retry.onAnswerArrived()
             } else {
                 gaveUp.set(true)
+                // A client that was swapped under the request answers nothing, or with a
+                // "Wrong client id" that never reaches this latch; that is the session's end,
+                // not slowness, and waiting longer or retrying cannot help it.
+                if (client !== running) throw SourceError(Tr.get("telegramErrSession"))
                 AppLog.warn("Telegram: no answer to ${nameOf(function)} in ${timeoutSeconds}s (attempt $attempt)")
                 if (retry.shouldTryAgain(attempt, read)) {
                     attempt++
