@@ -212,11 +212,13 @@ class DexPatchTest {
     }
 
     @org.junit.Test
-    fun spoofHelperReturnsQueriedPackageOnSuccess() {
-        // The helper's try must RETURN the successful getPackageInfo result: without a return in
-        // the try, control falls into the NameNotFoundException handler, which re-queries with the
-        // CLONE's package - so a query for the original's name (the mimicry case) would come back
-        // with the clone's own PackageInfo, the wrong package for every other query too.
+    fun spoofHelperSubstitutesOnTheSuccessPathToo() {
+        // The helper's try must NOT return the successful getPackageInfo result directly: the
+        // classic self-check queries the app by its own (visible) package name, which goes
+        // through the SUCCESS path - returning the real info there hands the app the CLONER's
+        // certificate. The success result must instead jump over the NameNotFoundException
+        // handler into the shared substitution tail, so both paths return the info with the
+        // ORIGINAL's certificate written into `signatures`.
         val before = dex(
             Triple("a", "(I)V", listOf(invokeStatic("Landroid/content/pm/PackageManager;", "getPackageInfo", listOf("Ljava/lang/String;", "I"), "Landroid/content/pm/PackageInfo;"))),
         )
@@ -226,15 +228,33 @@ class DexPatchTest {
         org.junit.Assert.assertEquals("one helper get() per flags type", 2, gets.size)
         for (get in gets) {
             val impl = get.implementation!!
-            // (instruction, code-unit address) of the whole method, to reason about the try layout.
+            // (instruction, code-unit address) of the whole method, to reason about the layout.
             val withAddr = impl.instructions.toList().zip(impl.instructions.toList().runningFold(0) { addr, ins -> addr + ins.codeUnits }.dropLast(1))
-            val retBeforeHandler = withAddr.indexOfFirst { it.first.opcode == Opcode.RETURN_OBJECT }
-            val handlerStart = withAddr.indexOfFirst { it.first.opcode == Opcode.CONST_STRING }
+            // Exactly one return, at the very end, after the signatures iput: shared by the
+            // success path and the handler's retry.
+            val returns = withAddr.filter { it.first.opcode == Opcode.RETURN_OBJECT }
+            org.junit.Assert.assertEquals("exactly one return, at the end of the tail", 1, returns.size)
+            val iputs = withAddr.filter { it.first.opcode == Opcode.IPUT_OBJECT }
+            org.junit.Assert.assertEquals("exactly one signatures iput, before the return", 1, iputs.size)
             org.junit.Assert.assertTrue(
-                "the try's success path must return before the handler re-queries",
-                retBeforeHandler in 0 until handlerStart,
+                "the iput must precede the return (substitution applies to the returned info)",
+                withAddr.indexOfFirst { it == iputs.first() } < withAddr.indexOfFirst { it == returns.first() },
             )
-            // Units: invoke=3 + move-result=1 + return=1, so the handler starts at unit 5 and the
+            // The success path must not return before the substitution: a GOTO sits right after
+            // the try's move-result and jumps over the handler into the tail.
+            val gotos = withAddr.filter { it.first.opcode == Opcode.GOTO }
+            org.junit.Assert.assertEquals("one goto over the handler", 1, gotos.size)
+            org.junit.Assert.assertEquals(
+                "the goto is the third instruction (invoke, move-result, goto)",
+                2, withAddr.indexOfFirst { it == gotos.first() },
+            )
+            val gotoAddr = gotos.first().second
+            val handlerStart = impl.tryBlocks.first().exceptionHandlers.first().handlerCodeAddress
+            org.junit.Assert.assertTrue(
+                "the goto jumps from inside the try over the handler into the tail",
+                gotoAddr < handlerStart && gotoAddr + (gotos.first().first as org.jf.dexlib2.iface.instruction.formats.Instruction10t).codeOffset > handlerStart,
+            )
+            // Units: invoke=3 + move-result=1 + goto=1, so the handler starts at unit 5 and the
             // try covers 0..5. ImmutableTryBlock is (start, codeUnitCount, handlers).
             org.junit.Assert.assertEquals(1, impl.tryBlocks.count())
             val tryBlock = impl.tryBlocks.first()
