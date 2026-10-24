@@ -297,6 +297,54 @@ class SourcesRepository private constructor(private val context: Context) {
     }
 
     /**
+     * Builds the record to store for [appIn], given the state of the list at the moment it is
+     * saved: the app and what the system knows about its installed copy. Null when the app is
+     * not to be stored at all.
+     */
+    private fun prepareForSave(
+        appIn: TrackedApp,
+        existing: AppEntry?,
+        attemptToCorrectInstallStatus: Boolean,
+        onlyIfExists: Boolean,
+        reuseInstalledInfo: Boolean,
+    ): Pair<TrackedApp, PackageInfo?>? {
+        var app = settleClone(appIn)
+        // Not when the app has just been told to live under another package.
+        val canReuse = reuseInstalledInfo && existing != null && existing.app.devicePackage == app.devicePackage
+        val info = if (canReuse) existing!!.installedInfo else installedInfo(app.devicePackage)
+        if (!canReuse && info != null) {
+            // The name the system shows wins over the one the source reports.
+            info.applicationInfo?.loadLabel(packageManager)?.toString()?.let { app = app.copy(name = it) }
+        }
+        if (attemptToCorrectInstallStatus) app = reconcileInstallStatus(app, info) ?: app
+        return if (onlyIfExists && existing == null) null else app to info
+    }
+
+    /**
+     * The part of saving that runs under the entries lock, so that the record a save builds from
+     * the state of the list is stored against that same state. The lock spans the whole
+     * read-modify-write: read the entry, build the record, write the file, put it in the map.
+     * Nothing in it runs for long - the file write is the rename of a temp file written just
+     * before it - and nothing it calls takes the lock again (publish and the auto-export are
+     * outside).
+     */
+    private fun saveAppsLocked(
+        apps: List<TrackedApp>,
+        attemptToCorrectInstallStatus: Boolean,
+        onlyIfExists: Boolean,
+        reuseInstalledInfo: Boolean,
+    ) = synchronized(lock) {
+        for (input in apps) {
+            val existing = entries[input.id]
+            val (app, info) = prepareForSave(input, existing, attemptToCorrectInstallStatus, onlyIfExists, reuseInstalledInfo)
+                ?: continue
+            writeAppJson(app)
+            val sourceType = existing?.sourceType ?: runCatching { sourceOf(app).sourceIdentifier }.getOrNull()
+            entries[app.id] = AppEntry(app, info, sourceType)
+        }
+    }
+
+    /**
      * Stores apps and refreshes their in-memory state. With [onlyIfExists] an app that is not
      * tracked (any more) is not written.
      */
@@ -306,23 +354,7 @@ class SourcesRepository private constructor(private val context: Context) {
         onlyIfExists: Boolean = true,
         reuseInstalledInfo: Boolean = false,
     ) {
-        for (input in apps) {
-            var app = settleClone(input)
-            val existing = entry(app.id)
-            // Not when the app has just been told to live under another package.
-            val canReuse = reuseInstalledInfo && existing != null && existing.app.devicePackage == app.devicePackage
-            val info = if (canReuse) existing!!.installedInfo else installedInfo(app.devicePackage)
-            if (!canReuse && info != null) {
-                // The name the system shows wins over the one the source reports.
-                info.applicationInfo?.loadLabel(packageManager)?.toString()?.let { app = app.copy(name = it) }
-            }
-            if (attemptToCorrectInstallStatus) app = reconcileInstallStatus(app, info) ?: app
-            if (!onlyIfExists || existing != null) {
-                writeAppJson(app)
-                val sourceType = existing?.sourceType ?: runCatching { sourceOf(app).sourceIdentifier }.getOrNull()
-                synchronized(lock) { entries[app.id] = AppEntry(app, info, sourceType) }
-            }
-        }
+        saveAppsLocked(apps, attemptToCorrectInstallStatus, onlyIfExists, reuseInstalledInfo)
         publish()
         backup.scheduleAutoExport()
     }
