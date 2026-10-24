@@ -746,7 +746,10 @@ class SourcesInstaller private constructor(private val context: Context) {
      * Applies the permissions set for the clone [id] is installed as to the clone that is on the
      * device, without downloading anything: the clone is built again from itself and the manifest
      * kept from its original, and installed over itself. False when that manifest is not there or
-     * is of another version - then the release has to be fetched, as for an update.
+     * is of another version - then the release has to be fetched, as for an update - or when the
+     * clone's dex patches are not what the app is set to be built with: the dex the clone carries
+     * is already patched and cannot be patched again (the spoof's helper would recurse into
+     * itself), so a change of patches has to be built from the release.
      */
     suspend fun rebuildInstalledClone(id: String): Boolean = withContext(Dispatchers.IO) {
         val entry = repo.entry(id) ?: return@withContext false
@@ -757,16 +760,21 @@ class SourcesInstaller private constructor(private val context: Context) {
             it.isFile && app.settings.getStringOrNull(SettingKeys.CLONE_MANIFEST_VERSION) == installed.versionCodeLong.toString()
         } ?: return@withContext false
         val info = installed.applicationInfo ?: return@withContext false
+        // The dex patches of the build that is on the device. A rebuild from itself reuses its
+        // dex as it is, so the settings and the APK may not disagree about what is on.
+        if (ApkCloner.readMetadata(info.sourceDir)?.patches != app.clonePatches) return@withContext false
         val cloner = ApkCloner(context)
         val key = installed.currentSigners.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) }
             ?: return@withContext false
         repo.setDownload(id, DownloadState(-1.0))
         try {
             val removed = app.cloneRemovedPermissions
-            AppLog.info("Building the installed clone $target again, without: ${removed.sorted().joinToString().ifEmpty { "-" }}")
+            AppLog.info("Building the installed clone $target again, without: ${removed.sorted().joinToString().ifEmpty { "-" }}, with patches: ${app.clonePatches.sorted().joinToString().ifEmpty { "-" }}")
             val name = app.settings.getStringOrNull(SettingKeys.CLONE_NAME)?.takeIf { it.isNotBlank() }
             val base = cloner.recloneBase(
-                File(info.sourceDir), manifest.readBytes(), CloneRequest(emptyList(), target, name, key, null, removed), cloneDir(id),
+                File(info.sourceDir), manifest.readBytes(),
+                CloneRequest(emptyList(), target, name, key, null, removed, app.clonePatches),
+                cloneDir(id),
             )
             val pretendPlay = settings.shizukuPretendToBeGooglePlay || app.settings.getBool(SettingKeys.PRETEND_GOOGLE_PLAY)
             val files = listOf(base) + info.splitSourceDirs.orEmpty().map(::File)
