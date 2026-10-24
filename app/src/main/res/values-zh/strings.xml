@@ -216,10 +216,8 @@
     <string name="clone_patches_on">补丁：已启用 %1$d / %2$d</string>
     <string name="clone_patches_hint">对克隆代码的修改。每个补丁都是可选的，仅应用于此克隆。</string>
     <string name="clone_rename_alias_note">代码中仍带有指向原始包名的字符串常量——应用据此查找自身（createPackageContext、bindService、PackageManager 查询）——找到的是原应用而不是克隆。此补丁将其改写为克隆包名，让代码找到克隆本身。</string>
-    <string name="clone_spoof_signature">签名替换</string>
-    <string name="clone_spoof_signature_note">将应用看到的自身签名替换为原应用签名，使所有签名和完整性检查都像正版一样通过——Java 检查、混淆 SDK 和原生库无一例外，因为它们都从同一个系统字段读取证书。对哈希 APK 文件本身的检查和服务器端检查（Play Integrity）无效。</string>
     <string name="clone_mimicry">身份伪装</string>
-    <string name="clone_mimicry_note">包含签名替换：克隆完全以 ORIGINAL 原应用的身份出现——对自身的检查、服务器和分析。克隆自身组件的查找通过备用方案继续工作。</string>
+    <string name="clone_mimicry_note">克隆完全以 ORIGINAL 原应用的身份出现——包名和签名：对自身的检查、服务器和分析。克隆自身组件的查找通过备用方案继续工作。</string>
     <string name="clone_keep_alive">抑制退出</string>
     <string name="clone_keep_alive_note">所有会终止应用的调用——System.exit、Runtime.exit、Process.killProcess、finish、finishAffinity、finishAndRemoveTask——都变为空操作：应用无法自杀或踢出用户，无论原因——签名检查、未登录、启动检查失败。退出登录后应用可能残留后台而非关闭。</string>
     <string name="clone_permission_absent">此版本未请求。若以后恢复,仍保持关闭。</string>

@@ -6,51 +6,44 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The picker's one dependency: mimicry includes the signature substitution, so the two are
- * picked together. [patchToggled] is the whole rule, tested as the pure function it is - what
- * one flip of a switch does to the set, and whose switches must be seen to follow.
+ * The picker's toggling, as the pure function it is ([patchToggled]): what one flip of a switch
+ * does to the set. The picker offers one switch per mechanism (exit suppression, the alias,
+ * mimicry) - nothing follows from anything any more, and the ids a stored set may hold that the
+ * picker offers no row for (an older spoofSignature, a legacy bypass) ride along untouched.
  */
 class PatchToggledTest {
 
     @Test
-    fun checkingMimicryBringsTheSubstitutionAlong() {
-        val (set, followed) = patchToggled(emptySet(), PatchIds.MIMICRY, on = true)
-        assertEquals(setOf(PatchIds.MIMICRY, PatchIds.SPOOF_SIGNATURE), set)
-        assertEquals("the companion is seen to turn on", setOf(PatchIds.SPOOF_SIGNATURE), followed)
-    }
-
-    @Test
-    fun theSubstitutionStaysOnWhileMimicryIsOn() {
-        // Switching the substitution off under mimicry: it comes back, visibly.
-        val (kept, followedBack) = patchToggled(setOf(PatchIds.MIMICRY, PatchIds.SPOOF_SIGNATURE), PatchIds.SPOOF_SIGNATURE, on = false)
-        assertEquals(setOf(PatchIds.MIMICRY, PatchIds.SPOOF_SIGNATURE), kept)
-        assertEquals(setOf(PatchIds.SPOOF_SIGNATURE), followedBack)
-
-        // With mimicry gone first, the substitution goes off like any other patch.
-        val (released, nothing) = patchToggled(setOf(PatchIds.SPOOF_SIGNATURE), PatchIds.SPOOF_SIGNATURE, on = false)
-        assertEquals(emptySet<String>(), released)
-        assertTrue(nothing.isEmpty())
-    }
-
-    @Test
-    fun theSubstitutionAloneIsAValidChoice() {
-        val (set, followed) = patchToggled(emptySet(), PatchIds.SPOOF_SIGNATURE, on = true)
-        assertEquals(setOf(PatchIds.SPOOF_SIGNATURE), set)
+    fun aFlipAddsOrRemovesJustItsPatch() {
+        val (on, followed) = patchToggled(emptySet(), PatchIds.MIMICRY, on = true)
+        assertEquals(setOf(PatchIds.MIMICRY), on)
         assertTrue(followed.isEmpty())
+
+        val (off, stillNothing) = patchToggled(setOf(PatchIds.MIMICRY), PatchIds.MIMICRY, on = false)
+        assertEquals(emptySet<String>(), off)
+        assertTrue(stillNothing.isEmpty())
     }
 
     @Test
-    fun otherPatchesDoNotTouchThePair() {
-        val (set, followed) = patchToggled(setOf(PatchIds.MIMICRY, PatchIds.SPOOF_SIGNATURE), PatchIds.KEEP_ALIVE, on = true)
-        assertEquals(setOf(PatchIds.MIMICRY, PatchIds.SPOOF_SIGNATURE, PatchIds.KEEP_ALIVE), set)
-        assertTrue(followed.isEmpty())
+    fun aStoredSubstitutionRidesAlongUntouched() {
+        // A set from before the split: the substitution has no row of its own any more, so
+        // flipping any offered switch must not drop it from the set.
+        val legacy = setOf(PatchIds.KEEP_ALIVE, PatchIds.SPOOF_SIGNATURE)
+        val (withAlias, _) = patchToggled(legacy, PatchIds.RENAME_ALIAS, on = true)
+        assertEquals(setOf(PatchIds.KEEP_ALIVE, PatchIds.SPOOF_SIGNATURE, PatchIds.RENAME_ALIAS), withAlias)
+
+        val (mimicryOn, _) = patchToggled(legacy, PatchIds.MIMICRY, on = true)
+        // The substitution stays in the set it was already in - mimicry does not need to add
+        // it (the build reads the certificate for either), and does not take it away.
+        assertEquals(setOf(PatchIds.KEEP_ALIVE, PatchIds.SPOOF_SIGNATURE, PatchIds.MIMICRY), mimicryOn)
+
+        val (keepAliveOff, _) = patchToggled(legacy, PatchIds.KEEP_ALIVE, on = false)
+        assertEquals(setOf(PatchIds.SPOOF_SIGNATURE), keepAliveOff)
     }
 
     @Test
-    fun uncheckingMimicryLeavesTheSubstitutionWhereItWas() {
-        // Mimicry off does not drag the companion off: the lighter patch is still useful.
-        val (set, followed) = patchToggled(setOf(PatchIds.MIMICRY, PatchIds.SPOOF_SIGNATURE), PatchIds.MIMICRY, on = false)
-        assertEquals(setOf(PatchIds.SPOOF_SIGNATURE), set)
-        assertTrue(followed.isEmpty())
+    fun aLegacyBypassRidesAlongToo() {
+        val (set, _) = patchToggled(setOf(PatchIds.BYPASS), PatchIds.MIMICRY, on = true)
+        assertEquals(setOf(PatchIds.BYPASS, PatchIds.MIMICRY), set)
     }
 }
