@@ -107,6 +107,10 @@ object SourcesBackground {
             settings.onlyCheckInstalledOrTrackOnlyApps, forceAll,
         ).filter { only == null || it in only }.map { it to 0 }
 
+        // What the pass says about branches is the change of it: an app whose followed branch
+        // is already known to be gone is told so once, not on every run.
+        val goneBefore = repo.all().filter { it.app.releaseBranchGone }.map { it.app.id }.toSet()
+
         val networkRestricted = settings.bgUpdatesOnWiFiOnly &&
             !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
             !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
@@ -155,6 +159,9 @@ object SourcesBackground {
             val waiting = if (!forceAll) emptyList() else repo.findAppIdsWithPendingUpdates(installedOnly = true)
                 .filter { id -> (only == null || id in only) && updates.none { it.id == id } }.mapNotNull { repo.entry(it)?.app }
             for (update in updates + waiting) {
+                // The branch-gone notification already told this app's story; an update it
+                // cannot take is not a thing to nag about on top of that.
+                if (update.releaseBranchGone) continue
                 if (canInstall && installer.canInstallSilentlyInBackground(update)) {
                     silentlyInstallable.add(update.id)
                 } else if (!update.settings.getBool(SettingKeys.SKIP_UPDATE_NOTIFICATIONS)) {
@@ -164,6 +171,14 @@ object SourcesBackground {
             reported = notify.isNotEmpty() || notifyTrackOnly.isNotEmpty()
             if (notify.isNotEmpty()) SourcesNotifications.updatesAvailable(context, notify)
             if (notifyTrackOnly.isNotEmpty()) SourcesNotifications.updatesAvailable(context, notifyTrackOnly, trackOnly = true)
+            // Apps whose followed branch went missing in this very pass, one grouped note: a
+            // decision is needed, and it is not a check that failed. Before the retry early
+            // return, so a pass that ends in retries tells this as well.
+            val newlyGone = repo.all().map { it.app }.filter { it.releaseBranchGone && it.id !in goneBefore }
+            if (newlyGone.isNotEmpty()) {
+                SourcesNotifications.branchGone(context, newlyGone)
+                reported = true
+            }
             if (toReport.rawErrors.isNotEmpty() && errors != null) {
                 for ((text, ids) in toReport.idsByErrorString) {
                     SourcesNotifications.checkError(context, errors.errorsAppsString(text, ids), 100 + abs(text.hashCode() % 10_000))

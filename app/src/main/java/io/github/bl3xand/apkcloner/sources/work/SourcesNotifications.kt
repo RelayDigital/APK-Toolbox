@@ -28,6 +28,7 @@ object SourcesNotifications {
     const val ID_APPS_REMOVED = BASE + 6
     const val ID_TRACK_ONLY_UPDATES = BASE + 7
     const val ID_POSSIBLY_UPDATED = BASE + 8
+    const val ID_BRANCH_GONE = BASE + 9
     private const val DOWNLOAD_BASE = 100_000
     private const val DOWNLOAD_RANGE = 1_000_000_000
 
@@ -134,6 +135,14 @@ object SourcesNotifications {
         context, ID_APPS_REMOVED, "APPS_REMOVED", Tr.get("appsRemovedNotifChannel"), NotificationManager.IMPORTANCE_HIGH,
         Tr.get("appsRemoved"),
         namedReasons.joinToString("\n") { Tr.get("xWasRemovedDueToErrorY", it.first, it.second) },
+    )
+
+    /** A decision is needed, so it is said loudly - once per incident, however many apps. */
+    fun branchGone(context: Context, apps: List<TrackedApp>) = show(
+        context, ID_BRANCH_GONE, "BRANCH_GONE", Tr.get("branchGoneNotifChannel"), NotificationManager.IMPORTANCE_HIGH,
+        Tr.get("releaseBranchGoneTitle"),
+        apps.joinToString("\n") { Tr.get("xReleaseBranchGoneNotif", it.finalName) },
+        appId = apps.singleOrNull()?.id,
     )
 
     fun completeInstallation(context: Context) = show(
