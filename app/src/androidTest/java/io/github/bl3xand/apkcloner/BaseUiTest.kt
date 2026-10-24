@@ -8,6 +8,7 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
+import io.github.bl3xand.apkcloner.testing.TestHooks
 import org.junit.After
 import org.junit.Before
 import org.json.JSONObject
@@ -23,6 +24,11 @@ import java.io.File
  * the tests with it. A clean slate comes from wiping the app's data directories through `run-as`
  * (possible because these tests run against a debug build) right after the test process was
  * started - the app is not running yet at that point.
+ *
+ * The test hooks are on from here down: the instrumentation enables them (a debug-only switch,
+ * docs/test-hooks.md), and setUp resets the app's in-memory state to fresh after the file wipe -
+ * most of all the "self" app's once-only tracking, which would otherwise race the test's own
+ * add with its own (home-upx.49).
  */
 abstract class BaseUiTest {
 
@@ -36,12 +42,15 @@ abstract class BaseUiTest {
     @Before
     open fun setUp() {
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        // The hooks are the app's own debug-build feature; the instrumentation APK builds
+        // against the same variant, so its BuildConfig.DEBUG says the same thing.
+        TestHooks.enable(BuildConfig.DEBUG)
         // An update check started by an earlier test may still be saving what it fetched; it
         // would write the wiped data right back. The tests run in the app's process, so the
-        // checker's progress is reachable directly: wait until it goes idle.
-        val repo = io.github.bl3xand.apkcloner.sources.data.SourcesRepository.get(context)
+        // hooks' counter of started and finished checks is reachable directly: wait until
+        // none is in flight (docs/test-hooks.md).
         val deadline = System.currentTimeMillis() + 30_000
-        while (repo.updates.progress.value != null && System.currentTimeMillis() < deadline) {
+        while (TestHooks.checksStarted != TestHooks.checksFinished && System.currentTimeMillis() < deadline) {
             Thread.sleep(200)
         }
         // The instrumentation process has just started and the app is not running yet: safe to
@@ -49,6 +58,11 @@ abstract class BaseUiTest {
         // the app); databases go too, so the app's log starts empty and a test can assert on
         // the lines it wrote itself.
         wipeAppData()
+        // What the wipe on disk cannot reach: the in-memory state of the still-running
+        // process - tracked apps, downloads, check errors, the hooks' own records, and the
+        // once-only self-tracking flag (gone with the wiped prefs, so it is set to "done"
+        // here: a reload must not add the app itself and race the test's own add).
+        TestHooks.resetAppState(context)
         launchMainActivity()
         // The app starts on the Sources tab; wait for its empty-state text to appear.
         waitForStringResource("sources_empty", timeout = 15_000)
