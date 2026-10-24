@@ -246,6 +246,9 @@ object TelegramClient : TelegramGateway {
         sessionDir().deleteRecursively()
         SessionKey.forget(appContext, PREFS)
         prefs.edit().putBoolean(KEY_SIGNED_IN, false).putBoolean(KEY_ENCRYPTED, false).apply()
+        // A session that cannot be opened is as ended as one revoked from outside, and just as
+        // much in need of a new sign-in before channel apps can be checked again.
+        _sessionEnded.value = true
         _auth.value = TelegramAuth.Starting
         start()
     }
