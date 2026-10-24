@@ -185,3 +185,94 @@ fun applyMinAgeSuppression(currentApp: TrackedApp, fetchedApp: TrackedApp): Trac
     apkUrls = currentApp.apkUrls,
     otherAssetUrls = currentApp.otherAssetUrls,
 )
+
+/**
+ * Carries the choice of a release file from [currentApp] onto [fetchedApp], judging whether the
+ * branch that choice stood for is still there:
+ *
+ * - The file is chosen, not merely defaulted to, only when the index is a real pick (0 or more);
+ *   -1 is the app's "nothing chosen" and is carried over as is, branch or no branch.
+ * - When the app's settings name the branch to follow ([settingsBranchKey], the kind of a
+ *   Telegram file), that is a choice made on purpose: the fresh list is that branch alone, so
+ *   the place in it and the shrinking of it say nothing, and the named branch is simply adopted.
+ * - Gone otherwise: with a remembered branch (by its key, when the source names branches), a
+ *   branch no file of the new release carries - but only once something else agrees that a file
+ *   went missing (the remembered place is past the end of the list, or the list shrank), because
+ *   a source whose file names carry the version renames every file every release; without a
+ *   remembered branch, a list too short to hold the remembered place in it. The fresh release
+ *   data is kept as it is - the page has to offer the new files for choosing another branch -
+ *   while the old index and key stay, so that a branch coming back is recognized; nothing
+ *   installs on its own from then on.
+ * - Not gone: the index moves to the file whose key is the remembered one, when there is one (a
+ *   source reordering or renaming its files); the key is written down anew from the file at the
+ *   kept place when the remembered one is not carried any more (a version-bearing name), so
+ *   that the judgment stays by name and not by place alone.
+ *
+ * [branchKeyOf] names the branch a file belongs to, as the source sees it; null is a source
+ * whose file names carry the version - there only the shrinking of the list can be judged.
+ */
+fun carryPreferredFile(
+    currentApp: TrackedApp,
+    fetchedApp: TrackedApp,
+    branchKeyOf: (NamedUrl) -> String?,
+    settingsBranchKey: String? = null,
+): TrackedApp {
+    if (fetchedApp.apkUrls.isEmpty()) {
+        // Nothing to judge a branch by (a track-only app whose files were all filtered away):
+        // whatever was known stays as it was.
+        return fetchedApp.copy(
+            preferredApkIndex = currentApp.preferredApkIndex,
+            preferredBranchKey = currentApp.preferredBranchKey,
+            releaseBranchGone = currentApp.releaseBranchGone,
+        )
+    }
+    if (settingsBranchKey != null) {
+        // The settings say which branch to follow, so the list is that branch alone: the place
+        // in it means nothing. A named branch that is not there at all is the source's own
+        // error to tell; should it slip through anyway, it is said here all the same.
+        val index = fetchedApp.apkUrls.indexOfFirst { branchKeyOf(it) == settingsBranchKey }
+        return fetchedApp.copy(
+            preferredApkIndex = index.takeIf { it >= 0 }
+                ?: fetchedApp.preferredApkIndex.coerceIn(0, fetchedApp.apkUrls.size - 1),
+            preferredBranchKey = settingsBranchKey,
+            releaseBranchGone = index < 0,
+        )
+    }
+    val key = currentApp.preferredBranchKey
+    val keyFound = key != null && fetchedApp.apkUrls.any { branchKeyOf(it) == key }
+    val gone = currentApp.preferredApkIndex >= 0 && (
+        if (key != null) {
+            !keyFound && (currentApp.preferredApkIndex >= fetchedApp.apkUrls.size ||
+                fetchedApp.apkUrls.size < currentApp.apkUrls.size)
+        } else {
+            currentApp.preferredApkIndex >= fetchedApp.apkUrls.size
+        }
+        )
+    if (gone) {
+        // The old index and key stay - the ones a branch coming back has to be recognized by.
+        return fetchedApp.copy(
+            preferredApkIndex = currentApp.preferredApkIndex,
+            preferredBranchKey = key,
+            releaseBranchGone = true,
+        )
+    }
+    if (currentApp.preferredApkIndex < 0) {
+        // Nothing chosen: only a pick clears a branch already said to be gone.
+        return fetchedApp.copy(
+            preferredApkIndex = -1,
+            preferredBranchKey = null,
+            releaseBranchGone = currentApp.releaseBranchGone,
+        )
+    }
+    val index = if (keyFound) {
+        fetchedApp.apkUrls.indexOfFirst { branchKeyOf(it) == key }
+    } else {
+        currentApp.preferredApkIndex.takeIf { it < fetchedApp.apkUrls.size }
+            ?: currentApp.preferredApkIndex.coerceAtMost(fetchedApp.apkUrls.size - 1)
+    }
+    return fetchedApp.copy(
+        preferredApkIndex = index,
+        preferredBranchKey = if (keyFound) key else branchKeyOf(fetchedApp.apkUrls[index]),
+        releaseBranchGone = false,
+    )
+}

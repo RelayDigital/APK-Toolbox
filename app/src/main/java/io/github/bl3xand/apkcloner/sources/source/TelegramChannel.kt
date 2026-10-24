@@ -6,6 +6,7 @@ import io.github.bl3xand.apkcloner.sources.core.InvalidUrlError
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
 import io.github.bl3xand.apkcloner.sources.core.RemoteApk
+import io.github.bl3xand.apkcloner.sources.core.ReleaseBranchGoneError
 import io.github.bl3xand.apkcloner.sources.core.SourceEnv
 import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.Tr
@@ -61,6 +62,9 @@ class TelegramChannel : AppSource("TelegramChannel") {
 
     /** The family ("instander | clone") holds across releases; the file's own name does not. */
     override fun releaseBranchKeyOf(file: NamedUrl): String? = TelegramFileName.family(file.name)
+
+    /** The kind setting is the branch itself: the list returned is that kind alone. */
+    override fun followedBranchKey(settings: Map<String, Any?>): String? = kindOf(settings)
 
     override fun sourceSpecificStandardizeURL(url: String, forSelection: Boolean): String {
         val channel = CHANNEL_URL.find(url)?.groupValues?.get(1)
@@ -132,6 +136,11 @@ class TelegramChannel : AppSource("TelegramChannel") {
         val top = gateway.channel(channel, if (newest == null) SCAN_LIMIT else TOP_LIMIT)
         newestOf(top.files)?.let { fromTop -> if (newest == null || fromTop.date > newest!!.date) newest = fromTop }
         AppLog.debug("Telegram: $channel, '$kind': ${found.files.size} file(s) by name, newest ${newest?.name ?: "none"}")
+        if (newest == null) {
+            // A kind once chosen and now posted no more. Not a failure to check: a thrown
+            // NoApkError would ride the error-and-retry path and nag every cycle.
+            throw ReleaseBranchGoneError()
+        }
         return found.title to listOfNotNull(newest)
     }
 

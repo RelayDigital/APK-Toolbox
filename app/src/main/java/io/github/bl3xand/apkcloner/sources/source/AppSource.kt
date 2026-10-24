@@ -114,6 +114,13 @@ abstract class AppSource(
      */
     open fun releaseBranchKeyOf(file: NamedUrl): String? = null
 
+    /**
+     * The branch the app's settings tell the source to follow, when they do (the kind of a
+     * Telegram file). What such a setting names is a choice made on purpose, and the list the
+     * source returns is that branch alone - so the branch is carried by name, never by place.
+     */
+    open fun followedBranchKey(settings: Map<String, Any?>): String? = null
+
     /** Per-app settings with the source-level configuration merged in. */
     fun buildMergedSettings(
         additionalSettings: Map<String, Any?>,
