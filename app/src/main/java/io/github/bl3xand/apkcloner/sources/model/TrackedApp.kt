@@ -27,6 +27,8 @@ data class TrackedApp(
     val overrideSource: String? = null,
     val allowIdChange: Boolean = false,
     val pendingRepoRenameUrl: String? = null,
+    val preferredBranchKey: String? = null,
+    val releaseBranchGone: Boolean = false,
 ) {
     val hasPendingRepoRename: Boolean get() = !pendingRepoRenameUrl.isNullOrEmpty()
 
@@ -114,6 +116,8 @@ data class TrackedApp(
         put("overrideSource", overrideSource ?: JSONObject.NULL)
         put("allowIdChange", allowIdChange)
         put("pendingRepoRenameUrl", pendingRepoRenameUrl ?: JSONObject.NULL)
+        put("preferredBranchKey", preferredBranchKey ?: JSONObject.NULL)
+        put("releaseBranchGone", releaseBranchGone)
     }
 
     companion object {
@@ -149,6 +153,8 @@ data class TrackedApp(
                 overrideSource = json["overrideSource"] as String?,
                 allowIdChange = (json["allowIdChange"] as Boolean?) ?: false,
                 pendingRepoRenameUrl = json["pendingRepoRenameUrl"] as String?,
+                preferredBranchKey = json["preferredBranchKey"] as String?,
+                releaseBranchGone = (json["releaseBranchGone"] as Boolean?) ?: false,
             )
         }
 

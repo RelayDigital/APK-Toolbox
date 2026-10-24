@@ -4,6 +4,7 @@ import io.github.bl3xand.apkcloner.sources.core.ApkFilter
 import io.github.bl3xand.apkcloner.sources.core.ApkPeek
 import io.github.bl3xand.apkcloner.sources.core.CertHashes
 import io.github.bl3xand.apkcloner.sources.core.InvalidUrlError
+import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NotImplementedSourceError
 import io.github.bl3xand.apkcloner.sources.core.SourceEnv
 import io.github.bl3xand.apkcloner.sources.core.SourceSettings
@@ -104,6 +105,14 @@ abstract class AppSource(
     }
 
     open fun postProcessApp(app: TrackedApp): TrackedApp = app
+
+    /**
+     * What every release of the same file of this source is called, for telling whether the file
+     * an app is set up to use is still there. Null, the default, is for sources whose file names
+     * carry the version or the date: nothing but the file itself is stable in them, so only the
+     * shrinking of the list can be judged there.
+     */
+    open fun releaseBranchKeyOf(file: NamedUrl): String? = null
 
     /** Per-app settings with the source-level configuration merged in. */
     fun buildMergedSettings(

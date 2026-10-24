@@ -59,6 +59,9 @@ class TelegramChannel : AppSource("TelegramChannel") {
     override val additionalSourceAppSpecificSettingFormItems: List<List<SettingItem>>
         get() = listOf(listOf(TextItem(SETTING_KIND, "telegramFilePattern", required = false, hint = "instander | clone")))
 
+    /** The family ("instander | clone") holds across releases; the file's own name does not. */
+    override fun releaseBranchKeyOf(file: NamedUrl): String? = TelegramFileName.family(file.name)
+
     override fun sourceSpecificStandardizeURL(url: String, forSelection: Boolean): String {
         val channel = CHANNEL_URL.find(url)?.groupValues?.get(1)
         if (channel == null || channel.lowercase() in NOT_CHANNELS) throw InvalidUrlError(name)

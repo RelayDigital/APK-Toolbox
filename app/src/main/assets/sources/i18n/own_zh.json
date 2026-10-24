@@ -239,5 +239,13 @@
   "notForProcessor": "该版本没有适用于你设备处理器({})的文件。可在应用选项中关闭按架构筛选。",
   "notForDeviceElsewhere": "可在保留旧版本的来源(如 APKPure)中查找仍可在其上运行的旧版本。",
   "addForDevice": "仅限我的手机",
-  "addForDeviceNote": "只显示有适用于此设备(Android {},{})版本的应用。在会告知这一点的商店中搜索:{}。"
+  "addForDeviceNote": "只显示有适用于此设备(Android {},{})版本的应用。在会告知这一点的商店中搜索:{}。",
+  "releaseBranchGoneShort": "此应用所跟随的文件种类已不再提供",
+  "releaseBranchGone": "发布分支已不存在",
+  "releaseBranchGoneBody": "{} 的分支已不再发布。选择另一个分支——安装它可能会抹掉应用数据——或者留在当前版本、不更新。",
+  "releaseBranchGoneTitle": "所跟随的发布分支已不存在",
+  "xReleaseBranchGoneNotif": "{} 跟随的分支已不存在——需要选择另一个文件",
+  "chooseBranch": "选择分支",
+  "branchGoneNotifChannel": "已消失的发布分支",
+  "chooseApkAgain": "重新选择 APK 文件"
 }

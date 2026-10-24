@@ -27,6 +27,7 @@ fun localizeErrorCode(code: String, data: Map<String, Any?>): String = when (cod
     "INVALID_URL" -> Tr.get("invalidURLForSource", data["sourceName"]?.toString() ?: "")
     "CREDS_NEEDED" -> Tr.get("requiresCredentialsInSettings", data["sourceName"]?.toString() ?: "")
     "NO_APK" -> Tr.get("noAPKFound")
+    "RELEASE_BRANCH_GONE" -> Tr.get("releaseBranchGoneShort")
     "MIN_UPDATE_AGE" -> Tr.get("releaseTooYoungForMinAge", "${data["minAgeDays"] ?: ""}")
     "RUSTORE_AGGREGATED_APP" -> Tr.get("rustoreAggregatedAppNoApk")
     "NO_VERSION" -> Tr.get("noVersionFound")

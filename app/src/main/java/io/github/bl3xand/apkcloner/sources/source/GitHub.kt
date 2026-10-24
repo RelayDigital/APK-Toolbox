@@ -50,6 +50,9 @@ class GitHub(hostChanged: Boolean = false) : AppSource("GitHub") {
         canSearch = true
     }
 
+    /** A release asset keeps its name across releases ("app-arm64-v8a.apk"); that name is the branch. */
+    override fun releaseBranchKeyOf(file: NamedUrl): String? = file.name
+
     override val sourceConfigSettingFormItems: List<SettingItem>
         get() = listOf(
             TextItem(

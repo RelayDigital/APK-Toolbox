@@ -240,5 +240,13 @@
   "notForProcessor": "The release has no file for the processor of your device ({}). Choosing by processor can be switched off in the app's options.",
   "notForDeviceElsewhere": "An older version that still runs on it may be found in a source that keeps them, such as APKPure.",
   "addForDevice": "Only for my phone",
-  "addForDeviceNote": "Shows apps that have a version for this device (Android {}, {}). Asks the stores that tell: {}."
+  "addForDeviceNote": "Shows apps that have a version for this device (Android {}, {}). Asks the stores that tell: {}.",
+  "releaseBranchGoneShort": "The kind of file this app follows is not offered any more",
+  "releaseBranchGone": "The release branch is gone",
+  "releaseBranchGoneBody": "The branch of {} is no longer released. Choose another branch — installing it may erase the app's data — or stay on the current version without updates.",
+  "releaseBranchGoneTitle": "A followed release branch is gone",
+  "xReleaseBranchGoneNotif": "The branch {} followed is gone; another file has to be chosen",
+  "chooseBranch": "Choose a branch",
+  "branchGoneNotifChannel": "Gone release branches",
+  "chooseApkAgain": "Choose the APK again"
 }
