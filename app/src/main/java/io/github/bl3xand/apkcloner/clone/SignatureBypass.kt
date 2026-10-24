@@ -6,20 +6,13 @@ import org.jf.dexlib2.Opcodes
 import org.jf.dexlib2.DexFileFactory
 import org.jf.dexlib2.iface.DexFile
 import org.jf.dexlib2.iface.Method
-import org.jf.dexlib2.iface.instruction.FiveRegisterInstruction
 import org.jf.dexlib2.iface.instruction.Instruction
-import org.jf.dexlib2.iface.instruction.OneRegisterInstruction
 import org.jf.dexlib2.iface.instruction.ReferenceInstruction
-import org.jf.dexlib2.iface.instruction.RegisterRangeInstruction
-import org.jf.dexlib2.iface.instruction.ThreeRegisterInstruction
-import org.jf.dexlib2.iface.instruction.TwoRegisterInstruction
-import org.jf.dexlib2.iface.instruction.VariableRegisterInstruction
 import org.jf.dexlib2.iface.reference.MethodReference
 import org.jf.dexlib2.immutable.ImmutableMethod
 import org.jf.dexlib2.immutable.ImmutableMethodImplementation
+import org.jf.dexlib2.immutable.instruction.ImmutableInstruction
 import org.jf.dexlib2.immutable.instruction.ImmutableInstruction10x
-import org.jf.dexlib2.immutable.instruction.ImmutableInstruction20t
-import org.jf.dexlib2.immutable.instruction.ImmutableInstruction22x
 import org.jf.dexlib2.rewriter.DexFileRewriter
 import org.jf.dexlib2.rewriter.DexRewriter
 import org.jf.dexlib2.rewriter.MethodRewriter
@@ -35,8 +28,8 @@ import java.io.File
  * [Activity.finish] and friends - when it does not match the one they expect. A clone is re-signed
  * with APK Toolbox's key, so the check fails and the app dies before it shows. This patch finds the
  * guard methods - the ones that both read a signature and call a terminal guard - and turns each
- * guard call into a no-op, so execution falls through to whatever follows instead of being skipped
- * (return) or aborted (throw), which would cut code that must still run.
+ * guard call into size-preserving no-ops, so execution falls through to whatever follows instead
+ * of being skipped (return) or aborted (throw), which would cut code that must still run.
  *
  * It is opt-in and fail-safe: if anything goes wrong the original dex bytes are returned unchanged,
  * so a patch that does not apply never breaks the clone.
@@ -46,7 +39,7 @@ object SignatureBypass {
     private const val TAG = "SignatureBypass"
 
     // Terminal guards that kill the process or the activity - the end of a signature check.
-    // Neutralised surgically: the invoke is replaced with a no-op so execution falls through to
+    // Neutralised surgically: the invoke is replaced with no-ops so execution falls through to
     // whatever follows, instead of being skipped (return-void) or aborted (throw), which would
     // cut code that must still run. Matched by class + name; the defining class is the
     // descriptor form (Ljava/lang/System;).
@@ -108,7 +101,7 @@ object SignatureBypass {
             var changed = false
             for (instruction in instructions) {
                 if (isKillCall(instruction)) {
-                    patched.add(nop(instruction))
+                    patched.addAll(nops(instruction))
                     changed = true
                 } else {
                     patched.add(instruction)
@@ -148,17 +141,14 @@ object SignatureBypass {
     }
 
     /**
-     * Replaces a terminal-guard invoke with a no-op that keeps the method valid and lets execution
-     * fall through to the next instruction. Uses `const/4 vA, 0x0` on the first operand register
-     * (or v0 when the guard takes no operands) - a valid instruction that consumes the register and
-     * continues, instead of return-void which would skip code that must still run.
+     * No-ops replacing a terminal-guard invoke, sized to keep every later offset valid: an invoke
+     * is 3-5 code units while a single nop is 1, so a lone nop would shift try-block starts and
+     * branch targets into the middle of instructions and the dex would fail verification
+     * ("Invalid try_item start_addr") - the same corruption [KeepAlive] guards against. One nop
+     * per code unit keeps the method exactly as long as it was. Execution falls through to the
+     * next instruction, instead of being skipped (return-void) or aborted (throw), which would
+     * cut code that must still run.
      */
-    private fun nop(instruction: Instruction): Instruction {
-        val reg = when (instruction) {
-            is RegisterRangeInstruction -> instruction.startRegister
-            is OneRegisterInstruction -> instruction.registerA
-            else -> 0
-        }
-        return ImmutableInstruction20t(Opcode.CONST_4, reg shl 12)
-    }
+    private fun nops(instruction: Instruction): List<ImmutableInstruction> =
+        List(instruction.codeUnits) { ImmutableInstruction10x(Opcode.NOP) }
 }

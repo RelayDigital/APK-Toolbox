@@ -90,6 +90,11 @@ class DexPatchTest {
 
     private fun constString(s: String) = ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(s))
 
+    /** The instructions of every method of every class (or of [only] one class) in the dex. */
+    private fun instructionsOf(data: ByteArray, only: String? = null): List<Instruction> =
+        load(data).classes.filter { only == null || it.type == only }
+            .flatMap { it.methods.toList() }.flatMap { it.implementation!!.instructions.toList() }
+
     // ---- KeepAlive ----
 
     @org.junit.Test
@@ -125,6 +130,54 @@ class DexPatchTest {
     fun keepAliveFailSafeOnGarbage() {
         val garbage = byteArrayOf(1, 2, 3, 4)
         org.junit.Assert.assertArrayEquals(garbage, KeepAlive.patchDex(garbage))
+    }
+
+    // ---- SignatureBypass ----
+
+    @org.junit.Test
+    fun bypassNopsTheGuardExitAndKeepsTheDexLoadable() {
+        // A guard method: reads the signature, then kills the process on mismatch.
+        val before = dex(
+            Triple("a", "(I)V", listOf(
+                invokeStatic("Landroid/content/pm/PackageManager;", "getPackageSignatures", listOf("Ljava/lang/String;", "I"), "[Landroid/content/pm/Signature;"),
+                invokeStatic("Ljava/lang/System;", "exit"),
+            )),
+        )
+        val after = SignatureBypass.patchDex(before)
+        val calls = methodCalls(after)
+        org.junit.Assert.assertTrue("the guard's System.exit must be gone", calls.none { it.first == "Ljava/lang/System;" && it.second == "exit" })
+        org.junit.Assert.assertTrue("the signature read must stay", calls.any { it.second == "getPackageSignatures" })
+        // Size-preserving no-ops: one 10x nop per code unit of the replaced invoke (3 for a 35c).
+        val nops = instructionsOf(after).count { it.opcode == Opcode.NOP }
+        org.junit.Assert.assertEquals("3 nops replace the 3-unit invoke", 3, nops)
+        // The patched dex has to stay a dex ART can load and verify, not just bytes.
+        load(after).classes.forEach { cls ->
+            cls.methods.forEach { m ->
+                m.implementation?.let { impl ->
+                    impl.instructions.forEach { require(it.codeUnits > 0) }
+                    impl.tryBlocks.forEach { require(it.startCodeAddress >= 0 && it.codeUnitCount > 0) }
+                }
+            }
+        }
+    }
+
+    @org.junit.Test
+    fun bypassLeavesOtherExitsAlone() {
+        // System.exit WITHOUT a signature read in the same method must not be touched.
+        val before = dex(
+            Triple("a", "(I)V", listOf(invokeStatic("Ljava/lang/System;", "exit"))),
+            Triple("b", "(I)V", listOf(
+                invokeStatic("Landroid/content/pm/Signature;", "getMessageDigest", listOf("Ljava/lang/String;"), "[B"),
+                invokeStatic("Ljava/lang/Math;", "abs", listOf("I"), "I"),
+            )),
+        )
+        org.junit.Assert.assertArrayEquals("no guard method: bytes must be unchanged", before, SignatureBypass.patchDex(before))
+    }
+
+    @org.junit.Test
+    fun bypassFailSafeOnGarbage() {
+        val garbage = byteArrayOf(5, 5, 5)
+        org.junit.Assert.assertArrayEquals(garbage, SignatureBypass.patchDex(garbage))
     }
 
     // ---- SignatureSpoof ----
