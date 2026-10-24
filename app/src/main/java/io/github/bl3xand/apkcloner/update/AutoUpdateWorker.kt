@@ -179,12 +179,19 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
             WorkManager.getInstance(context).enqueueUniqueWork(WORK_NAME_WAITING, ExistingWorkPolicy.REPLACE, request)
         }
 
-        /** One check right now, whatever the schedule says. The result comes as a notification. */
+        /**
+         * One check right now, whatever the schedule says. The result comes as a notification.
+         * KEEP, not REPLACE: a manual check must not cancel a run that is already going -
+         * its coroutine would be killed mid-download. If a manual run is already queued or
+         * running, this one waits behind it (WorkManager chains unique work under KEEP) and
+         * answers the same question moments later; the answer is the same notification the
+         * manual run always gives.
+         */
         fun runNow(context: Context) {
             val request = OneTimeWorkRequestBuilder<AutoUpdateWorker>()
                 .setInputData(workDataOf(KEY_MANUAL to true))
                 .build()
-            WorkManager.getInstance(context).enqueueUniqueWork(WORK_NAME_MANUAL, ExistingWorkPolicy.REPLACE, request)
+            WorkManager.getInstance(context).enqueueUniqueWork(WORK_NAME_MANUAL, ExistingWorkPolicy.KEEP, request)
         }
 
         /**
