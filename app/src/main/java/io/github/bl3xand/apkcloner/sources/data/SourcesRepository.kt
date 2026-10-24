@@ -20,6 +20,7 @@ import io.github.bl3xand.apkcloner.sources.model.JsonValues
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.sources.model.appFromStoredJson
+import io.github.bl3xand.apkcloner.sources.model.preserveUserFields
 import io.github.bl3xand.apkcloner.sources.source.AppSource
 import io.github.bl3xand.apkcloner.sources.source.SourceRegistry
 import java.io.File
@@ -342,7 +343,8 @@ class SourcesRepository private constructor(private val context: Context) {
         return if (onlyIfExists && existing == null) null else app to info
     }
 
-    /** The part of saving that runs under the entries lock, so that the record a save builds from
+    /**
+     * The part of saving that runs under the entries lock, so that the record a save builds from
      * the state of the list is stored against that same state. The lock spans the whole
      * read-modify-write: read the entry, build the record, write the file, put it in the map.
      * Nothing in it runs for long - the file write is the rename of a temp file written just
@@ -354,29 +356,38 @@ class SourcesRepository private constructor(private val context: Context) {
         attemptToCorrectInstallStatus: Boolean,
         onlyIfExists: Boolean,
         reuseInstalledInfo: Boolean,
+        preserveUserFields: Boolean,
     ) = synchronized(lock) {
         for (input in apps) {
             val existing = entries[input.id]
-            val (app, info) = prepareForSave(input, existing, attemptToCorrectInstallStatus, onlyIfExists, reuseInstalledInfo)
+            // A fetch saved over a record the user has touched since the fetch started must
+            // not overwrite those touches: only what a fetch owns is taken from it.
+            val app = if (preserveUserFields && existing != null) preserveUserFields(existing.app, input) else input
+            val (prepared, info) = prepareForSave(app, existing, attemptToCorrectInstallStatus, onlyIfExists, reuseInstalledInfo)
                 ?: continue
-            writeAppJson(app)
+            writeAppJson(prepared)
             storageMutations.incrementAndGet()
-            val sourceType = existing?.sourceType ?: runCatching { sourceOf(app).sourceIdentifier }.getOrNull()
-            entries[app.id] = AppEntry(app, info, sourceType)
+            val sourceType = existing?.sourceType ?: runCatching { sourceOf(prepared).sourceIdentifier }.getOrNull()
+            entries[app.id] = AppEntry(prepared, info, sourceType)
         }
     }
 
     /**
      * Stores apps and refreshes their in-memory state. With [onlyIfExists] an app that is not
-     * tracked (any more) is not written.
+     * tracked (any more) is not written. With [preserveUserFields] the saved record gives way,
+     * field by field, to what the list already holds for the user's own words - settings, the
+     * choice of a release file, the installed version once one is set - so that a fetch built
+     * before a user edit does not overwrite it. Meant for records a check fetched; a record the
+     * user edited is the user's whole word and is stored as it is (the default).
      */
     fun saveApps(
         apps: List<TrackedApp>,
         attemptToCorrectInstallStatus: Boolean = true,
         onlyIfExists: Boolean = true,
         reuseInstalledInfo: Boolean = false,
+        preserveUserFields: Boolean = false,
     ) {
-        saveAppsLocked(apps, attemptToCorrectInstallStatus, onlyIfExists, reuseInstalledInfo)
+        saveAppsLocked(apps, attemptToCorrectInstallStatus, onlyIfExists, reuseInstalledInfo, preserveUserFields)
         publish()
         backup.scheduleAutoExport()
     }
