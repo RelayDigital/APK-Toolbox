@@ -78,9 +78,10 @@ class ClonePatchRoundTripTest {
     }
 
     /**
-     * A synthetic classes.dex: one class whose method holds the two things the patches look for
-     * - a const-string with the original package (RENAME_ALIAS rewrites it to the clone's) and
-     * a PackageManager.getPackageInfo call (SPOOF retargets it to its helper).
+     * A synthetic classes.dex: one class whose method holds the three things the patches look
+     * for - a const-string with the original package (RENAME_ALIAS rewrites it to the clone's),
+     * a PackageManager.getPackageInfo call (SPOOF retargets it to its helper) and a
+     * Context.getPackageName call (MIMICRY retargets that one too).
      */
     private fun sourceDex(): ByteArray {
         val instructions = listOf<org.jf.dexlib2.iface.instruction.Instruction>(
@@ -91,6 +92,10 @@ class ClonePatchRoundTripTest {
                     "Landroid/content/pm/PackageManager;", "getPackageInfo",
                     listOf("Ljava/lang/String;", "I"), "Landroid/content/pm/PackageInfo;",
                 ),
+            ),
+            ImmutableInstruction35c(
+                Opcode.INVOKE_VIRTUAL, 1, 2, 0, 0, 0, 0,
+                ImmutableMethodReference("Landroid/content/Context;", "getPackageName", emptyList(), "Ljava/lang/String;"),
             ),
         )
         val method = ImmutableMethod(
@@ -231,6 +236,23 @@ class ClonePatchRoundTripTest {
 
     private fun helperSelfCalls(apk: File): Int = helperSelfCalls(dexOf(apk))
 
+    /** Every const-string the spoof helper carries: the identity payload and the retry name. */
+    private fun helperStrings(dex: DexFile): List<String> =
+        dex.classes.first { it.type == "Lio/github/bl3xand/apkcloner/spoof/SignatureSource;" }
+            .methods.flatMap { it.implementation!!.instructions.toList() }
+            .filter { it.opcode == Opcode.CONST_STRING }
+            .map { (it as ReferenceInstruction).let { r -> (r.reference as StringReference).string } }
+
+    /**
+     * Whether the app's own getPackageName call answers through the spoof helper - the marker
+     * of the name spoof that mimicry adds on top of the certificate substitution.
+     */
+    private fun getPackageNameRetargeted(dex: DexFile): Boolean =
+        dex.classes.first { it.type == "Ltest/Synth;" }.methods.flatMap { it.implementation!!.instructions.toList() }
+            .filterIsInstance<ReferenceInstruction>()
+            .mapNotNull { (it.reference as? MethodReference) }
+            .any { it.definingClass == "Lio/github/bl3xand/apkcloner/spoof/SignatureSource;" && it.name == "packageName" }
+
     // ---- the workflow -------------------------------------------------------------------------
 
     @Test
@@ -271,6 +293,32 @@ class ClonePatchRoundTripTest {
         assertEquals(setOf(PatchIds.RENAME_ALIAS), ApkCloner.readMetadata(third.path)!!.patches)
         assertEquals(listOf(clonePackage), appStrings(third))
         assertFalse("no spoof without the patch", hasSpoofHelper(third))
+    }
+
+    @Test
+    fun mimicryAloneDoesTheFullJob() {
+        val source = sourceApk()
+
+        // MIMICRY alone: the identity spoof includes the signature substitution - a clone
+        // built with only it gets the certificate helper AND the name spoof, the full stack
+        // of spoof+mimicry reachable with one checkbox. The stored set stays what was picked.
+        val mimicryOnly = build(listOf(source), setOf(PatchIds.MIMICRY), "mimicry")
+        assertEquals("the stored set is what was picked", setOf(PatchIds.MIMICRY), ApkCloner.readMetadata(mimicryOnly.path)!!.patches)
+        val mimicryDex = dexOf(mimicryOnly)
+        assertTrue("the certificate helper is injected", hasSpoofHelper(mimicryOnly))
+        // The identity marker: the helper's packageName method answers the ORIGINAL's name.
+        val helperStrings = helperStrings(mimicryDex)
+        assertTrue("the helper carries the ORIGINAL's package name", originalPackage in helperStrings)
+        assertTrue("the helper's retry carries the clone's package name", clonePackage in helperStrings)
+        assertTrue("mimicry retargets the app's getPackageName to the helper", getPackageNameRetargeted(mimicryDex))
+
+        // SPOOF alone stays the lighter option: the certificate helper is in, but no name
+        // spoof - the app's getPackageName call is left as the Context's own.
+        val spoofOnly = build(listOf(source), setOf(PatchIds.SPOOF_SIGNATURE), "spoof")
+        assertEquals(setOf(PatchIds.SPOOF_SIGNATURE), ApkCloner.readMetadata(spoofOnly.path)!!.patches)
+        val spoofDex = dexOf(spoofOnly)
+        assertTrue("the certificate helper is injected", hasSpoofHelper(spoofOnly))
+        assertFalse("no name spoof without mimicry", getPackageNameRetargeted(spoofDex))
     }
 
     @Test

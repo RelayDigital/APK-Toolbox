@@ -57,9 +57,20 @@ class ApkCloner(private val context: Context) {
                 // chain reads it lazily, like the metadata entry below.
                 val originalPackage = { patcher.oldPackage }
                 val clonePackage = request.newPackage
-                // The original's signing certificate, for the signature-spoof patch. Read once from the source
-                // APK's v2/v3 (or v1/JAR) signature block; null when it cannot be read (patch then no-ops).
-                val originalCertificate = if (request.spoofSignature) readCertificate(apk) else null
+                // The original's signing certificate, for the signature-spoof patch - and for mimicry, which
+                // includes the substitution and cannot work without it. Read once from the source
+                // APK's v2/v3 (or v1/JAR) signature block.
+                // A set that says mimicry without the companion (an older pick, say) still gets the
+                // full stack here: the safety net under the picker, which picks the two together.
+                if (request.mimicry && !request.spoofSignature) {
+                    AppLog.info("$name: mimicry includes the signature substitution; the companion is implied")
+                }
+                val originalCertificate = if (request.spoofSignature || request.mimicry) readCertificate(apk) else null
+                // A clone whose metadata says it mimics while its dex does not is worse than a
+                // loud failure: said here, so the silent no-op cannot hide.
+                if (originalCertificate == null && request.mimicry) {
+                    AppLog.warn("$name: mimicry cannot run - no certificate could be read from ${apk.name}; the patch is left out")
+                }
                 // Chain the dex patches; all of them emit no-ops/rewrites that compose in any order.
                 val dexPatcher: ((String, ByteArray) -> ByteArray)? = when {
                     request.bypassSignatureCheck || request.renameAlias || request.keepAlive || originalCertificate != null || request.mimicry ->
