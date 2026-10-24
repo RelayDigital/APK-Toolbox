@@ -4,11 +4,20 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.Looper
 import android.util.Log
+import java.io.File
 
 /**
  * The app's log: what was checked, downloaded, cloned, merged and installed, and what failed.
  * Every tool writes here, so one place tells what happened and when.
+ *
+ * Every entry goes to two places, both written by one background thread, so a caller - on the
+ * UI thread or anywhere else - only ever hands the entry over: the SQLite store the log sheet
+ * reads, and the [RingLog] ring of files that keeps the whole history within a fixed budget
+ * for debugging a release build. The ring is never shown to the user.
  */
 object AppLog {
     private const val TAG = "ApkToolbox"
@@ -16,9 +25,16 @@ object AppLog {
     /** How long an entry is kept. */
     const val KEPT_DAYS = 30
     private const val MAX_AGE_MS = KEPT_DAYS * 24L * 60 * 60 * 1000
+    private const val LOGS_DIR = "logs"
 
     @Volatile
     private var helper: SQLiteOpenHelper? = null
+
+    @Volatile
+    private var ring: RingLog? = null
+
+    @Volatile
+    private var writer: Handler? = null
 
     @Synchronized
     fun init(context: Context) {
@@ -34,6 +50,10 @@ object AppLog {
 
             override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
         }
+        ring = RingLog(File(context.applicationContext.filesDir, LOGS_DIR))
+        // One thread writes both stores, in the order the entries came in.
+        val thread = HandlerThread("app-log").apply { start() }
+        writer = Handler(thread.looper)
         runCatching { clear(before = System.currentTimeMillis() - MAX_AGE_MS) }
     }
 
@@ -53,7 +73,15 @@ object AppLog {
             },
             TAG, message,
         )
-        // Logging must never break what is being logged.
+        val handler = writer ?: return
+        val posted = handler.post { write(level, message) }
+        // The writer thread is gone only when the process is on its way out; the entry still
+        // went to logcat, and logging must never break what is being logged.
+        if (!posted) write(level, message)
+    }
+
+    /** Runs on the writer thread (or the caller's, as a last resort) and never throws. */
+    private fun write(level: LogLevel, message: String) {
         runCatching {
             helper?.writableDatabase?.insert(
                 TABLE, null,
@@ -64,6 +92,19 @@ object AppLog {
                 },
             )
         }
+        runCatching { ring?.append(level, System.currentTimeMillis(), message) }
+    }
+
+    /**
+     * Waits until every entry handed over so far is written to file and SQLite. For the crash
+     * handler, which must land its entry before the process goes down; anywhere else the
+     * queue drains on its own.
+     */
+    fun flush() {
+        val handler = writer ?: return
+        val latch = java.util.concurrent.CountDownLatch(1)
+        if (!handler.post { latch.countDown() }) return
+        runCatching { latch.await(FLUSH_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS) }
     }
 
     fun query(after: Long? = null): List<LogEntry> {
@@ -89,4 +130,7 @@ object AppLog {
     fun clear(before: Long? = null): Int = helper?.writableDatabase?.delete(
         TABLE, if (before != null) "timestamp < ?" else null, if (before != null) arrayOf(before.toString()) else null,
     ) ?: 0
+
+    /** A crash must not be held up for long by a full queue; logcat already has the entry. */
+    private const val FLUSH_TIMEOUT_MS = 2_000L
 }

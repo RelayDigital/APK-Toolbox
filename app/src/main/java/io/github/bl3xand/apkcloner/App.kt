@@ -24,6 +24,7 @@ class App : Application() {
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, error ->
             AppLog.error("Crashed on ${thread.name}:\n${error.stackTraceToString().take(MAX_TRACE)}")
+            AppLog.flush()
             previous?.uncaughtException(thread, error)
         }
     }
