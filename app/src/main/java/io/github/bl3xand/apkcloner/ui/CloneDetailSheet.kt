@@ -100,12 +100,15 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
             if (tracked != null) sources.setClonePermissions(tracked.app.id, emptySet(), tracked.app.cloneRequestedPermissions)
             else viewModel.setClonePermissions(clone, emptySet())
         }
-        // The patches the clone was built with, shown and changed the same way as permissions.
-        binding.permissions.buttonPatches.text = context.clonePatchesLabel(clone.patches.size, context.clonePatches().size)
+        // The patches the clone was built with, shown and changed the same way as permissions:
+        // the tracked app's set for a clone a source keeps current, what the APK records otherwise.
+        val patches = tracked?.app?.clonePatches ?: clone.patches
+        binding.permissions.buttonPatches.text = context.clonePatchesLabel(patches.size, context.clonePatches().size)
         binding.permissions.buttonPatches.isEnabled = clone.canRebuild && !busy
         binding.permissions.buttonPatches.setOnClickListener {
-            context.pickClonePatches(context.clonePatches(), clone.patches) { chosen ->
-                viewModel.setClonePatches(clone, chosen)
+            context.pickClonePatches(context.clonePatches(), patches) { chosen ->
+                if (tracked != null) sources.setClonePatches(tracked.app.id, chosen)
+                else if (original != null) viewModel.setClonePatches(clone, chosen)
             }
         }
         // A clone lives on what it is rebuilt from. One that has only an installed original - an
