@@ -23,9 +23,14 @@ import java.io.FileInputStream
  * argument.
  */
 class FakeApkServer(
-    private val apkOnGuest: File,
+    private var apkOnGuest: File,
     private val port: Int = BaseUiTest.SERVER_PORT,
 ) : NanoHTTPD("0.0.0.0", port) {
+
+    /** Serves a different file under the same URL from now on. */
+    fun serveFile(apk: File) {
+        apkOnGuest = apk
+    }
 
     /** Starts and waits until the port answers, or throws. */
     fun startAndWait(timeoutMs: Long = 10_000) {
