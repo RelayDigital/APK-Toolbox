@@ -213,4 +213,31 @@ class TrackedAppMergerTest {
         val merged = preserveUserFields(stored(pendingRepoRenameUrl = "https://x/new"), fetched())
         assertEquals("https://x/new", merged.pendingRepoRenameUrl)
     }
+
+    // ---- the wiring the check paths use ------------------------------------------------------------
+
+    /**
+     * The merge only runs through saveApps(preserveUserFields = true), which the check paths in
+     * UpdateChecker pass: checkUpdate saves its one fetched record, and checkUpdates saves the
+     * fetched and failed batches, all with reuseInstalledInfo = true (the failed batch also with
+     * attemptToCorrectInstallStatus = false). A repository needs Android to stand up, so what the
+     * wiring does is said here instead: this is saveApps(preserveUserFields = true) applying
+     * that merge before storing, with the arguments exactly as UpdateChecker passes them.
+     */
+    @Test
+    fun aUserEditMadeDuringACheckIsNotClobberedByTheChecksSave() {
+        val beforeTheCheck = stored(additionalSettings = mapOf(SettingKeys.CLONE_PACKAGE to "old.clone"))
+        // The check fetched its record before the user touched the clone set-up.
+        val fetchedDuringTheCheck = fetched(additionalSettings = mapOf(SettingKeys.CLONE_PACKAGE to "old.clone"))
+        // The user's edit, in the record the list holds when the check's save lands.
+        val stored = stored(additionalSettings = mapOf(SettingKeys.CLONE_PACKAGE to "clone.app", "appName" to "My name"))
+        val saved = preserveUserFields(stored, fetchedDuringTheCheck)
+        assertEquals("clone.app", saved.additionalSettings[SettingKeys.CLONE_PACKAGE])
+        assertEquals("My name", saved.additionalSettings["appName"])
+        // The release's own words still come from the fetch, and the stored record's other user
+        // fields (the installed version, the pin) are what survives as well.
+        assertEquals("2.0", saved.latestVersion)
+        assertEquals("1.0", saved.installedVersion)
+        assertEquals(beforeTheCheck.id, saved.id)
+    }
 }

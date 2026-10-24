@@ -94,7 +94,7 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
             throw e
         } ?: return null
         repo.setCheckError(id, null)
-        repo.saveApps(listOf(fresh))
+        repo.saveApps(listOf(fresh), preserveUserFields = true)
         if (fresh.latestVersion != current.latestVersion) {
             AppLog.info("$id: new version ${fresh.latestVersion} (was ${current.latestVersion})")
             return fresh
@@ -178,9 +178,9 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
             }
             workers.forEach { it.join() }
             fatal?.let { throw it }
-            if (fetched.isNotEmpty()) repo.saveApps(fetched.toList(), reuseInstalledInfo = true)
+            if (fetched.isNotEmpty()) repo.saveApps(fetched.toList(), reuseInstalledInfo = true, preserveUserFields = true)
             if (failed.isNotEmpty()) {
-                repo.saveApps(failed.toList(), attemptToCorrectInstallStatus = false, reuseInstalledInfo = true)
+                repo.saveApps(failed.toList(), attemptToCorrectInstallStatus = false, reuseInstalledInfo = true, preserveUserFields = true)
             }
             if (errors.idsByErrorString.isNotEmpty()) throw CheckUpdatesException(updates.toList(), errors)
             updates.toList()
