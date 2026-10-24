@@ -59,10 +59,13 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
         val available = ArrayList<String>()
         val failed = ArrayList<String>()
         var updated = 0
+        // What the pass over installed clones looked at; the outcome line after it says the rest.
+        var clonesChecked = 0
         try {
             // Without the network or the charger the settings ask for, updates are only reported.
             val mayInstall = autoInstall && restrictionsMet(context, settings)
             val clones = if (settings.checkClones) AppRepository(context, cloner).installed().clones else emptyList()
+            clonesChecked = clones.size
             // The whole pass installs as one unit, so an obtain asked for on screen waits
             // for it instead of interleaving its prompts (InstallCoordinator).
             InstallCoordinator.backgroundBatch {
@@ -105,7 +108,11 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
             UpdateNotifications.cancelAllProgress(context)
             output.deleteRecursively()
         }
-        if (available.isNotEmpty()) UpdateNotifications.showAvailable(context, available.joinToString())
+        // Behind are the clones whose update is waiting for the conditions the settings ask for;
+        // their own notifications say which they are, this line only counts them.
+        AppLog.info(
+            "Clones checked: $clonesChecked, behind: ${available.size + failed.size}, updated: $updated, failed: ${failed.size}",
+        )
         if (failed.isNotEmpty()) UpdateNotifications.showFailed(context, failed.joinToString())
         val manual = inputData.getBoolean(KEY_MANUAL, false)
         // Apps tracked from sources share this schedule when their own switch is on.

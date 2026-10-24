@@ -22,6 +22,12 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
+/**
+ * Collects one error per app and groups the apps that failed in the same way. [failureCount] is
+ * how many apps it holds, for one line that sums up a whole pass.
+ */
+fun MultiAppMultiError.failureCount(): Int = idsByErrorString.values.sumOf { it.size }
+
 /** The background pass over tracked apps: check, notify, and install what can go in silently. */
 object SourcesBackground {
     private const val MAX_ATTEMPTS = 4
@@ -153,6 +159,14 @@ object SourcesBackground {
             }
             if (toRetry.isNotEmpty()) scheduleRetry(context, toRetry, retryAfterSeconds)
 
+            // The pass is summed up in one line: how much was looked at, what it found, what
+            // could not be checked. Retries are counted as failures of this pass, not of the
+            // apps - a later pass tells how they came out.
+            val failedChecks = toRetry.size + (errors?.failureCount() ?: 0)
+            AppLog.info(
+                "BG update task: checked ${toCheck.size - failedChecks}, ${updates.size} update(s) found, $failedChecks failed",
+            )
+
             val notify = ArrayList<TrackedApp>()
             val notifyTrackOnly = ArrayList<TrackedApp>()
             // Asked by hand, the answer covers what was already known to be waiting as well.
@@ -201,10 +215,16 @@ object SourcesBackground {
         AppLog.info("BG install task: Installing ${silentlyInstallable.size} apps silently.")
         try {
             installer.downloadAndInstallLatestApps(silentlyInstallable, prompts = null, forceSerialDownloads = true)
+            // No exception: every app of the batch went through, the one line says it whole.
+            AppLog.info("BG install task: installed ${silentlyInstallable.size} of ${silentlyInstallable.size}")
         } catch (e: MultiAppMultiError) {
             for ((text, ids) in e.idsByErrorString) {
                 SourcesNotifications.checkError(context, e.errorsAppsString(text, ids), 200 + abs(text.hashCode() % 10_000))
             }
+            // A track-only app is only marked as up to date, and a download stopped by hand is
+            // neither installed nor failed; the rest is what this pass could not install.
+            val failed = silentlyInstallable.size - e.idsByErrorString.values.sumOf { it.size }
+            AppLog.info("BG install task: installed ${silentlyInstallable.size - failed} of ${silentlyInstallable.size}")
         }
         return true
     }
