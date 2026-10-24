@@ -174,7 +174,7 @@
     <string name="settings_charging_only_description">Найденное без зарядки установится при подключении к зарядке.</string>
     <string name="settings_sources_description">Токены, выбор выпусков, импорт и экспорт.</string>
     <string name="settings_root">Установка через root</string>
-    <string name="settings_root_description">Если включено, имеет приоритет над другими способами установки. Не тестировалось.</string>
+    <string name="settings_root_description">Если включено, имеет приоритет над другими способами установки. Фоновая установка может каждый раз запрашивать доступ у менеджера root. Не тестировалось.</string>
     <string name="cloning_installed">Установленные</string>
     <string name="cloning_clones">Клоны</string>
     <string name="export_done">Экспортировано в APKS</string>

@@ -174,7 +174,7 @@
     <string name="settings_charging_only_description">未充电时找到的更新会在接入充电器后安装。</string>
     <string name="settings_sources_description">令牌、版本选择、导入和导出。</string>
     <string name="settings_root">使用 root 安装</string>
-    <string name="settings_root_description">开启后优先于其他安装方式。未经测试。</string>
+    <string name="settings_root_description">开启后优先于其他安装方式。后台安装可能每次都需要向 root 管理器请求权限。未经测试。</string>
     <string name="cloning_installed">已安装</string>
     <string name="cloning_clones">克隆</string>
     <string name="export_done">已导出为 APKS</string>

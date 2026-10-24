@@ -1,20 +1,64 @@
 package io.github.bl3xand.apkcloner.install
 
 import java.io.File
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 
-/** Experimental: installing with `su`. Not tested on a rooted device. */
+/**
+ * Experimental: installing with `su`. Not tested on a rooted device. Every command is
+ * bounded, and one probe's answer stands for a while: a root manager that never answers -
+ * its prompt sitting unattended, its daemon dead - counts as no root instead of hanging
+ * whoever asked.
+ */
 object Root {
-    private fun run(script: String): Pair<Int, String> {
+    /** How long `su` gets to answer the availability probe. */
+    private const val PROBE_TIMEOUT_MS = 15_000L
+
+    /** How long a whole install script gets; the update worker is stopped around ten minutes in anyway. */
+    private const val INSTALL_TIMEOUT_MS = 10 * 60_000L
+
+    /** How long a probe that found root stands: root does not go away on its own. */
+    private const val GRANTED_STANDS_MS = 5 * 60_000L
+
+    /** How long a probe that found none stands: a grant can arrive at any moment. */
+    private const val DENIED_STANDS_MS = 15_000L
+
+    @Volatile
+    private var probedAvailable: Boolean? = null
+
+    @Volatile
+    private var probedAt: Long = 0
+
+    private fun run(script: String, timeoutMs: Long): Pair<Int, String> {
         val process = ProcessBuilder("su", "-c", script).redirectErrorStream(true).start()
-        val output = process.inputStream.bufferedReader().readText()
-        return process.waitFor() to output
+        // Waited for before the pipe is drained: a su that hangs without a word cannot hold
+        // this thread past the timeout, and what a finished process printed waits in the pipe.
+        if (!process.waitFor(timeoutMs, TimeUnit.MILLISECONDS)) {
+            process.destroyForcibly()
+            throw IOException("su did not answer within ${timeoutMs / 1000}s")
+        }
+        return process.exitValue() to process.inputStream.bufferedReader().readText()
     }
 
-    fun isAvailable(): Boolean = try {
-        run("id -u").second.trim() == "0"
-    } catch (e: Exception) {
-        false
+    fun isAvailable(): Boolean {
+        // A recent probe stands: repeated installs do not fork su one after another, and a
+        // root manager that asks per session is not made to ask from the background each time.
+        val probed = probedAvailable
+        if (probed != null && answerStands(probed, System.currentTimeMillis() - probedAt)) return probed
+        val available = try {
+            run("id -u", PROBE_TIMEOUT_MS).second.trim() == "0"
+        } catch (e: Exception) {
+            // Nothing answered, or nothing granted: for the moment, root is simply not there.
+            false
+        }
+        probedAvailable = available
+        probedAt = System.currentTimeMillis()
+        return available
     }
+
+    /** How long a probe's answer stands before the next install asks `su` again (tests). */
+    internal fun answerStands(probed: Boolean, ageMs: Long): Boolean =
+        if (probed) ageMs < GRANTED_STANDS_MS else ageMs < DENIED_STANDS_MS
 
     /** Returns null on success, otherwise what `pm` said. */
     fun install(apks: List<File>, installerPackage: String?): String? = try {
@@ -29,7 +73,7 @@ object Root {
             "uid=\"\$(am get-current-user 2>/dev/null)\"; uid=\"\${uid:-0}\"",
             "pm install -r ${installerPackage?.let { "-i '$it' " } ?: ""}--user \"\$uid\" $staged",
         ).joinToString("\n")
-        val (code, output) = run(script)
+        val (code, output) = run(script, INSTALL_TIMEOUT_MS)
         if (code == 0) null else output.trim().ifEmpty { "pm install failed ($code)" }
     } catch (e: Exception) {
         e.message ?: e.javaClass.simpleName

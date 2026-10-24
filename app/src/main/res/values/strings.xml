@@ -181,7 +181,7 @@
     <string name="settings_charging_only_description">Updates found on battery are installed once the charger is connected.</string>
     <string name="settings_sources_description">Tokens, choosing releases, import and export.</string>
     <string name="settings_root">Install with root</string>
-    <string name="settings_root_description">When on, takes priority over the other installation methods. Not tested.</string>
+    <string name="settings_root_description">When on, takes priority over the other installation methods. Installs from the background may have to ask the root manager for access each time. Not tested.</string>
     <string name="cloning_installed">Installed</string>
     <string name="cloning_clones">Clones</string>
     <string name="export_done">Exported as APKS</string>
