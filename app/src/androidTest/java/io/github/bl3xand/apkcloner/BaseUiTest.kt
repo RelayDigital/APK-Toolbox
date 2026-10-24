@@ -10,6 +10,7 @@ import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 import org.junit.After
 import org.junit.Before
+import org.json.JSONObject
 import java.io.File
 
 /**
@@ -35,12 +36,19 @@ abstract class BaseUiTest {
     @Before
     open fun setUp() {
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        // An update check started by an earlier test may still be saving what it fetched; it
+        // would write the wiped data right back. The tests run in the app's process, so the
+        // checker's progress is reachable directly: wait until it goes idle.
+        val repo = io.github.bl3xand.apkcloner.sources.data.SourcesRepository.get(context)
+        val deadline = System.currentTimeMillis() + 30_000
+        while (repo.updates.progress.value != null && System.currentTimeMillis() < deadline) {
+            Thread.sleep(200)
+        }
         // The instrumentation process has just started and the app is not running yet: safe to
-        // clear whatever a previous run left. rm runs as the app user; databases are wiped too,
-        // so the app's log starts empty and a test can assert on the lines it wrote itself.
+        // clear whatever a previous run left. The wipe runs as the app itself (the tests are
+        // the app); databases go too, so the app's log starts empty and a test can assert on
+        // the lines it wrote itself.
         wipeAppData()
-        // ... and the app must not be started before this point; the first test that launches
-        // MainActivity runs on the wiped state.
         launchMainActivity()
         // The app starts on the Sources tab; wait for its empty-state text to appear.
         waitForStringResource("sources_empty", timeout = 15_000)
@@ -52,13 +60,20 @@ abstract class BaseUiTest {
         // tests, see the class comment). Each test's data was wiped before it started.
     }
 
-    /** Removes everything the app stored, as the app user (debug builds allow `run-as`). */
+    /** Removes everything the app stored. The tests run as the app itself, so plain file
+     *  operations do what `run-as` would - and work where UiAutomation's shell cannot. */
     private fun wipeAppData() {
-        // The shell user has no right to /data/data of an app; the app's own user has.
-        val wipe = "rm -rf shared_prefs databases files cache app_textures no_backup code_cache"
-        device.executeShellCommand("run-as $packageName sh -c '$wipe'")
+        // Everything under /data/data of the app, except the profile the JIT keeps.
+        context.filesDir.deleteRecursively()
+        context.cacheDir.deleteRecursively()
+        context.getDatabasePath("sources_logs.db").parentFile?.let { dir ->
+            dir.listFiles()?.forEach { it.deleteRecursively() }
+        }
+        java.io.File(context.filesDir.parentFile, "shared_prefs").deleteRecursively()
+        java.io.File(context.filesDir.parentFile, "no_backup").deleteRecursively()
         // What the app keeps in external storage of its own; the shell user may write there.
-        device.executeShellCommand("rm -rf /sdcard/Android/data/$packageName")
+        context.getExternalFilesDir(null)?.parentFile?.deleteRecursively()
+        context.externalCacheDir?.deleteRecursively()
         // File access (Android 11+): a special app-operation, not a runtime permission.
         device.executeShellCommand("appops set $packageName MANAGE_EXTERNAL_STORAGE allow")
         // Installing other apps (Android 8+): likewise an app-operation on a manifest
@@ -80,9 +95,36 @@ abstract class BaseUiTest {
     protected fun string(name: String): String {
         val res = context.resources
         val id = res.getIdentifier(name, "string", packageName)
-        if (id == 0) error("String resource \"$name\" not found in $packageName")
-        return res.getString(id)
+        if (id != 0) return res.getString(id)
+        // The Sources tab keeps its texts not in resources but in the JSON catalogues under
+        // assets/sources/i18n (en.json and own_en.json), shared with the reference app's format.
+        return sourceString(name)
     }
+
+    /** A text of the sources' JSON catalogues, in the app's current language. */
+    protected fun sourceString(name: String): String {
+        val locale = resLocale()
+        val own = catalogue("own_$locale")
+        val main = catalogue(locale)
+        val fallback = catalogue("en")
+        val text = own.opt(name) ?: main.opt(name) ?: fallback.opt(name)
+        return text?.toString() ?: error("String \"$name\" not found in resources or i18n catalogues")
+    }
+
+    private fun resLocale(): String = when (context.resources.configuration.locales[0].language) {
+        "ru" -> "ru"
+        "zh" -> "zh"
+        else -> "en"
+    }
+
+    private fun catalogue(name: String): JSONObject {
+        val cached = catalogues[name]
+        if (cached != null) return cached
+        val json = context.assets.open("sources/i18n/$name.json").bufferedReader().use { it.readText() }
+        return JSONObject(json).also { catalogues[name] = it }
+    }
+
+    private val catalogues = HashMap<String, JSONObject>()
 
     /** Waits until the app shows the given app string on screen. */
     protected fun waitForStringResource(name: String, timeout: Long = 10_000): UiObject2 {
@@ -134,8 +176,7 @@ abstract class BaseUiTest {
     }
 
     companion object {
-        /** The host port of the test HTTP server, as the emulator's guest sees it. */
-        const val SERVER_HOST = "10.0.2.2"
+        /** The port of the test HTTP server, inside the emulator's own loopback. */
         const val SERVER_PORT = 18099
     }
 }
