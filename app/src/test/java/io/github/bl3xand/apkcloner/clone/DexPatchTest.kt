@@ -212,6 +212,52 @@ class DexPatchTest {
     }
 
     @org.junit.Test
+    fun spoofHelperReturnsQueriedPackageOnSuccess() {
+        // The helper's try must RETURN the successful getPackageInfo result: without a return in
+        // the try, control falls into the NameNotFoundException handler, which re-queries with the
+        // CLONE's package - so a query for the original's name (the mimicry case) would come back
+        // with the clone's own PackageInfo, the wrong package for every other query too.
+        val before = dex(
+            Triple("a", "(I)V", listOf(invokeStatic("Landroid/content/pm/PackageManager;", "getPackageInfo", listOf("Ljava/lang/String;", "I"), "Landroid/content/pm/PackageInfo;"))),
+        )
+        val after = SignatureSpoof.patchDex(before, "classes.dex", byteArrayOf(1, 2, 3), "com.example.app", "com.example.app.clone")
+        val gets = load(after).classes.first { it.type == "Lio/github/bl3xand/apkcloner/spoof/SignatureSource;" }
+            .methods.filter { it.name == "get" }
+        org.junit.Assert.assertEquals("one helper get() per flags type", 2, gets.size)
+        for (get in gets) {
+            val impl = get.implementation!!
+            // (instruction, code-unit address) of the whole method, to reason about the try layout.
+            val withAddr = impl.instructions.toList().zip(impl.instructions.toList().runningFold(0) { addr, ins -> addr + ins.codeUnits }.dropLast(1))
+            val retBeforeHandler = withAddr.indexOfFirst { it.first.opcode == Opcode.RETURN_OBJECT }
+            val handlerStart = withAddr.indexOfFirst { it.first.opcode == Opcode.CONST_STRING }
+            org.junit.Assert.assertTrue(
+                "the try's success path must return before the handler re-queries",
+                retBeforeHandler in 0 until handlerStart,
+            )
+            // Units: invoke=3 + move-result=1 + return=1, so the handler starts at unit 5 and the
+            // try covers 0..5. ImmutableTryBlock is (start, codeUnitCount, handlers).
+            org.junit.Assert.assertEquals(1, impl.tryBlocks.count())
+            val tryBlock = impl.tryBlocks.first()
+            org.junit.Assert.assertEquals(0, tryBlock.startCodeAddress)
+            org.junit.Assert.assertEquals(5, tryBlock.codeUnitCount)
+            org.junit.Assert.assertEquals(5, tryBlock.exceptionHandlers.first().handlerCodeAddress)
+            org.junit.Assert.assertEquals(
+                "Landroid/content/pm/PackageManager\$NameNotFoundException;",
+                tryBlock.exceptionHandlers.first().exceptionType,
+            )
+            // The handler's re-query must ask for the CLONE's package (the always-visible self),
+            // and the spoofing tail must still write the signatures field before returning.
+            val strings = withAddr.filter { it.first.opcode == Opcode.CONST_STRING }
+                .map { ((it.first as ReferenceInstruction).reference as StringReference).string }
+            org.junit.Assert.assertEquals(listOf("com.example.app.clone"), strings.filter { it.startsWith("com.example.") })
+            org.junit.Assert.assertTrue(
+                "the tail still substitutes the signature",
+                withAddr.any { it.first.opcode == Opcode.IPUT_OBJECT && (it.first as ReferenceInstruction).let { r -> (r.reference as org.jf.dexlib2.iface.reference.FieldReference).name == "signatures" } },
+            )
+        }
+    }
+
+    @org.junit.Test
     fun spoofFailSafeOnGarbage() {
         val garbage = byteArrayOf(9, 9)
         org.junit.Assert.assertArrayEquals(garbage, SignatureSpoof.patchDex(garbage, "classes.dex", byteArrayOf(1), "com.example.app", "com.example.app.clone"))

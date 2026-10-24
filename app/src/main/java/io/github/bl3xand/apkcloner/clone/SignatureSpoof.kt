@@ -348,18 +348,22 @@ object SignatureSpoof {
         // A method's parameters occupy the LAST registers: with 13 registers and three params,
         // v10=pm, v11=name, v12=flags. Everything below v10 is scratch.
         val code = mutableListOf<ImmutableInstruction>()
-        // try { v0 = pm.getPackageInfo(v11, v12); }  -> units 0..4 (invoke=3, move=1)
+        // try { return pm.getPackageInfo(v11, v12); }  -> units 0..4 (invoke=3, move=1, return=1).
+        // The return INSIDE the try is what keeps the success path out of the handler below:
+        // without it, control falls through into the catch block and the successful result is
+        // thrown away for a re-query with the clone's package - the wrong PackageInfo for every
+        // other package the app asks about.
         code += ImmutableInstruction35c(
             Opcode.INVOKE_VIRTUAL, 3, 10, 11, 12, 0, 0,
             ImmutableMethodReference(PACKAGE_MANAGER, "getPackageInfo", listOf("Ljava/lang/String;", flagsType), PACKAGE_INFO),
         )
         code += ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0)
-        // catch (NameNotFoundException) at unit 4: retry with the clone's own package,
-        // v0 = pm.getPackageInfo(clonePackage, v12)
+        code += ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)
+        // catch (NameNotFoundException) at unit 5: retry with the clone's own package,
+        // v1 = clonePackage; v11 = v1 (name := clonePackage): plain MOVE_OBJECT (12x) - both
+        // registers are < 16; then v0 = pm.getPackageInfo(clonePackage, v12).
         code += ImmutableInstruction21c(Opcode.CONST_STRING, 1, ImmutableStringReference(clonePackage))
-        // v11 = v1 (name := clonePackage): plain MOVE_OBJECT (12x) - both registers are < 16
         code += ImmutableInstruction12x(Opcode.MOVE_OBJECT, 11, 1)
-        // Retry; the continuation below opens with its own move-result-object.
         code += ImmutableInstruction35c(
             Opcode.INVOKE_VIRTUAL, 3, 10, 11, 12, 0, 0,
             ImmutableMethodReference(PACKAGE_MANAGER, "getPackageInfo", listOf("Ljava/lang/String;", flagsType), PACKAGE_INFO),
@@ -401,7 +405,7 @@ object SignatureSpoof {
             emptySet<org.jf.dexlib2.HiddenApiRestriction>(),
             ImmutableMethodImplementation(
                 13, instructions,
-                listOf(ImmutableTryBlock(0, 4, listOf(ImmutableExceptionHandler(NAME_NOT_FOUND, 4)))),
+                listOf(ImmutableTryBlock(0, 5, listOf(ImmutableExceptionHandler(NAME_NOT_FOUND, 5)))),
                 emptyList<org.jf.dexlib2.iface.debug.DebugItem>(),
             ),
         )
