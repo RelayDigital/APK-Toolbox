@@ -259,6 +259,29 @@ class DexPatchTest {
                 "the goto jumps from inside the try over the handler into the tail",
                 gotoAddr < handlerStart && gotoAddr + (gotos.first().first as org.jf.dexlib2.iface.instruction.formats.Instruction10t).codeOffset > handlerStart,
             )
+            // Every branch must land on an INSTRUCTION BOUNDARY and reach the code it guards:
+            // the two 22t branches are the name guard's (clone-name-miss -> original compare,
+            // original-name-hit -> retry). A branch whose offset was written as an absolute
+            // address instead of a relative one lands mid-instruction - ART rejects the whole
+            // class with "tried to get class from non-reference register" (upx.61's first
+            // runtime iteration), so the targets are pinned here exactly.
+            val instructionStarts = withAddr.map { it.second }.toSet()
+            val branches = withAddr.filter { it.first.opcode == Opcode.IF_NE || it.first.opcode == Opcode.IF_EQ }
+            org.junit.Assert.assertEquals("two guard branches", 2, branches.size)
+            val ifNe = branches.first { it.first.opcode == Opcode.IF_NE }
+            val ifEq = branches.first { it.first.opcode == Opcode.IF_EQ }
+            val ifNeTarget = ifNe.second + (ifNe.first as org.jf.dexlib2.iface.instruction.formats.Instruction22t).codeOffset
+            val ifEqTarget = ifEq.second + (ifEq.first as org.jf.dexlib2.iface.instruction.formats.Instruction22t).codeOffset
+            org.junit.Assert.assertTrue("the clone-name miss lands on the original-name compare", ifNeTarget in instructionStarts)
+            org.junit.Assert.assertTrue("the original-name hit lands on the retry", ifEqTarget in instructionStarts)
+            org.junit.Assert.assertTrue(
+                "the retry target is the retry block's head (const-string, move-object, then the second invoke)",
+                ifEqTarget + 3 == withAddr.filter { it.first.opcode == Opcode.INVOKE_VIRTUAL }.map { it.second }.sorted()[1],
+            )
+            org.junit.Assert.assertTrue(
+                "the goto lands on an instruction boundary (the tail start)",
+                gotoAddr + (gotos.first().first as org.jf.dexlib2.iface.instruction.formats.Instruction10t).codeOffset in instructionStarts,
+            )
             // Units: invoke=3 + move-result=1 + goto=1, so the handler starts at unit 5 and the
             // try covers 0..5. ImmutableTryBlock is (start, codeUnitCount, handlers).
             org.junit.Assert.assertEquals(1, impl.tryBlocks.count())

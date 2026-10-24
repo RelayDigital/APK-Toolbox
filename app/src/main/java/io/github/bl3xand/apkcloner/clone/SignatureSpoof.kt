@@ -387,7 +387,8 @@ object SignatureSpoof {
         val code = mutableListOf<ImmutableInstruction>()
         // try { v0 = pm.getPackageInfo(v11, v12); goto tail; } -> units 0..4 (invoke=3, move=1,
         // goto=1). NO return here: control jumps to the shared substitution tail, so the
-        // success result gets its signatures overwritten like the retry's does.
+        // success result gets its signatures overwritten like the retry's does. The 10t
+        // argument is a code OFFSET: +18 from unit 4 lands on the tail at unit 22.
         code += ImmutableInstruction35c(
             Opcode.INVOKE_VIRTUAL, 3, 10, 11, 12, 0, 0,
             ImmutableMethodReference(PACKAGE_MANAGER, "getPackageInfo", listOf("Ljava/lang/String;", flagsType), PACKAGE_INFO),
@@ -398,13 +399,15 @@ object SignatureSpoof {
         // caught exception lives in v9 for the rethrow below.
         code += ImmutableInstruction11x(Opcode.MOVE_EXCEPTION, 9)
         // The name guard, in two comparisons (a String's value is a constant here; comparing
-        // register to register keeps it one instruction each):
+        // register to register keeps it one instruction each). NOTE: the 22t branch argument is
+        // a code OFFSET from the branch instruction itself, not an absolute address - the
+        // targets below are absolute units, so the offsets are (target - own address).
         // if (v11 != clonePackage) goto 10 (compare with the original's name next);
         code += ImmutableInstruction21c(Opcode.CONST_STRING, 1, ImmutableStringReference(clonePackage))
-        code += ImmutableInstruction22t(Opcode.IF_NE, 11, 1, 10)
+        code += ImmutableInstruction22t(Opcode.IF_NE, 11, 1, 2)
         // if (v11 == originalPackage) goto 15 (the retry);
         code += ImmutableInstruction21c(Opcode.CONST_STRING, 1, ImmutableStringReference(originalPackage))
-        code += ImmutableInstruction22t(Opcode.IF_EQ, 11, 1, 15)
+        code += ImmutableInstruction22t(Opcode.IF_EQ, 11, 1, 3)
         // throw v9 (unit 14): the queried name is neither the clone's nor the original's - a
         // foreign absent/invisible package keeps its NameNotFoundException.
         code += ImmutableInstruction11x(Opcode.THROW, 9)
