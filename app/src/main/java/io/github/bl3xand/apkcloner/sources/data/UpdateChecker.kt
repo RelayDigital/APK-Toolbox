@@ -17,6 +17,7 @@ import io.github.bl3xand.apkcloner.sources.model.applyMinAgeSuppression
 import io.github.bl3xand.apkcloner.sources.model.carryPreferredFile
 import io.github.bl3xand.apkcloner.sources.source.DEFAULT_FETCH_CONCURRENCY
 import io.github.bl3xand.apkcloner.sources.source.SourceRegistry
+import io.github.bl3xand.apkcloner.testing.TestHooks
 import java.io.IOException
 import java.time.Instant
 import java.util.Collections
@@ -125,6 +126,21 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
         forceAll: Boolean = false,
         throwErrorsForRetry: Boolean = false,
     ): List<TrackedApp> = synchronized(checkLock) {
+        // What a whole check pass took, said to the test hooks (empty unless the
+        // instrumentation enabled them) as a started/finished pair.
+        TestHooks.checkStarted()
+        try {
+            checkUpdatesInside(specificIds, forceAll, throwErrorsForRetry)
+        } finally {
+            TestHooks.checkFinished()
+        }
+    }
+
+    private fun checkUpdatesInside(
+        specificIds: List<String>?,
+        forceAll: Boolean,
+        throwErrorsForRetry: Boolean,
+    ): List<TrackedApp> {
         val wanted = specificIds?.toList()
             ?: getAppsSortedByUpdateCheckTime(settings.onlyCheckInstalledOrTrackOnlyApps, forceAll)
         // An app whose source has to be signed in to first cannot be checked; it says so on its
@@ -183,7 +199,7 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
                 repo.saveApps(failed.toList(), attemptToCorrectInstallStatus = false, reuseInstalledInfo = true, preserveUserFields = true)
             }
             if (errors.idsByErrorString.isNotEmpty()) throw CheckUpdatesException(updates.toList(), errors)
-            updates.toList()
+            return updates.toList()
         } finally {
             _progress.value = null
         }

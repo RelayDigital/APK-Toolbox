@@ -51,6 +51,18 @@ object TestHooks {
         state.recordBackgroundCheckFinished()
     }
 
+    /** Records only when [enabled]; a no-op otherwise (and always in a release build). */
+    fun checkStarted() {
+        if (!enabled) return
+        state.recordCheckStarted()
+    }
+
+    /** Records only when [enabled]; a no-op otherwise (and always in a release build). */
+    fun checkFinished() {
+        if (!enabled) return
+        state.recordCheckFinished()
+    }
+
     /** The last notifications posted, oldest first, at most [NOTIFICATION_RING_SIZE] of them. */
     val notifications: List<NotificationRecord> get() = if (enabled) state.notifications else emptyList()
 
@@ -74,6 +86,22 @@ object TestHooks {
 
     /** Wall clock of the last finished background check, epoch millis; 0 when none did. */
     val lastBackgroundCheckFinishedAt: Long get() = if (enabled) state.lastBackgroundCheckFinishedAt else 0L
+
+    /** How many checks have started since the last [resetAppState] - every kind of check,
+     *  the background run's and a "Check now" alike, one per checkUpdates call. */
+    val checksStarted: Int get() = if (enabled) state.checksStarted else 0
+
+    /** How many checks have finished since the last [resetAppState]; with [checksStarted],
+     *  what a test waits on when it needs a check to be over. */
+    val checksFinished: Int get() = if (enabled) state.checksFinished else 0
+
+    /**
+     * Why the last check of an app failed, by app - the repository's own [map], read through
+     * so the empty release state stays the rule. An app that was checked without trouble
+     * since is not in it.
+     */
+    fun checkErrors(context: android.content.Context): Map<String, String> =
+        if (enabled) SourcesRepository.get(context.applicationContext).checkErrors.value else emptyMap()
 
     /**
      * Puts the app into the state a test wants to start from: no tracked apps, no in-flight
@@ -127,6 +155,8 @@ object TestHooks {
         private var startedChecks = 0
         private var finishedChecks = 0
         private var lastFinishedCheckAt = 0L
+        private var startedCheckPasses = 0
+        private var finishedCheckPasses = 0
 
         val notifications: List<NotificationRecord> get() = synchronized(lock) { ring.toList() }
         val currentInstalls: Set<String> get() = synchronized(lock) { installing.toSet() }
@@ -134,6 +164,8 @@ object TestHooks {
         val backgroundCheckRunsStarted: Int get() = synchronized(lock) { startedChecks }
         val backgroundCheckRunsFinished: Int get() = synchronized(lock) { finishedChecks }
         val lastBackgroundCheckFinishedAt: Long get() = synchronized(lock) { lastFinishedCheckAt }
+        val checksStarted: Int get() = synchronized(lock) { startedCheckPasses }
+        val checksFinished: Int get() = synchronized(lock) { finishedCheckPasses }
 
         fun recordNotification(record: NotificationRecord) = synchronized(lock) {
             ring.addLast(record)
@@ -157,6 +189,14 @@ object TestHooks {
             lastFinishedCheckAt = System.currentTimeMillis()
         }
 
+        fun recordCheckStarted() = synchronized(lock) {
+            startedCheckPasses++
+        }
+
+        fun recordCheckFinished() = synchronized(lock) {
+            finishedCheckPasses++
+        }
+
         fun reset() = synchronized(lock) {
             ring.clear()
             installing.clear()
@@ -164,6 +204,8 @@ object TestHooks {
             startedChecks = 0
             finishedChecks = 0
             lastFinishedCheckAt = 0L
+            startedCheckPasses = 0
+            finishedCheckPasses = 0
         }
     }
 }
