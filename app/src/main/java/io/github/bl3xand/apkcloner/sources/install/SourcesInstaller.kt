@@ -111,14 +111,11 @@ class SourcesInstaller private constructor(private val context: Context) {
         if (app.clonePackage != null || app.cloneTarget != null) return false
         val installed = repo.installedInfo(app.id) ?: return false
         if (!settings.verifySigningCertHashes) return false
-        if (clash.installedSigner.isEmpty() || clash.offeredSigner.isEmpty()) return false
-        if (clash.installedSigner.containsAll(clash.offeredSigner)) return false
         // What the source offered last is the file it offers now only by name: a source whose
         // names carry versions renames every file. The signer of the very file this install is
         // about is the one to judge, and it is known when it was downloaded already.
         val downloads = apkCertHashes(listOfNotNull(pickDownloadedApk(app, picked)))
-        if (downloads.isNotEmpty()) return !clash.installedSigner.containsAll(downloads)
-        return true
+        return signingClash(clash.installedSigner, clash.offeredSigner, downloads)
     }
 
     /** The file an earlier download of [picked] left in the cache, when it is still there. */
@@ -1108,6 +1105,23 @@ class SourcesInstaller private constructor(private val context: Context) {
         private const val BACKGROUND_CONFIRM_ATTEMPTS = 20
         private const val INSTALL_CONFIRM_POLLS = 300
         private const val INSTALL_CONFIRM_TIMEOUT_MS = 10 * 60_000L
+
+        /**
+         * Whether installing a file over what is on the device is blocked by a signing clash the
+         * user could still do something about. Pure judgment over what is known: the signer of
+         * the installed build, the signer the source last offered, and - when the very file was
+         * already downloaded - the signer it carries. The caller supplies the facts and rules
+         * out everything that is not this judgment (nothing installed, a clone, the check
+         * switched off); with those out of the way, a known disagreement of the signers is a
+         * clash, and the file's own signer wins over the source's remembered say-so whenever it
+         * can be read - a source whose file names carry versions renames every file, so the
+         * remembered signer is of another file of the same branch.
+         */
+        fun signingClash(installedSigner: Set<String>, offeredSigner: Set<String>, downloadedSigner: Set<String>): Boolean {
+            if (installedSigner.isEmpty() || offeredSigner.isEmpty()) return false
+            if (downloadedSigner.isNotEmpty()) return !installedSigner.containsAll(downloadedSigner)
+            return !installedSigner.containsAll(offeredSigner)
+        }
 
         /** How long a background session waits for the system's answer to its commit. */
         private const val BACKGROUND_CONFIRM_TIMEOUT_MS = 3 * 60_000L
