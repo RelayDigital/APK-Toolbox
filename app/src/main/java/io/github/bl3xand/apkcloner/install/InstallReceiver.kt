@@ -26,26 +26,28 @@ class InstallReceiver : BroadcastReceiver() {
         // Results belong to their own session: concurrent installs each answer their own
         // waiter, and a session whose caller reports the outcome itself is left to it.
         val sessionId = intent.getIntExtra(PackageInstaller.EXTRA_SESSION_ID, NO_SESSION)
-        val selfReported = unclaimSelfReport(sessionId)
         when (status) {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
+                // The ask is not the outcome; a standing claim must survive it, or the
+                // result that follows would be announced by the receiver after all.
                 AppLog.debug("System installer: asking the user to confirm $packageName")
                 val confirm = intent.parcelable<Intent>(Intent.EXTRA_INTENT) ?: return
                 context.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
             PackageInstaller.STATUS_SUCCESS -> {
                 AppLog.info("System installer: installed $packageName")
-                if (!selfReported) Messages.show(context, context.getString(R.string.install_success))
+                if (!unclaimSelfReport(sessionId)) Messages.show(context, context.getString(R.string.install_success))
                 finish(SessionResult(sessionId, packageName, status))
             }
             PackageInstaller.STATUS_FAILURE_ABORTED -> {
                 AppLog.info("System installer: cancelled by the user ($packageName)")
+                unclaimSelfReport(sessionId)
                 finish(SessionResult(sessionId, packageName, status))
             }
             else -> {
                 val reason = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE).orEmpty()
                 AppLog.error("System installer: failed for $packageName, status $status: $reason")
-                if (!selfReported) Messages.show(context, context.getString(R.string.install_failed, reason))
+                if (!unclaimSelfReport(sessionId)) Messages.show(context, context.getString(R.string.install_failed, reason))
                 finish(SessionResult(sessionId, packageName, status, reason))
             }
         }
@@ -56,17 +58,17 @@ class InstallReceiver : BroadcastReceiver() {
      * the user is dropped and reported as a failed update instead.
      */
     private fun onBackgroundResult(context: Context, intent: Intent, status: Int) {
+        val sessionId = intent.getIntExtra(PackageInstaller.EXTRA_SESSION_ID, NO_SESSION)
         if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
-            val sessionId = intent.getIntExtra(PackageInstaller.EXTRA_SESSION_ID, -1)
             runCatching { context.packageManager.packageInstaller.abandonSession(sessionId) }
+            // The ask cannot be shown and the session is abandoned: that is its outcome.
+            finish(SessionResult(sessionId, intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME), status))
+            return
         }
         if (status != PackageInstaller.STATUS_SUCCESS) {
             UpdateNotifications.showFailed(context, intent.getStringExtra(EXTRA_LABEL).orEmpty())
         }
-        if (status != PackageInstaller.STATUS_PENDING_USER_ACTION) {
-            val sessionId = intent.getIntExtra(PackageInstaller.EXTRA_SESSION_ID, NO_SESSION)
-            finish(SessionResult(sessionId, intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME), status))
-        }
+        finish(SessionResult(sessionId, intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME), status))
     }
 
     private fun finish(result: SessionResult) {

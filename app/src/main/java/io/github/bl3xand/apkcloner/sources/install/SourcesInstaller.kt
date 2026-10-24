@@ -857,8 +857,17 @@ class SourcesInstaller private constructor(private val context: Context) {
                 if (!background && !isForeground && installer(false) is StockInstaller) {
                     // The system prompt can only be shown over our own window.
                     SourcesNotifications.completeInstallation(context)
-                    withTimeoutOrNull(5 * 60_000L) { while (!isForeground) delay(500) }
+                    val cameToFront = withTimeoutOrNull(5 * 60_000L) { while (!isForeground) delay(500); true } ?: false
                     SourcesNotifications.cancel(context, SourcesNotifications.ID_COMPLETE_INSTALL)
+                    // Committing with the app in the background would ask for a
+                    // confirmation the system refuses to even show (a receiver cannot
+                    // start an activity from the background), stranding the session.
+                    // The update stays pending: the app's row offers it again.
+                    if (!cameToFront) {
+                        AppLog.warn("Install of $resolvedId waited for the app's window in vain; leaving it for a calmer moment")
+                        repo.setDownload(resolvedId, null)
+                        return
+                    }
                 }
                 if (installDownloaded(downloaded, prompts, background)) installed.add(resolvedId)
             } catch (e: Exception) {
