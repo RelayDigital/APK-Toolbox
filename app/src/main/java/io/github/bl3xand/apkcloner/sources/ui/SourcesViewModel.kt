@@ -308,7 +308,9 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
             } catch (e: CancellationSignal) {
                 // Stopped on purpose: there is nothing to report.
             } catch (e: Exception) {
-                AppLog.error("Sources", e)
+                // CheckUpdatesException carries its report in toString (the message itself is
+                // empty), so a plain "Sources: " line would say nothing at all.
+                AppLog.error("Sources: ${e.toString().trim()}")
                 _events.tryEmit(SourcesEvent.Error(if (e is CheckUpdatesException) e.errors else e))
             }
         }

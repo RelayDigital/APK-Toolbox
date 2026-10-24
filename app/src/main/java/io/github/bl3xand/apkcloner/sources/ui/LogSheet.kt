@@ -34,8 +34,8 @@ private const val DAY_MS = 24L * 60 * 60 * 1000
 fun Context.showLogSheet(save: (fileName: String, text: String) -> Unit) {
     AppLog.init(this)
     var days = DEFAULT_PERIOD_DAYS
-    // Any set of levels can be shown together; to begin with, only the plain messages.
-    val shownLevels = mutableSetOf(LogLevel.INFO)
+    // Any set of levels can be shown together; to begin with, everything that was kept.
+    val shownLevels = mutableSetOf(*LogLevel.entries.toTypedArray())
     val text = TextView(this).apply {
         setTextIsSelectable(true)
         setTextAppearance(textAppearance(MaterialR.attr.textAppearanceBodySmall))
