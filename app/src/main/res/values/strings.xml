@@ -14,7 +14,7 @@
     <string name="chip_clones_original">From the original</string>
     <string name="chip_clones_source">From a source</string>
     <string name="chip_update_available">Update available</string>
-    <string name="chip_no_updates">Not updated</string>
+    <string name="chip_no_updates">Without updates</string>
     <string name="empty_list">No apps found</string>
     <string name="empty_clones">No clones yet. Installed clones will show up here.</string>
     <string name="button_pick_apk">Choose APK</string>
@@ -38,8 +38,8 @@
     <string name="install_success">Installed</string>
     <string name="install_failed">Installation failed: %1$s</string>
     <string name="install_confirm_needed">the system asked for confirmation</string>
-    <string name="detail_cloned_from">Cloned from</string>
-    <string name="detail_updated_from">Updated from</string>
+    <string name="detail_cloned_from">Built from</string>
+    <string name="detail_updated_from">Rebuilt from</string>
     <string name="detail_from_original">The installed app</string>
     <string name="detail_from_nothing">Nothing: the original is not installed</string>
     <string name="detail_latest_version">Latest version</string>
@@ -48,10 +48,10 @@
     <string name="origin_system">System</string>
     <string name="origin_file">From a file</string>
     <string name="clone_no_updates">No original</string>
-    <string name="version_no_updates">%1$s (not updated)</string>
-    <string name="switch_no_updates">Do not update</string>
+    <string name="version_no_updates">%1$s (without updates)</string>
+    <string name="switch_no_updates">Without updates</string>
     <string name="clone_show_in_sources">Show in Sources</string>
-    <string name="clone_track">Update from a source</string>
+    <string name="clone_track">Track through a source</string>
     <string name="clone_track_message">A clone is rebuilt from the installed original, so it stops being updated when the original is removed - and Google Play hands its files to nobody else. APK Toolbox can look the app up by its package in stores that carry the same builds (APKPure, RuStore, Galaxy Store and others, one after another) and keep the clone up to date from there, in the Sources tab. The original can then be removed. An update signed by someone else than the original is refused.</string>
     <string name="detail_original_version">Original version</string>
     <string name="detail_clone_version">Clone version</string>
@@ -61,7 +61,7 @@
     <string name="button_delete">Delete</string>
 
     <string name="settings_title">Settings</string>
-    <string name="settings_check_interval">Check for updates: %1$s</string>
+    <string name="settings_check_interval">Update check: %1$s</string>
     <string-array name="check_intervals">
         <item>once a day</item>
         <item>every 3 days</item>
@@ -135,7 +135,7 @@
     <string name="files_action_merge">Merge into a single APK</string>
 
     <string name="button_check_now">Check now</string>
-    <string name="check_now_started">Checking; the result will come as a notification</string>
+    <string name="check_now_started">A check is running; the result will come as a notification</string>
     <string name="notification_up_to_date">No updates</string>
     <string name="install_copy_obb">Copy OBB files (%1$d · %2$s)</string>
 
@@ -174,14 +174,14 @@
     <string name="settings_section_install">Automatic installation</string>
     <string name="settings_section_experimental">Experimental</string>
     <string name="settings_check_clones">Clones</string>
-    <string name="settings_check_clones_description">A clone is outdated when its original was updated or a new version is available in its source.</string>
+    <string name="settings_check_clones_description">A clone is outdated when its original was updated or its source has a newer version.</string>
     <string name="settings_check_on_start">Check when the app opens</string>
     <string name="settings_check_on_start_description">Updates of apps from sources and of clones are looked for every time APK Toolbox is opened.</string>
     <string name="settings_wifi_only">Wait for Wi-Fi</string>
     <string name="settings_wifi_only_description">Updates found on mobile data are installed once Wi-Fi is connected.</string>
     <string name="settings_charging_only">Wait for the charger</string>
     <string name="settings_charging_only_description">Updates found on battery are installed once the charger is connected.</string>
-    <string name="settings_sources_description">Tokens, choosing releases, import and export.</string>
+    <string name="settings_sources_description">Tokens, counted releases, import and export.</string>
     <string name="settings_root">Install with root</string>
     <string name="settings_root_description">When on, takes priority over the other installation methods. Installs from the background may have to ask the root manager for access each time. Not tested.</string>
     <string name="cloning_installed">Installed</string>
@@ -210,7 +210,7 @@
         <item quantity="one">Show %d older entry</item>
         <item quantity="other">Show %d older entries</item>
     </plurals>
-    <string name="button_refresh">Refresh</string>
+    <string name="button_refresh">Check for updates</string>
     <string name="clones_up_to_date">All clones are up to date</string>
     <plurals name="log_days">
         <item quantity="one">%d day</item>

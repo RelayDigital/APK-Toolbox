@@ -433,7 +433,7 @@
     "trackOnly": "仅追踪",
     "trackOnlyAppDescription": "该应用的更新会被追踪，但 Obtainium 无法下载或安装它。",
     "trackOnlyInBrackets": "（仅追踪）",
-    "trackOnlyUpdatesAvailable": "仅追踪应用有可用更新",
+    "trackOnlyUpdatesAvailable": "仅追踪的应用有可用更新",
     "trimVersionString": "修剪版本字符串的正则表达式",
     "tryInferAppIdFromCode": "尝试从源代码推断应用 ID",
     "trySelectingSuggestedVersionCode": "尝试选择推荐版本的 APK 文件",
