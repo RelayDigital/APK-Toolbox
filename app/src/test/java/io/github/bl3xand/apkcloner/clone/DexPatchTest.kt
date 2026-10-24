@@ -312,4 +312,61 @@ class DexPatchTest {
         org.junit.Assert.assertArrayEquals(garbage, CoreRenameAlias.patchDexScoped(garbage, "a.b", "a.b.c"))
     }
 
+    // ---- the chain: patches compose ----
+
+    @org.junit.Test
+    fun chainKeepsTheMimicryHelperOriginalStringWithRenameAliasOn() {
+        // RENAME_ALIAS + SPOOF_SIGNATURE + MIMICRY together: the alias rewriter rewrites every
+        // const-string equal to the original package, and the mimicry helper's payload IS the
+        // original's package name. With the alias running AFTER the spoof (the old chain order)
+        // the helper's string was rewritten to the clone's package - mimicry silently inverted
+        // into reporting exactly what an unpatched clone reports. The chain must inject the
+        // helper only after the alias pass is done.
+        val before = dex(
+            Triple("a", "(I)V", listOf(
+                constString("com.example.app"),
+                invokeStatic("Landroid/content/pm/PackageManager;", "getPackageInfo", listOf("Ljava/lang/String;", "I"), "Landroid/content/pm/PackageInfo;"),
+            )),
+        )
+        val original = "com.example.app"
+        val clone = "com.example.app.clone"
+        val chain = DexPatchChain(
+            setOf(PatchIds.RENAME_ALIAS, PatchIds.SPOOF_SIGNATURE, PatchIds.MIMICRY),
+            byteArrayOf(1, 2, 3), { original }, clone,
+        )
+        val after = chain.apply("classes.dex", before)
+
+        // The app's own alias string was rewritten: core/plugin binding resolves under the clone.
+        // (Scoped to the app class - the helper carries its own, deliberately different strings.)
+        val appStrings = load(after).classes.first { it.type == "Ltest/Synth;" }
+            .methods.flatMap { it.implementation!!.instructions.toList() }
+            .filter { it.opcode == Opcode.CONST_STRING }
+            .map { ((it as ReferenceInstruction).reference as StringReference).string }
+            .filter { it.startsWith("com.example.") }
+        org.junit.Assert.assertEquals("the app's alias string is rewritten", listOf(clone), appStrings)
+
+        // The helper still reports the ORIGINAL's package name, and its getPackageInfo helper is
+        // in place with the clone-package retry - mimicry intact, not inverted.
+        val helper = load(after).classes.first { it.type == "Lio/github/bl3xand/apkcloner/spoof/SignatureSource;" }
+        val helperStrings = helper.methods.flatMap { it.implementation!!.instructions.toList() }
+            .filter { it.opcode == Opcode.CONST_STRING }
+            .map { ((it as ReferenceInstruction).reference as StringReference).string }
+        org.junit.Assert.assertTrue("the mimicry helper keeps the ORIGINAL package", helperStrings.contains(original))
+        org.junit.Assert.assertTrue("the helper's retry keeps the CLONE package", helperStrings.contains(clone))
+        org.junit.Assert.assertTrue(
+            "getPackageInfo is retargeted to the helper",
+            helper.methods.any { it.name == "get" },
+        )
+    }
+
+    @org.junit.Test
+    fun chainRenameAliasAloneStillRewrites() {
+        // The reorder must not change what RENAME_ALIAS does on its own: no certificate, no
+        // spoof - the alias still rewrites the original's package string.
+        val before = dex(Triple("a", "(I)V", listOf(constString("com.example.app"))))
+        val chain = DexPatchChain(setOf(PatchIds.RENAME_ALIAS), null, { "com.example.app" }, "com.example.app.clone")
+        val after = chain.apply("classes.dex", before)
+        org.junit.Assert.assertEquals(listOf("com.example.app.clone"), stringConstants(after))
+    }
+
 }

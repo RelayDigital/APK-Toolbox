@@ -164,8 +164,11 @@ class ApkCloner(private val context: Context) {
  * The dex patch chain, as a named class: R8 merges structurally identical lambda bodies and was
  * observed mangling the certificate capture (the spoof patch silently received null in release
  * builds while the debug build worked). A named class keeps each field honest.
+ *
+ * Internal (not private) so DexPatchTest can drive the patches in the chain's real order - the
+ * order is half the contract: RENAME_ALIAS must run before the spoof's helper is injected.
  */
-private class DexPatchChain(
+internal class DexPatchChain(
     private val patches: Set<String>,
     private val certificate: ByteArray?,
     private val originalPackage: () -> String,
@@ -176,8 +179,14 @@ private class DexPatchChain(
         val original = originalPackage()
         if (PatchIds.BYPASS in patches) patched = SignatureBypass.patchDex(patched)
         if (PatchIds.KEEP_ALIVE in patches) patched = KeepAlive.patchDex(patched)
-        if (certificate != null) patched = SignatureSpoof.patchDex(patched, name, certificate, original, clonePackage, PatchIds.MIMICRY in patches)
+        // RENAME_ALIAS runs BEFORE the spoof: it rewrites every const-string equal to the
+        // original package, so running it after would also rewrite the mimicry helper's own
+        // payload string (the original's package name, injected by the spoof) and invert the
+        // mimicry into reporting the clone's name. The other direction is safe: the spoof
+        // retargets getPackageInfo/getPackageName invokes, and the alias rewriter only touches
+        // const-strings - the retargeted calls and the helper it reads them for compose.
         if (PatchIds.RENAME_ALIAS in patches) patched = CoreRenameAlias.patchDexScoped(patched, original, clonePackage)
+        if (certificate != null) patched = SignatureSpoof.patchDex(patched, name, certificate, original, clonePackage, PatchIds.MIMICRY in patches)
         return patched
     }
 
