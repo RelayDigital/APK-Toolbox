@@ -73,7 +73,7 @@ class ClonePatchFlowTest : BaseUiTest() {
 
             // 2. Set the app up as a clone with one patch on: the page's clone options.
             openTrackedAppPage()
-            val cloneSwitch = device.findObject(By.text(string("actCloneInstall")))
+            val cloneSwitch = device.findObject(By.text(sourceString("actCloneInstall")))
                 ?: error("No clone switch on the app's page. Screen:\n${dumpVisibleTexts()}")
             cloneSwitch.click()
             device.waitForIdle(1_000)
@@ -165,16 +165,20 @@ class ClonePatchFlowTest : BaseUiTest() {
         device.waitForIdle(1_000)
     }
 
-    /** Opens the clone's page from the Clones tab. */
+    /** Opens the clone's page from the Clones tab (the Cloning tab's Clones side). */
     private fun openClonePage() {
         device.pressBack()
         device.waitForIdle(1_000)
         device.pressBack()
         device.waitForIdle(1_000)
-        // The Clones tab: the second tab of the main tabs.
-        val tabs = device.findObjects(By.clazz("com.google.android.material.tabs.TabLayout\$TabView"))
-        check(tabs.size >= 2) { "No tabs found. Screen:\n${dumpVisibleTexts()}" }
-        tabs[1].click()
+        // The Cloning tab of the main tabs, then its Clones side.
+        val cloningTab = device.findObject(By.text(string("tab_apps")))
+            ?: error("No Cloning tab. Screen:\n${dumpVisibleTexts()}")
+        cloningTab.click()
+        device.waitForIdle(1_000)
+        val clonesSide = device.findObject(By.text(string("cloning_clones")))
+            ?: error("No Clones side in the Cloning tab. Screen:\n${dumpVisibleTexts()}")
+        clonesSide.click()
         device.waitForIdle(1_000)
         val cloneRow = device.wait(Until.findObject(By.textContains(clonePackage)), 10_000)
             ?: error("No row for the clone. Screen:\n${dumpVisibleTexts()}")
