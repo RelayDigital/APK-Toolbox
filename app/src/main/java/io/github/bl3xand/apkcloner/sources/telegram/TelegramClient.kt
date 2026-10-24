@@ -17,6 +17,7 @@ import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +41,6 @@ object TelegramClient : TelegramGateway {
     /** The file TDLib keeps the session in. */
     private const val DATABASE_FILE = "td.binlog"
     private const val SESSION_DIR = "telegram"
-    private const val REQUEST_TIMEOUT_S = 30L
     private const val PART_TIMEOUT_S = 90L
     private const val START_TIMEOUT_MS = 20_000L
     private const val POLL_MS = 300L
@@ -71,6 +71,9 @@ object TelegramClient : TelegramGateway {
 
     @Volatile
     private var lastVerified = 0L
+
+    /** How long a request waits and which reads are sent again; see [TelegramRetry]. */
+    private val retry = TelegramRetry()
 
     private val _answers = MutableStateFlow(true)
 
@@ -118,6 +121,7 @@ object TelegramClient : TelegramGateway {
             runCatching { Client.execute(TdApi.SetLogVerbosityLevel(0)) }
             AppLog.debug("Telegram: starting the client")
             client = Client.create(::onUpdate, ::onClientFailure, ::onClientFailure)
+            retry.onClientStarted()
         } catch (e: Throwable) {
             // The native library did not load: nothing of Telegram can work on this device.
             AppLog.error("Telegram: the client cannot be started", e)
@@ -243,21 +247,56 @@ object TelegramClient : TelegramGateway {
         )
     }
 
-    /** Sends [function] and waits for its answer; an error answer is thrown, in words of its own. */
-    private fun <T : TdApi.Object> request(function: TdApi.Function<T>, timeoutSeconds: Long = REQUEST_TIMEOUT_S): T {
-        val running = client ?: throw SourceError(Tr.get("telegramSignInFirst"))
-        val answer = AtomicReference<TdApi.Object>()
-        val latch = CountDownLatch(1)
-        running.send(function) { result ->
-            answer.set(result)
-            latch.countDown()
+    /**
+     * Sends [function] and waits for its answer; an error answer is thrown, in words of its own.
+     * A read that gets no answer at all is sent again a few times with a pause - a slow search
+     * through a channel's history is killed by its own timeout, so the next one goes on better.
+     * TDLib cannot cancel a request that was sent, so a late answer to one already given up on
+     * is only logged and dropped; the client is asked to close its side of the channel so that
+     * the work behind it does not keep running for nothing. The signing-in steps are sent once:
+     * they are driven by hand, and a code or a password must not be checked twice.
+     */
+    private fun <T : TdApi.Object> request(function: TdApi.Function<T>, timeoutSeconds: Long = retry.timeoutSeconds, read: Boolean = false): T {
+        var attempt = 1
+        while (true) {
+            val running = client ?: throw SourceError(Tr.get("telegramSignInFirst"))
+            val sent = System.currentTimeMillis()
+            val answer = AtomicReference<TdApi.Object>()
+            val gaveUp = AtomicBoolean(false)
+            val latch = CountDownLatch(1)
+            running.send(function) { result ->
+                answer.set(result)
+                latch.countDown()
+                // The wait that sent this may have given up already: a request TDLib was given
+                // cannot be called back, so a late answer is only said of in the log.
+                if (gaveUp.get()) {
+                    AppLog.warn("Telegram: a late answer to ${nameOf(function)} arrived ${formatSince(sent)} after it was given up on")
+                }
+            }
+            if (latch.await(timeoutSeconds, TimeUnit.SECONDS)) {
+                retry.onAnswerArrived()
+            } else {
+                gaveUp.set(true)
+                AppLog.warn("Telegram: no answer to ${nameOf(function)} in ${timeoutSeconds}s (attempt $attempt)")
+                if (retry.shouldTryAgain(attempt, read)) {
+                    attempt++
+                    Thread.sleep(retry.retryPauseMillis)
+                    continue
+                }
+                throw SourceError(Tr.get("telegramNoAnswer"))
+            }
+            val result = answer.get()
+            if (result is TdApi.Error) throw errorOf(result)
+            @Suppress("UNCHECKED_CAST")
+            return result as T
         }
-        if (!latch.await(timeoutSeconds, TimeUnit.SECONDS)) throw SourceError(Tr.get("telegramNoAnswer"))
-        val result = answer.get()
-        if (result is TdApi.Error) throw errorOf(result)
-        @Suppress("UNCHECKED_CAST")
-        return result as T
     }
+
+    /** The name a log line can say of a request TDLib only knows as a number. */
+    private fun nameOf(function: TdApi.Function<*>): String = function.javaClass.simpleName.removePrefix("TdApi.")
+
+    /** How long ago [since], rounded to whole seconds, for log lines about late answers. */
+    private fun formatSince(since: Long): String = "${(System.currentTimeMillis() - since) / 1000}s"
 
     private fun errorOf(error: TdApi.Error): SourceError {
         AppLog.warn("Telegram answered with an error: ${error.code} ${error.message}")
@@ -356,7 +395,7 @@ object TelegramClient : TelegramGateway {
         }
 
     override fun channel(username: String, limit: Int, query: String): TelegramChannelInfo {
-        val chat = request(TdApi.SearchPublicChat(username))
+        val chat = request(TdApi.SearchPublicChat(username), read = true)
         val files = ArrayList<TelegramFile>()
         var from = 0L
         // Telegram hands the messages out a page at a time, newest first.
@@ -365,6 +404,7 @@ object TelegramClient : TelegramGateway {
                 TdApi.SearchChatMessages(
                     chat.id, null, query, null, from, 0, minOf(PAGE_SIZE, limit - files.size), TdApi.SearchMessagesFilterDocument(),
                 ),
+                read = true,
             )
             found.messages.mapNotNullTo(files) { fileOf(username, it) }
             from = found.nextFromMessageId
@@ -376,7 +416,7 @@ object TelegramClient : TelegramGateway {
     override fun file(channel: String, messageId: Long): TelegramFile? = message(channel, messageId)?.let { fileOf(channel, it) }
 
     private fun message(channel: String, messageId: Long): TdApi.Message? =
-        request(TdApi.GetMessageLinkInfo("https://t.me/$channel/$messageId")).message
+        request(TdApi.GetMessageLinkInfo("https://t.me/$channel/$messageId"), read = true).message
 
     private fun fileOf(channel: String, message: TdApi.Message): TelegramFile? {
         val document = (message.content as? TdApi.MessageDocument) ?: return null
