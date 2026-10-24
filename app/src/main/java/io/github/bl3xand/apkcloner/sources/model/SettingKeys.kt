@@ -33,4 +33,10 @@ object SettingKeys {
 
     /** The app is tracked only because a clone of it was handed to a source, not because the user added it. */
     const val TRACKED_FOR_CLONE = "trackedForClone"
+
+    /**
+     * The release file the user picked for this app, as a NamedUrl pair in the TrackedApp JSON
+     * form; the source's own branches are remembered separately, by [TrackedApp.preferredBranchKey].
+     */
+    const val PREFERRED_APK = "preferredApk"
 }

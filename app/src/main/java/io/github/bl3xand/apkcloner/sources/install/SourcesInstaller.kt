@@ -215,10 +215,15 @@ class SourcesInstaller private constructor(private val context: Context) {
             repo.setDownload(app.id, DownloadState(0.0))
             if (app.apkUrls.isEmpty()) throw NoApkError()
             AppLog.info("Downloading ${app.id} ${app.latestVersion} from ${app.url}")
-            app = app.copy(preferredApkIndex = app.preferredApkIndex.coerceIn(0, app.apkUrls.size - 1))
+            // The file remembered from the last pick decides which one this is, not the place in
+            // the list; a source that reorders or renames its files cannot redirect a download.
+            val chosen = ApkFilter.resolvePreferredApk(
+                ApkFilter.storedPreferredApk(app.settings.getStringOrNull(SettingKeys.PREFERRED_APK)),
+                app.apkUrls, app.preferredApkIndex,
+            ) ?: app.apkUrls[app.preferredApkIndex.coerceIn(0, app.apkUrls.size - 1)]
+            app = app.copy(preferredApkIndex = app.apkUrls.indexOf(chosen).takeIf { it >= 0 } ?: app.preferredApkIndex)
             val source = repo.sourceOf(app)
             val merged = source.buildMergedSettings(app.additionalSettings, settings)
-            val chosen = app.apkUrls[app.preferredApkIndex]
             val downloadUrls = ApkFilter.splitMultiApkUrl(chosen.url).map {
                 source.assetUrlPrefetchModifier(source.generalReqPrefetchModifier(it, merged), app.url, merged)
             }
@@ -340,13 +345,23 @@ class SourcesInstaller private constructor(private val context: Context) {
 
     /** Whether [app] can be installed without asking, by what the device and installer allow. */
     fun canInstallSilently(app: TrackedApp): Boolean {
-        // Several files to choose from need a choice.
-        if (app.apkUrls.size > 1) return false
+        // The branch that was followed is gone: nothing is guessed in its place by itself.
+        if (app.releaseBranchGone) return false
+        // Several files to choose from need a choice - unless the one to take is remembered.
+        if (app.apkUrls.size > 1) {
+            if (resolveRememberedApk(app) == null) return false
+        }
         if (installer(background = true) !is StockInstaller) return true
         if (app.id == context.packageName) return false
         val targetSdk = repo.installedInfo(app.devicePackage)?.applicationInfo?.targetSdkVersion ?: return false
         return StockInstaller.isUpdateWithoutPrompt(context, app.devicePackage, targetSdk)
     }
+
+    /** The file of the current list the app's remembered pick stands for, when it still does. */
+    private fun resolveRememberedApk(app: TrackedApp): NamedUrl? = ApkFilter.resolvePreferredApk(
+        ApkFilter.storedPreferredApk(app.settings.getStringOrNull(SettingKeys.PREFERRED_APK)),
+        app.apkUrls, app.preferredApkIndex,
+    )
 
     fun canInstallSilentlyInBackground(app: TrackedApp): Boolean =
         settings.enableBackgroundUpdates && !app.settings.getBool(SettingKeys.EXEMPT_FROM_BACKGROUND_UPDATES) && canInstallSilently(app)
@@ -784,14 +799,23 @@ class SourcesInstaller private constructor(private val context: Context) {
     ): NamedUrl? {
         val choices = if (pickAnyAsset) app.apkUrls + app.otherAssetUrls else app.apkUrls
         if (choices.isEmpty()) throw NoApkError()
-        var chosen: NamedUrl? = choices[app.preferredApkIndex.takeIf { it in choices.indices } ?: 0]
+        // The file remembered from the last pick: it is what the next update goes through with,
+        // without asking again. While the followed branch is gone there is no preselection
+        // either - the "suggested" mark would point at a place that no longer means anything -
+        // and the pick has to be made on purpose.
+        val branchGone = app.releaseBranchGone && !pickAnyAsset
+        val remembered = ApkFilter.resolvePreferredApk(
+            ApkFilter.storedPreferredApk(app.settings.getStringOrNull(SettingKeys.PREFERRED_APK)),
+            choices, app.preferredApkIndex,
+        )
+        var chosen: NamedUrl? = if (branchGone) null else remembered
         if (pickAnyAsset) {
             // The APK filter only pre-selects here; every asset stays available.
             ApkFilter.filterApks(
                 choices, app.settings.getStringOrNull("apkFilterRegEx"), app.settings.getBool("invertAPKFilter"),
             ).takeIf { app.settings.getStringOrNull("apkFilterRegEx") != null }?.firstOrNull()?.let { chosen = it }
         }
-        if ((choices.size > 1 || evenIfSingleChoice) && prompts != null) {
+        if ((choices.size > 1 || evenIfSingleChoice || branchGone) && prompts != null && (remembered == null || branchGone)) {
             chosen = prompts.pickFile(app, choices, chosen, pickAnyAsset)
         }
         fun rootHostOf(url: String): String? =
@@ -846,8 +870,23 @@ class SourcesInstaller private constructor(private val context: Context) {
                 null
             } ?: continue
             val index = entry.app.apkUrls.indexOfFirst { it.url == picked.url }
-            if (index >= 0 && index != entry.app.preferredApkIndex) {
-                repo.saveApps(listOf(entry.app.copy(preferredApkIndex = index)))
+            // A pick made on purpose is remembered in every form the app judges files by: the
+            // place in the list, the branch it belongs to, and the file itself. It also clears
+            // a branch said to be gone - the user has just chosen one that is there.
+            if (index >= 0 && (index != entry.app.preferredApkIndex ||
+                    entry.app.releaseBranchGone || entry.app.preferredBranchKey == null)
+            ) {
+                repo.saveApps(
+                    listOf(
+                        entry.app.copy(preferredApkIndex = index, releaseBranchGone = false).let {
+                            if (index < it.apkUrls.size) {
+                                it.copy(preferredBranchKey = repo.sourceOf(it).releaseBranchKeyOf(it.apkUrls[index]))
+                            } else {
+                                it
+                            }
+                        }.withSetting(SettingKeys.PREFERRED_APK, TrackedApp.namedUrlsToJson(listOf(picked))),
+                    ),
+                )
             }
             if (!background || canInstallSilentlyInBackground(repo.entry(id)!!.app)) toInstall.add(id)
         }
