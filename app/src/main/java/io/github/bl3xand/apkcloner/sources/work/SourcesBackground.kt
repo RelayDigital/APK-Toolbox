@@ -18,6 +18,7 @@ import io.github.bl3xand.apkcloner.sources.install.SourcesInstaller
 import io.github.bl3xand.apkcloner.sources.model.CheckUpdatesException
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
+import io.github.bl3xand.apkcloner.testing.TestHooks
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
@@ -94,6 +95,22 @@ object SourcesBackground {
         retry: List<Pair<String, Int>>? = null,
         forceAll: Boolean = false,
         only: Set<String>? = null,
+    ): Boolean {
+        // What a whole run took, said to the test hooks (empty unless the instrumentation
+        // enabled them) as a started/finished pair, retries included.
+        TestHooks.backgroundCheckStarted()
+        try {
+            return runInside(context, retry, forceAll, only)
+        } finally {
+            TestHooks.backgroundCheckFinished()
+        }
+    }
+
+    private suspend fun runInside(
+        context: Context,
+        retry: List<Pair<String, Int>>?,
+        forceAll: Boolean,
+        only: Set<String>?,
     ): Boolean {
         val repo = SourcesRepository.get(context)
         val installer = SourcesInstaller.get(context)
