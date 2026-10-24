@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner
 
+import android.os.SystemClock
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
@@ -29,14 +30,31 @@ class UiConcurrencyTest : BaseUiTest() {
         server.startAndWait()
         try {
             // One tracked app, not installed: its page offers Install, and the row offers the
-            // same. Tapping Install starts the download that keeps the row busy.
+            // same. Tapping Install starts the download that keeps the row busy. The add's
+            // own download runs at full speed.
             addAppByUrl(FakeApkServer.APK_URL)
             device.pressBack()
             settle()
 
-            // The download is started from the row's own Install button - the way a user does.
-            val install = device.wait(Until.findObject(By.desc(sourceString("install"))), 10_000)
-                ?: error("No Install button on the row. Screen:\n${dumpVisibleTexts()}")
+            // The app tracks itself with a pseudo-version, and the add took the installed
+            // build for the latest one, so nothing is on offer yet. A wrong installed version
+            // (what an update arriving looks like to the row) makes the update appear; the
+            // row's own button then starts the real download.
+            markBehind(packageName)
+
+            // The download this test rides on must outlast the walk: the add's own download
+            // is deleted from the app's cache (a leftover would be reused in place of a real
+            // download, which would end before the walk began), and from here on the server
+            // answers at a crawl - 40 MB at 120 KB/s is nearly six minutes of ticking
+            // progress, far beyond anything the walk below takes.
+            io.github.bl3xand.apkcloner.sources.data.SourcesRepository.get(context).apkDir.listFiles()
+                ?.filter { it.name.startsWith("$packageName-") }
+                ?.forEach { it.delete() }
+            server.bytesPerSecond = 120_000
+
+            // The download is started from the row's own Update button - the way a user does.
+            val install = device.wait(Until.findObject(By.desc(sourceString("update"))), 10_000)
+                ?: error("No Update button on the row. Screen:\n${dumpVisibleTexts()}")
             install.click()
 
             // The row must show the progress circle while the download runs; that is the
@@ -46,7 +64,8 @@ class UiConcurrencyTest : BaseUiTest() {
             }
             assert(downloadRunning) { "The download never started. Screen:\n${dumpVisibleTexts()}" }
 
-            // The stress walk: everything a user might do over a downloading list.
+            // The walk over a downloading list. waitForIdle never fires while the row ticks, so the
+            // steps give each a short fixed beat instead of waiting for quiet.
             openSettingsAndBack()
             openAppDetailAndBack()
             tapTheRow()
@@ -78,7 +97,16 @@ class UiConcurrencyTest : BaseUiTest() {
             // 4. The tab content is the right one: back on Sources, with the tracked app's
             //    row present and the Add app button in the bar.
             assert(findString("sources_add") != null) { "Not back on the Sources tab. Screen:\n${dumpVisibleTexts()}" }
+
+            // 5. The download is stopped the way a user stops it: the row's progress is
+            //    tapped, which cancels. The row then shows its Update button again.
+            cancelRowDownload()
         } finally {
+            // The download is stopped from the app's own machinery - a finished one would
+            // install this very app over the test process and kill it.
+            runCatching {
+                io.github.bl3xand.apkcloner.sources.install.SourcesInstaller.get(context).cancelDownload(packageName)
+            }
             server.stop()
         }
     }
@@ -121,6 +149,12 @@ class UiConcurrencyTest : BaseUiTest() {
 
     // ---- the walk --------------------------------------------------------------------------------
 
+    /** Each step of the walk takes a short fixed beat: the row never goes idle while it
+     *  downloads, so waiting for quiet would stretch every step to its timeout. */
+    private fun settle() {
+        SystemClock.sleep(1_200)
+    }
+
     private fun openSettingsAndBack() {
         val settings = device.findObject(By.desc(string("settings_title"))) ?: return
         settings.click()
@@ -155,15 +189,20 @@ class UiConcurrencyTest : BaseUiTest() {
         settle()
     }
 
+    /** Cancels the row's running download the way a tap on its progress does. */
+    private fun cancelRowDownload() {
+        val row = device.findObject(By.textContains(packageName))?.parent ?: return
+        // The progress sits at the row's right edge; tapping it cancels the download.
+        val bounds = row.visibleBounds
+        device.click(bounds.right - 60, bounds.centerY())
+        awaitCondition(10_000) { repoDownloads().isEmpty() }
+    }
+
     private fun switchTab(titleKey: String) {
         val title = string(titleKey)
         val tabView = device.findObject(By.text(title)) ?: return
         tabView.click()
-        device.waitForIdle(1_000)
-    }
-
-    private fun settle() {
-        device.waitForIdle(1_500)
+        settle()
     }
 
     // ---- the state -------------------------------------------------------------------------------
@@ -171,6 +210,17 @@ class UiConcurrencyTest : BaseUiTest() {
     /** The downloads the repository knows about; empty when nothing is in flight. */
     private fun repoDownloads(): Map<String, *> =
         io.github.bl3xand.apkcloner.sources.data.SourcesRepository.get(context).downloads.value
+
+    /**
+     * Puts the tracked app [id] a version behind what its source offers, the way an arrived
+     * update looks to the row: the row then shows the gap and offers its Update button. Runs
+     * in-process (the test is the app), so the store is written directly.
+     */
+    private fun markBehind(id: String) {
+        val repo = io.github.bl3xand.apkcloner.sources.data.SourcesRepository.get(context)
+        val entry = repo.entry(id) ?: error("No tracked app $id to put behind")
+        repo.saveApps(listOf(entry.app.copy(installedVersion = "0.0")))
+    }
 
     /**
      * How many app-owned windows exist beyond the activity's own. UiAutomation's getWindows

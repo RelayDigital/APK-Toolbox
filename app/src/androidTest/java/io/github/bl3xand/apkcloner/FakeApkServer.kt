@@ -32,6 +32,14 @@ class FakeApkServer(
         apkOnGuest = apk
     }
 
+    /**
+     * Bytes per second at most, for full-body answers; null (the default) is unthrottled. The
+     * pseudo-version probes go unthrottled either way - only the big download is slowed, so a
+     * test can hold a download open for as long as it needs.
+     */
+    @Volatile
+    var bytesPerSecond: Long? = null
+
     /** Starts and waits until the port answers, or throws. */
     fun startAndWait(timeoutMs: Long = 10_000) {
         start()
@@ -65,8 +73,10 @@ class FakeApkServer(
     private fun serveApk(session: IHTTPSession, range: String?): Response {
         val length = apkOnGuest.length()
         if (range == null) {
-            // A full-body answer: 200 with the whole file.
-            return newChunkedResponse(Response.Status.OK, "application/vnd.android.package-archive", apkOnGuest.inputStream())
+            // A full-body answer: 200 with the whole file, throttled when asked to.
+            val stream = apkOnGuest.inputStream()
+            val limited = bytesPerSecond?.let { limit(stream, it) } ?: stream
+            return newChunkedResponse(Response.Status.OK, "application/vnd.android.package-archive", limited)
                 .apply { addHeader("Content-Length", length.toString()) }
         }
         // "bytes=0-1024" and friends: the app hashes file prefixes to version them.
@@ -79,6 +89,34 @@ class FakeApkServer(
         val from = match.groupValues[1].toLong()
         val to = match.groupValues[2].toLong().coerceAtMost(length - 1)
         return rangedResponse(from, to, length)
+    }
+
+    /** A stream that hands out at most [bytesPerSecond], sleeping between chunks. */
+    private fun limit(input: java.io.InputStream, bytesPerSecond: Long) = object : java.io.FilterInputStream(input) {
+        private val chunk = (bytesPerSecond / 10).coerceAtLeast(1L)
+        private var servedInWindow = 0L
+        private var windowStart = System.currentTimeMillis()
+
+        override fun read(b: ByteArray, off: Int, len: Int): Int {
+            val read = `in`.read(b, off, len.coerceAtMost(chunk.toInt()))
+            if (read > 0) {
+                servedInWindow += read
+                if (servedInWindow >= chunk) {
+                    val now = System.currentTimeMillis()
+                    val elapsed = now - windowStart
+                    val windowMs = 100L
+                    if (elapsed < windowMs) Thread.sleep(windowMs - elapsed)
+                    servedInWindow = 0
+                    windowStart = System.currentTimeMillis()
+                }
+            }
+            return read
+        }
+
+        override fun read(): Int {
+            val one = ByteArray(1)
+            return if (read(one, 0, 1) == 1) one[0].toInt() and 0xff else -1
+        }
     }
 
     private fun rangedResponse(from: Long, to: Long, total: Long): Response {
