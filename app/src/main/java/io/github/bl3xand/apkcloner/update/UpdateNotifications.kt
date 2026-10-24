@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import io.github.bl3xand.apkcloner.R
+import io.github.bl3xand.apkcloner.testing.TestHooks
 import io.github.bl3xand.apkcloner.ui.MainActivity
 import io.github.bl3xand.apkcloner.ui.MainTabs
 import kotlin.math.abs
@@ -20,6 +21,15 @@ object UpdateNotifications {
     private const val PROGRESS_BASE = 1_000_000_000
     private const val PROGRESS_RANGE = 900_000_000
 
+    private fun manager(context: Context) = context.getSystemService(NotificationManager::class.java)
+
+    /** What every posting of an update notification goes through: the system, and the test
+     *  hooks, which stay empty unless the instrumentation enabled them. */
+    private fun post(context: Context, id: Int, notification: Notification, title: String) {
+        TestHooks.notificationPosted(CHANNEL, id, title)
+        manager(context).notify(id, notification)
+    }
+
     /** A stable notification id per package, the pattern SourcesNotifications.idForKey uses. */
     fun progressIdFor(packageName: String): Int = PROGRESS_BASE + abs(packageName.hashCode() % PROGRESS_RANGE)
 
@@ -31,7 +41,7 @@ object UpdateNotifications {
             .setOngoing(true)
             .setSilent(true)
             .build()
-        manager(context).notify(progressIdFor(packageName), notification)
+        post(context, progressIdFor(packageName), notification, context.getString(R.string.notification_updating, label))
     }
 
     fun cancelProgress(context: Context, packageName: String) = manager(context).cancel(progressIdFor(packageName))
@@ -48,7 +58,7 @@ object UpdateNotifications {
             .setContentTitle(context.getString(R.string.notification_up_to_date))
             .setAutoCancel(true)
             .build()
-        manager(context).notify(ID_AVAILABLE, notification)
+        post(context, ID_AVAILABLE, notification, context.getString(R.string.notification_up_to_date))
     }
 
     /** Notify-only mode: outdated clones were found and nothing was installed, by design. */
@@ -78,7 +88,7 @@ object UpdateNotifications {
             )
             .setAutoCancel(true)
             .build()
-        manager(context).notify(ID_AVAILABLE, notification)
+        post(context, ID_AVAILABLE, notification, context.getString(title))
     }
 
     private fun builder(context: Context): NotificationCompat.Builder {
