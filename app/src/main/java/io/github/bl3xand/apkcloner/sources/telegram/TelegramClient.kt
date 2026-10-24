@@ -268,10 +268,9 @@ object TelegramClient : TelegramGateway {
      * Sends [function] and waits for its answer; an error answer is thrown, in words of its own.
      * A read that gets no answer at all is sent again a few times with a pause - a slow search
      * through a channel's history is killed by its own timeout, so the next one goes on better.
-     * TDLib cannot cancel a request that was sent, so a late answer to one already given up on
-     * is only logged and dropped; the client is asked to close its side of the channel so that
-     * the work behind it does not keep running for nothing. The signing-in steps are sent once:
-     * they are driven by hand, and a code or a password must not be checked twice.
+     * TDLib has no way to cancel a request that was sent, so a late answer to one given up on is
+     * only logged and dropped. The signing-in steps are sent once: they are driven by hand, and
+     * a code or a password must not be checked twice.
      */
     private fun <T : TdApi.Object> request(function: TdApi.Function<T>, timeoutSeconds: Long = retry.timeoutSeconds, read: Boolean = false): T {
         var attempt = 1

@@ -170,7 +170,10 @@ fun Context.showTelegramSignIn(scope: CoroutineScope) {
         connectTimeout?.cancel()
         connectTimeout = if (state is TelegramAuth.Starting) scope.launch {
             delay(CONNECTING_TIMEOUT_MS)
-            if (TelegramClient.auth.value is TelegramAuth.Starting) render(TelegramAuth.Unsupported("Connecting"))
+            if (TelegramClient.auth.value is TelegramAuth.Starting) {
+                error.text = Tr.get("telegramNoAnswer")
+                render(TelegramAuth.Unsupported("Connecting"))
+            }
         } else null
         when (state) {
             TelegramAuth.Starting -> step.add(label(Tr.get("telegramConnecting"), colorAttr = MaterialR.attr.colorOnSurfaceVariant))
