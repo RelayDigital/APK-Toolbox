@@ -374,6 +374,7 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
                 updated = updated.withSetting(SettingKeys.CLONE_ACTIVE, true)
                     .withSetting(SettingKeys.CLONE_BADGE, existing.value.badged)
                     .withSetting(SettingKeys.CLONE_REMOVED_PERMISSIONS, existing.value.removedPermissions.sorted().joinToString(","))
+                    .withSetting(SettingKeys.CLONE_PATCHES, existing.value.patches.sorted().joinToString(","))
                     // The clone was made from the original that is installed: what the source
                     // offers has to be signed as that one is, or it is not the same app.
                     .withSetting(SettingKeys.CLONE_SOURCE_SIGNER, certHashesOf(repo.installedInfo(id)).joinToString(","))
@@ -535,9 +536,10 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
     fun setClonePatches(id: String, patches: Set<String>) = saving {
         val app = repo.entry(id)?.app ?: return@saving
         repo.saveApps(listOf(app.withSetting(SettingKeys.CLONE_PATCHES, patches.sorted().joinToString(","))))
-        if (patches != app.clonePatches && app.clonePackage != null && !installer.rebuildInstalledClone(id)) {
-            obtain(listOf(id))
-        }
+        // The dex of an installed clone cannot be patched in place - it already carries the old
+        // set - so a patch change always fetches the release and builds the clone from it, as
+        // for an update. A clone that is only set up is made with the new set when it installs.
+        if (patches != app.clonePatches && app.clonePackage != null) obtain(listOf(id))
     }
 
     /** Whether [packageName] cannot be the clone of [id]: another app has it, tracked or installed. */
