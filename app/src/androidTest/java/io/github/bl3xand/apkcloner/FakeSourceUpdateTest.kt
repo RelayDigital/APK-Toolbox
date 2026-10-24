@@ -1,8 +1,8 @@
 package io.github.bl3xand.apkcloner
 
-import android.content.Context
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Until
+import io.github.bl3xand.apkcloner.testing.TestHooks
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Test
@@ -17,7 +17,9 @@ import java.io.File
  * The check itself is driven in-process (the app's own SourcesViewModel machinery is what the
  * background check uses too), because the instrumentation runs inside the app's process: a
  * WorkManager run would work just as well but takes longer to arrive, and the goal here is to
- * catch regressions of the check logic and the UI around it.
+ * catch regressions of the check logic and the UI around it. The same is how the test knows
+ * the check is over: the test hooks (docs/test-hooks.md) count the check passes, so waiting
+ * for one to finish reads a counter instead of polling the stored files.
  */
 class FakeSourceUpdateTest : BaseUiTest() {
 
@@ -49,7 +51,7 @@ class FakeSourceUpdateTest : BaseUiTest() {
             // the list; back closes it first.
             device.pressBack()
             device.waitForIdle(2_000)
-            val before = System.currentTimeMillis()
+            val checksBefore = TestHooks.checksStarted
             val refresh = device.wait(
                 androidx.test.uiautomator.Until.findObject(By.text(sourceString("refresh"))), 10_000,
             )
@@ -57,21 +59,21 @@ class FakeSourceUpdateTest : BaseUiTest() {
             refresh.click()
 
             // 4. The check happened: the server was asked again for the file (a batch check
-            // fetches the newest state of every tracked app), and the check time was recorded.
-            // A silent batch check writes no INFO log line, so the JSON record is the witness.
-            val checkedAfter = awaitCondition(60_000) {
-                val after = storedTrackedApps().optJSONObject(0)
-                val stamp = after?.optLong("lastUpdateCheck", 0L) ?: 0L
-                stamp > 0L && stamp >= before - 2_000L
+            // fetches the newest state of every tracked app). The test hooks count check
+            // passes in-process, so the end of this one is a counter read, not a poll of the
+            // stored files.
+            val checkWentThrough = awaitCondition(60_000) {
+                TestHooks.checksFinished > checksBefore
             }
-            assert(checkedAfter) { "The tracked app was not checked again (lastUpdateCheck not updated)" }
+            assert(checkWentThrough) { "The check did not run through (the hooks' counter did not move)" }
             assert(server.hitCount.getValue("range") + server.hitCount.getValue("full") >= 2) {
                 "The app did not fetch the served APK again (hits: ${server.hitCount})"
             }
 
-            // The stored record survived the check with the same pseudo-version: the same file,
-            // so the same hash.
+            // 5. What the check left in the store: the check time was recorded, and the same
+            // file means the same pseudo-version.
             val after = storedTrackedApps().getJSONObject(0)
+            assert(after.optLong("lastUpdateCheck", 0L) > 0L) { "The tracked app was not checked again (lastUpdateCheck not updated)" }
             assert(after.getString("latestVersion") == firstVersion) {
                 "Version changed on re-check: $firstVersion -> ${after.getString("latestVersion")}"
             }
