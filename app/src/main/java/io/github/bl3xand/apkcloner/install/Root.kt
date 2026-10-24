@@ -74,8 +74,16 @@ object Root {
             "pm install -r ${installerPackage?.let { "-i '$it' " } ?: ""}--user \"\$uid\" $staged",
         ).joinToString("\n")
         val (code, output) = run(script, INSTALL_TIMEOUT_MS)
-        if (code == 0) null else output.trim().ifEmpty { "pm install failed ($code)" }
+        installFailureOf(code, output)
     } catch (e: Exception) {
         e.message ?: e.javaClass.simpleName
+    }
+
+    /** Returns null when the install succeeded, otherwise what `pm` said (tests). */
+    internal fun installFailureOf(code: Int, output: String): String? {
+        // `pm install` exits 0 while saying it failed: the words decide, not the code alone.
+        val said = output.trim()
+        if (code == 0 && said.lineSequence().none { it.startsWith("Failure") || it.startsWith("Error") }) return null
+        return said.ifEmpty { "pm install failed ($code)" }
     }
 }
