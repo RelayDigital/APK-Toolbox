@@ -473,6 +473,8 @@ class SourcesInstaller private constructor(private val context: Context) {
         pretendPlay: Boolean,
         /** For files that are not this install's to delete: the splits of the installed app itself. */
         keepFiles: Boolean = false,
+        /** Chosen once by the caller for the whole pass; Installer.choose is not re-run here. */
+        chosen: Installer? = null,
     ): Boolean {
         val entry = repo.entry(id) ?: throw SourceError(Tr.get("appNotFound"))
         val newInfo = facts(apks.first())
@@ -492,7 +494,9 @@ class SourcesInstaller private constructor(private val context: Context) {
             throw DowngradeError(installed.versionCodeLong, newInfo.versionCode)
         }
         val before = baseline(appId)
-        AppLog.debug("Installing $appId with ${installer(background).javaClass.simpleName}, ${apks.size} file(s), background=$background")
+        // The method was chosen when the pass began; it does not change under an install.
+        val method = chosen ?: installer(background)
+        AppLog.debug("Installing $appId with ${method.javaClass.simpleName}, ${apks.size} file(s), background=$background")
         // One install of a package at a time, across every update driver; the hand-off to
         // the system goes through the coordinator's commit, so a background pass and an
         // obtain asked for on screen cannot interleave their prompts.
@@ -500,7 +504,7 @@ class SourcesInstaller private constructor(private val context: Context) {
         // receiver stay silent about it, and the claim is consumed by its own result.
         val outcome = InstallCoordinator.installing(appId, background = background) {
             commit {
-                val result = installer(background).install(context, apks, background, entry.name, if (pretendPlay) Installer.PLAY_STORE_PACKAGE else null)
+                val result = method.install(context, apks, background, entry.name, if (pretendPlay) Installer.PLAY_STORE_PACKAGE else null)
                 if (result is InstallOutcome.Pending) InstallReceiver.claimSelfReport(result.sessionId)
                 result
             }
@@ -565,6 +569,8 @@ class SourcesInstaller private constructor(private val context: Context) {
         downloaded: Downloaded,
         prompts: InstallPrompts?,
         background: Boolean,
+        /** Chosen once for the whole pass, so the method cannot change under an install. */
+        chosen: Installer,
     ): Boolean {
         val id = downloaded.appId
         val entry = repo.entry(id) ?: return false
@@ -595,7 +601,7 @@ class SourcesInstaller private constructor(private val context: Context) {
                 entry.app.settings.getBool(SettingKeys.PRETEND_GOOGLE_PLAY)
             // Installed as a clone, the downloaded APK never reaches the device itself.
             val files = if (target != null) cloneOf(entry, apks, target) else apks
-            val installed = installFiles(id, target ?: id, files, background, pretendPlay)
+            val installed = installFiles(id, target ?: id, files, background, pretendPlay, chosen = chosen)
             if (target != null) {
                 cloneDir(id).deleteRecursively()
                 if (installed) {
@@ -615,7 +621,7 @@ class SourcesInstaller private constructor(private val context: Context) {
             }
             if (background) {
                 val app = repo.entry(id)?.app ?: entry.app
-                if (installer(true) is StockInstaller && !installed) {
+                if (chosen is StockInstaller && !installed) {
                     SourcesNotifications.possiblyUpdated(context, app)
                 } else {
                     SourcesNotifications.silentUpdate(context, app, installed)
@@ -896,6 +902,9 @@ class SourcesInstaller private constructor(private val context: Context) {
         // This app goes last: installing it ends the process.
         toInstall.sortBy { it == context.packageName }
         val installed = Collections.synchronizedList(ArrayList<String>())
+        // Resolved once for the whole pass: what canInstallSilently predicted must be what
+        // installs, or Shizuku dying between the two would strand a session mid-batch.
+        val chosen = installer(background)
 
         suspend fun handle(id: String) {
             val downloaded = try {
@@ -913,7 +922,7 @@ class SourcesInstaller private constructor(private val context: Context) {
             try {
                 // The long foreground wait happens before the install proper, so it blocks
                 // no other install (lock discipline: long waits outside every lock).
-                if (!background && !isForeground && installer(false) is StockInstaller) {
+                if (!background && !isForeground && chosen is StockInstaller) {
                     // The system prompt can only be shown over our own window.
                     SourcesNotifications.completeInstallation(context)
                     val cameToFront = withTimeoutOrNull(5 * 60_000L) { while (!isForeground) delay(500); true } ?: false
@@ -928,7 +937,7 @@ class SourcesInstaller private constructor(private val context: Context) {
                         return
                     }
                 }
-                if (installDownloaded(downloaded, prompts, background)) installed.add(resolvedId)
+                if (installDownloaded(downloaded, prompts, background, chosen)) installed.add(resolvedId)
             } catch (e: Exception) {
                 synchronized(errors) { errors.add(resolvedId, e, appName = repo.entry(resolvedId)?.name) }
                 AppLog.error("Install failed for $resolvedId", e)
