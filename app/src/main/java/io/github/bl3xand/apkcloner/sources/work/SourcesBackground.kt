@@ -2,6 +2,7 @@ package io.github.bl3xand.apkcloner.sources.work
 
 import android.content.Context
 import android.net.ConnectivityManager
+import android.net.Network
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import androidx.work.Constraints
@@ -26,12 +27,53 @@ object SourcesBackground {
     private const val MAX_ATTEMPTS = 4
     private const val MAX_RETRY_WAIT_SECONDS = 30
     private const val TRANSPORT_RETRY_WAIT_SECONDS = 15 * 60
+    /** How long a background run waits for a network that is still coming up. */
+    private const val NETWORK_WAIT_MILLIS = 30_000L
     const val KEY_IDS = "toCheckIds"
     const val KEY_ATTEMPTS = "toCheckAttempts"
 
     private fun network(context: Context): NetworkCapabilities? {
         val manager = context.getSystemService(ConnectivityManager::class.java)
         return manager.getNetworkCapabilities(manager.activeNetwork ?: return null)
+    }
+
+    /**
+     * The network the app's HTTP client would use right now: some network has to be active
+     * and claim the internet capability, and while a network is still coming up that can
+     * take a moment. A run that starts in that window waits here for it; the capabilities
+     * seen usable are returned, or null if none arrived.
+     */
+    private suspend fun waitForNetwork(context: Context): NetworkCapabilities? {
+        var usable: NetworkCapabilities? = null
+        val manager = context.getSystemService(ConnectivityManager::class.java)
+        val waiter = NetworkWaiter(
+            isUsable = {
+                val capabilities = network(context)
+                val good = capabilities != null &&
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                if (good) usable = capabilities
+                good
+            },
+            observe = { onChange -> watchForNetworkChange(manager, onChange) },
+        )
+        return if (waiter.awaitUsable(NETWORK_WAIT_MILLIS)) usable else null
+    }
+
+    /** Reports changes of the network the app would use to [onChange] until the returned function is called. */
+    private fun watchForNetworkChange(manager: ConnectivityManager, onChange: () -> Unit): () -> Unit {
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) = onChange()
+
+            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) = onChange()
+
+            override fun onLost(network: Network) = onChange()
+        }
+        // Watching the network the app would use asks for no more than the ACCESS_NETWORK_STATE
+        // the app already has. It reports every change of that network - another one becoming
+        // it (a validating network does once it is ready), its capabilities changing, or it
+        // being lost for another to take over - and each report is re-checked.
+        manager.registerDefaultNetworkCallback(callback)
+        return { manager.unregisterNetworkCallback(callback) }
     }
 
     /**
@@ -51,10 +93,15 @@ object SourcesBackground {
         val installer = SourcesInstaller.get(context)
         val settings = repo.settings
         repo.loadApps()
-        val capabilities = network(context)
+        // WorkManager can start the run while a network is still validating, before it
+        // claims the internet capability; give it a moment before calling this no network.
+        var capabilities = network(context)
         if (capabilities == null || !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
-            AppLog.info("BG update task: No network.")
-            return false
+            capabilities = waitForNetwork(context)
+            if (capabilities == null) {
+                AppLog.info("BG update task: No network.")
+                return false
+            }
         }
         val toCheck = retry ?: repo.updates.getAppsSortedByUpdateCheckTime(
             settings.onlyCheckInstalledOrTrackOnlyApps, forceAll,
