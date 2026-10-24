@@ -147,6 +147,7 @@ dependencies {
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.rules)
+    androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.uiautomator)
     // A tiny in-process HTTP server; the fake update source tests serve an APK from it.
     androidTestImplementation(libs.nanohttpd)

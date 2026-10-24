@@ -50,6 +50,7 @@ tdlib = { group = "com.github.tdlibx", name = "td", version.ref = "tdlib" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
+androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestRunner" }
 androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "androidxTestRunner" }
 androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
 nanohttpd = { group = "org.nanohttpd", name = "nanohttpd", version.ref = "nanohttpd" }
