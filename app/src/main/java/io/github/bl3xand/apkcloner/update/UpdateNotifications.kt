@@ -57,18 +57,22 @@ object UpdateNotifications {
 
     /**
      * Automatic mode, and it did not work: the system wanted a confirmation, Play Protect stepped
-     * in, or the build failed. The update is still there to be installed by hand.
+     * in, or the build failed. The update is still there to be installed by hand. [reason] is
+     * the system's own words when it has any; without one, the update simply did not land.
      */
-    fun showFailed(context: Context, labels: String) =
-        showOutdated(context, R.string.notification_failed_title, labels)
+    fun showFailed(context: Context, labels: String, reason: String? = null) =
+        showOutdated(context, R.string.notification_failed_title, labels, reason)
 
-    private fun showOutdated(context: Context, title: Int, labels: String) {
+    private fun showOutdated(context: Context, title: Int, labels: String, reason: String? = null) {
         val open = Intent(context, MainActivity::class.java)
             .putExtra(MainActivity.EXTRA_TAB, MainTabs.CLONES)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val notification = builder(context)
             .setContentTitle(context.getString(title))
-            .setContentText(context.getString(R.string.notification_available_text, labels))
+            .setContentText(
+                if (reason.isNullOrBlank()) context.getString(R.string.notification_available_text, labels)
+                else context.getString(R.string.notification_failed_text, labels, reason)
+            )
             .setContentIntent(
                 PendingIntent.getActivity(context, 0, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             )

@@ -35,6 +35,7 @@
 
     <string name="install_success">已安装</string>
     <string name="install_failed">安装失败：%1$s</string>
+    <string name="install_confirm_needed">系统要求确认</string>
     <string name="detail_cloned_from">克隆自</string>
     <string name="detail_updated_from">更新来源</string>
     <string name="detail_from_original">已安装的应用</string>
@@ -99,6 +100,7 @@
     <string name="settings_auto_install">自动安装</string>
     <string name="settings_auto_install_description">无需确认即安装找到的更新。</string>
     <string name="notification_failed_title">克隆应用更新失败</string>
+    <string name="notification_failed_text">无法更新：%1$s（%2$s）。点按打开克隆应用列表。</string>
 
     <string name="tab_split">AntiSplit</string>
     <string name="empty_split">未找到拆分应用。请在下方选择安装包合集（APKS、XAPK、APKM）或多个拆分 APK。</string>

@@ -54,24 +54,30 @@ class InstallReceiver : BroadcastReceiver() {
     }
 
     /**
-     * A background update either goes through silently or not at all: anything that would need
-     * the user is dropped and reported as a failed update instead.
+     * A background update either goes through silently or not at all: anything that would
+     * need the user is dropped, and the session with it, as a failed update that says why -
+     * never as nothing happening at all.
      */
     private fun onBackgroundResult(context: Context, intent: Intent, status: Int) {
         val sessionId = intent.getIntExtra(PackageInstaller.EXTRA_SESSION_ID, NO_SESSION)
+        val packageName = intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME)
+        val label = intent.getStringExtra(EXTRA_LABEL).orEmpty().ifBlank { packageName.orEmpty() }
         if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
             runCatching { context.packageManager.packageInstaller.abandonSession(sessionId) }
-            // The ask cannot be shown and the session is abandoned: that is its outcome.
-            finish(SessionResult(sessionId, intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME), status))
-            return
         }
-        // A session whose caller waits for it (InstallCoordinator users) reports the
-        // outcome itself, with the installer's own words; only an unwitnessed background
-        // install is reported here.
-        if (status != PackageInstaller.STATUS_SUCCESS && !unclaimSelfReport(sessionId)) {
-            UpdateNotifications.showFailed(context, intent.getStringExtra(EXTRA_LABEL).orEmpty())
-        }
-        finish(SessionResult(sessionId, intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME), status))
+        // This is the session's last word, whatever it is: a claim standing for the session
+        // is consumed by it, the same way the foreground results consume theirs.
+        val reason = backgroundFailureReason(
+            status, intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE),
+            context.getString(R.string.install_confirm_needed),
+        )
+        if (reason != null) AppLog.error("Background install of ${label.ifBlank { "?" }}: $reason")
+        // A session whose caller waits for it (InstallCoordinator users) reports the outcome
+        // itself, with the reason in hand now; only an unwitnessed background install is
+        // reported here.
+        val witnessed = unclaimSelfReport(sessionId)
+        if (reason != null && !witnessed) UpdateNotifications.showFailed(context, label, reason)
+        finish(SessionResult(sessionId, packageName, status, reason))
     }
 
     private fun finish(result: SessionResult) {
@@ -115,6 +121,20 @@ class InstallReceiver : BroadcastReceiver() {
         internal fun isSelfReported(sessionId: Int): Boolean = sessionId in selfReporting
 
         private fun unclaimSelfReport(sessionId: Int): Boolean = selfReporting.remove(sessionId)
+
+        /**
+         * Why a background session's end counts as a failed update, or null when it does not:
+         * success is not a failure, and a confirmation this app's process was not there to
+         * answer is one (the session is abandoned by the caller - or already gone with the
+         * process - so nothing would ever report it otherwise). Without a reason of its own,
+         * the system's words stand, or its status number.
+         */
+        internal fun backgroundFailureReason(status: Int, statusMessage: String?, confirmNeeded: String): String? =
+            when (status) {
+                PackageInstaller.STATUS_SUCCESS -> null
+                PackageInstaller.STATUS_PENDING_USER_ACTION -> confirmNeeded
+                else -> statusMessage.orEmpty().ifBlank { "status $status" }
+            }
 
         /** Waits for how [sessionId] ended; a recent end is replayed to a late waiter. */
         suspend fun awaitSession(sessionId: Int): SessionResult = sessionFinished.first { it.sessionId == sessionId }

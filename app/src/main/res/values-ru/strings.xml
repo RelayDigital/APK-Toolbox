@@ -35,6 +35,7 @@
 
     <string name="install_success">Установлено</string>
     <string name="install_failed">Ошибка установки: %1$s</string>
+    <string name="install_confirm_needed">система запросила подтверждение</string>
     <string name="detail_cloned_from">Клонировано из</string>
     <string name="detail_updated_from">Обновляется из</string>
     <string name="detail_from_original">Установленное приложение</string>
@@ -99,6 +100,7 @@
     <string name="settings_auto_install">Устанавливать автоматически</string>
     <string name="settings_auto_install_description">Устанавливать найденные обновления без подтверждения.</string>
     <string name="notification_failed_title">Не удалось обновить клоны</string>
+    <string name="notification_failed_text">Не удалось обновить: %1$s (%2$s). Нажмите, чтобы открыть список клонов.</string>
 
     <string name="tab_split">AntiSplit</string>
     <string name="empty_split">Сплит-приложения не найдены. Выберите ниже пакет (APKS, XAPK, APKM) или несколько сплит-APK.</string>

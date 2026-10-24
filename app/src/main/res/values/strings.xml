@@ -37,6 +37,7 @@
 
     <string name="install_success">Installed</string>
     <string name="install_failed">Installation failed: %1$s</string>
+    <string name="install_confirm_needed">the system asked for confirmation</string>
     <string name="detail_cloned_from">Cloned from</string>
     <string name="detail_updated_from">Updated from</string>
     <string name="detail_from_original">The installed app</string>
@@ -105,6 +106,7 @@
     <string name="settings_auto_install">Install automatically</string>
     <string name="settings_auto_install_description">Install found updates without confirmation.</string>
     <string name="notification_failed_title">Could not update clones</string>
+    <string name="notification_failed_text">Could not update: %1$s (%2$s). Tap to open the clones list.</string>
 
     <string name="tab_split">AntiSplit</string>
     <string name="empty_split">No split apps found. Pick a bundle (APKS, XAPK, APKM) or several split APKs below.</string>
