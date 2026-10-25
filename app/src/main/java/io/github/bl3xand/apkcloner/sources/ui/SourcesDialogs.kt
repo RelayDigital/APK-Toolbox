@@ -13,6 +13,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.R as AppCompatR
 import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.R as MaterialR
@@ -622,7 +623,11 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                     }
                     card.addView(row)
                     val texts = context.column().apply {
-                        add(context.label(item.title, MaterialR.attr.textAppearanceTitleMedium))
+                        // Every choice reads from the start edge whatever it says: a name in a
+                        // right-to-left script must not flip the row's reading order.
+                        add(context.label(item.title, MaterialR.attr.textAppearanceTitleMedium).apply {
+                            textDirection = TextView.TEXT_DIRECTION_LTR
+                        })
                         if (item.description.isNotBlank()) {
                             add(
                                 context.label(item.description, colorAttr = MaterialR.attr.colorOnSurfaceVariant),
