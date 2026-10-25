@@ -128,7 +128,7 @@ abstract class BaseUiTest {
     private fun resLocale(): String {
         val locale = context.resources.configuration.locales[0]
         val name = if (locale.language == "pt" && locale.country == "BR") "pt-rBR" else locale.language
-        return if (name in listOf("ru", "zh", "de", "fr", "es", "pt-rBR", "tr", "ko", "ja", "ar")) name else "en"
+        return if (name in listOf("ru", "zh", "de", "fr", "es", "pt-rBR", "tr", "ko", "ja", "ar", "it", "pl", "vi", "id", "uk")) name else "en"
     }
 
     private fun catalogue(name: String): JSONObject {

@@ -1,0 +1,226 @@
+<resources>
+    <string name="access_title">Akses berkas diperlukan</string>
+    <string name="access_description">Izinkan akses ke semua berkas agar APK Toolbox dapat bekerja dengan APK di penyimpanan bersama.</string>
+    <string name="install_access_title">Izin memasang diperlukan</string>
+    <string name="install_access_description">Izinkan APK Toolbox memasang aplikasi agar klon dapat dipasang dan diperbarui langsung dari sini.</string>
+    <string name="button_grant_access">Beri akses</string>
+
+    <string name="tab_apps">Pengkloningan</string>
+    <string name="tab_clones">Klon</string>
+    <string name="search_hint">Cari aplikasi</string>
+    <string name="chip_system_apps">Aplikasi sistem</string>
+    <string name="chip_clones_original">Dari aslinya</string>
+    <string name="chip_clones_source">Dari sumber</string>
+    <string name="chip_update_available">Pembaruan tersedia</string>
+    <string name="chip_no_updates">Tanpa pembaruan</string>
+    <string name="empty_list">Tidak ada aplikasi yang ditemukan</string>
+    <string name="empty_clones">Belum ada klon. Klon yang dipasang akan muncul di sini.</string>
+    <string name="button_pick_apk">Pilih APK</string>
+    <string name="error_invalid_apk">Berkas ini bukan APK yang sah</string>
+
+    <string name="button_update">Perbarui</string>
+    <string name="field_package">Nama paket</string>
+    <string name="field_app_name">Nama aplikasi</string>
+    <string name="clone_conflict">Aplikasi dengan nama paket ini sudah terpasang dan ditandatangani dengan kunci lain: klon tidak bisa dipasang menimpanya. Beri klon nama paket lain atau hapus aplikasi yang terpasang.</string>
+    <string name="clone_conflict_remove">Hapus aplikasi terpasang</string>
+    <string name="error_invalid_package">Minimal dua bagian dipisah titik: huruf, angka, dan garis bawah</string>
+    <string name="signature_hint">Klon ditandatangani dengan kunci APK Toolbox, bukan kunci aslinya: tanda tangan berhenti cocok begitu aplikasi diubah.</string>
+    <string name="button_clone">Klon</string>
+    <string name="button_install">Pasang</string>
+    <string name="button_save">Simpan</string>
+    <string name="status_done">Klon siap</string>
+    <string name="status_saved">Tersimpan</string>
+    <string name="status_failed">Pengkloningan gagal: %1$s</string>
+    <string name="save_failed">Tidak bisa menyimpan: %1$s</string>
+
+    <string name="install_success">Terpasang</string>
+    <string name="install_failed">Pemasangan gagal: %1$s</string>
+    <string name="install_confirm_needed">sistem meminta konfirmasi</string>
+    <string name="detail_cloned_from">Dibangun dari</string>
+    <string name="detail_updated_from">Dibangun ulang dari</string>
+    <string name="detail_from_original">Aplikasi terpasang</string>
+    <string name="detail_from_nothing">Tidak dari mana-mana: aslinya tidak terpasang</string>
+    <string name="detail_latest_version">Versi terbaru</string>
+    <string name="clone_from_original">Dari aslinya</string>
+    <string name="clone_from_source">Dari sumber (%1$s)</string>
+    <string name="origin_system">Sistem</string>
+    <string name="origin_file">Dari berkas</string>
+    <string name="clone_no_updates">Tanpa asli</string>
+    <string name="version_no_updates">%1$s (tanpa pembaruan)</string>
+    <string name="switch_no_updates">Tanpa pembaruan</string>
+    <string name="clone_show_in_sources">Tampilkan di Sumber</string>
+    <string name="clone_track">Lacak melalui sumber</string>
+    <string name="clone_track_message">Klon dibangun ulang dari asli yang terpasang, jadi berhenti diperbarui ketika aslinya dihapus — dan Google Play tidak menyerahkan berkasnya ke siapa pun. APK Toolbox dapat mencari aplikasi menurut paketnya di toko-toko yang memuat build yang sama (APKPure, RuStore, Galaxy Store dan lainnya, satu per satu) dan memperbarui klon dari sana, di tab Sumber. Aslinya lalu boleh dihapus. Pembaruan yang ditandatangani pihak lain selain aslinya ditolak.</string>
+    <string name="detail_original_version">Versi asli</string>
+    <string name="detail_clone_version">Versi klon</string>
+    <string name="detail_removed_permissions">Izin yang dihapus</string>
+    <string name="detail_reset_permissions">Izin yang disetel ulang</string>
+    <string name="detail_not_installed">Tidak terpasang</string>
+    <string name="button_delete">Hapus</string>
+
+    <string name="settings_title">Pengaturan</string>
+    <string name="settings_check_interval">Pemeriksaan pembaruan: %1$s</string>
+    <string-array name="check_intervals">
+        <item>sekali sehari</item>
+        <item>tiap 3 hari</item>
+        <item>sekali seminggu</item>
+        <item>tiap 2 minggu</item>
+        <item>sekali sebulan</item>
+        <item>tiap 3 bulan</item>
+        <item>tiap 6 bulan</item>
+        <item>sekali setahun</item>
+    </string-array>
+    <string name="channel_updates">Pembaruan klon</string>
+    <string name="settings_play_protect_button">Pengaturan Play Protect</string>
+    <string name="notification_updating">Memperbarui %1$s…</string>
+    <string name="notification_available_title">Pembaruan klon tersedia</string>
+    <string name="notification_available_text">Pembaruan tersedia: %1$s. Ketuk untuk membuka daftar klon.</string>
+
+    <string name="settings_install_method">Cara pemasangan</string>
+    <string name="method_stock">Standar</string>
+
+    <string name="shizuku_title">Akses Shizuku diperlukan</string>
+    <string name="button_grant_shizuku">Beri akses Shizuku</string>
+    <string name="shizuku_granted">Akses Shizuku diberikan</string>
+    <string name="shizuku_denied">Akses Shizuku ditolak</string>
+
+    <string name="shizuku_not_running_title">Shizuku tidak berjalan</string>
+    <string name="shizuku_not_running">Jalankan Shizuku lalu kembali. Sampai saat itu cara standar dipakai.</string>
+    <string name="shizuku_description">APK Toolbox memakai Shizuku untuk memasang dan memperbarui klon tanpa permintaan. Beri akses untuk mengaktifkannya; sampai saat itu cara standar dipakai.</string>
+    <string name="shizuku_granted_description">Pembaruan dipasang tanpa konfirmasi.</string>
+    <string name="play_protect_on_title">Play Protect menyala</string>
+    <string name="play_protect_unknown_title">Play Protect mungkin mengganggu</string>
+    <string name="play_protect_on_description">Selama menyala, klon tidak diperbarui di latar belakang dengan cara ini: Anda mendapat notifikasi dan memperbarui secara manual. Aplikasi dari sumber tidak terpengaruh. Mematikan pemindaian aplikasi mengangkat batasnya, tetapi menurunkan perlindungan perangkat.</string>
+    <string name="play_protect_off_title">Play Protect mati</string>
+    <string name="play_protect_off_description">Aplikasi yang dipasang melalui APK Toolbox, termasuk klon, diperbarui tanpa konfirmasi.</string>
+
+    <string name="settings_check_updates">Periksa pembaruan</string>
+    <string name="settings_check_updates_description">Di latar belakang, sesuai jadwal. Anda mendapat notifikasi tentang apa yang ditemukan.</string>
+    <string name="settings_auto_install">Pasang otomatis</string>
+    <string name="settings_auto_install_description">Pasang pembaruan yang ditemukan tanpa konfirmasi.</string>
+    <string name="notification_failed_title">Tidak bisa memperbarui klon</string>
+    <string name="notification_failed_text">Tidak bisa memperbarui: %1$s (%2$s). Ketuk untuk membuka daftar klon.</string>
+
+    <string name="tab_split">AntiSplit</string>
+    <string name="empty_split">Tidak ada aplikasi terpecah yang ditemukan. Pilih di bawah bundel (APKS, XAPK, APKM) atau beberapa APK terpecah.</string>
+    <string name="button_pick_split">Pilih APK terpecah</string>
+    <string name="merge_open_with">Pasang atau gabungkan APK</string>
+    <string name="merge_splits_title">Terpecah: %1$d dari %2$d</string>
+    <string name="merge_select_all">Semua</string>
+    <string name="merge_select_device">Untuk perangkat ini</string>
+    <string name="merge_sign">Tandatangani setelah digabung</string>
+    <string name="merge_force">Gabungkan terpecah yang tak cocok saja</string>
+    <string name="button_merge">Gabungkan</string>
+    <string name="merge_done">Digabungkan menjadi satu APK</string>
+    <string name="merge_done_unsigned">Digabungkan, tanpa tanda tangan. APK tanpa tanda tangan tidak bisa dipasang sampai ditandatangani.</string>
+    <string name="merge_done_pairip">Digabungkan, dibiarkan tanpa tanda tangan: aplikasi ini dilindungi PairIP dan memeriksa integritasnya sendiri, jadi build yang ditandatangani ulang akan mati saat mulai.</string>
+    <string name="merge_mismatch">Terpecah ini berbeda versi atau paket dari basisnya: %1$s. Batalkan pilihannya, atau nyalakan penggabungan terpecah yang tak cocok.</string>
+    <string name="merge_failed">Penggabungan gagal: %1$s</string>
+    <string name="merge_not_split">Ini tidak seperti APK terpecah. Pilih bundel (APKS, XAPK, APKM, ZIP) atau minimal dua APK.</string>
+
+    <string name="tab_install">SAI</string>
+    <string name="button_pick_install">Pilih APKS</string>
+    <string name="install_sign">Tandatangani sebelum memasang</string>
+    <string name="button_export">Ekspor sebagai APKS</string>
+    <string name="files_received_title">Apa yang dilakukan dengan berkas ini?</string>
+    <string name="files_action_install">Pasang</string>
+    <string name="files_action_merge">Gabungkan menjadi satu APK</string>
+
+    <string name="button_check_now">Periksa sekarang</string>
+    <string name="check_now_started">Pemeriksaan sedang berjalan; hasilnya akan datang sebagai notifikasi</string>
+    <string name="notification_up_to_date">Tidak ada pembaruan</string>
+    <string name="install_copy_obb">Menyalin berkas OBB (%1$d · %2$s)</string>
+
+    <string name="settings_signing_key">Kunci tanda tangan</string>
+    <string name="key_bundled_title">Kunci bawaan</string>
+    <string name="key_bundled_description">Klon dan APK gabungan ditandatangani dengan kunci yang ikut aplikasi. Sama untuk semua orang dan bersifat publik. Buat atau impor kunci sendiri untuk menandatangani dengan sesuatu yang hanya Anda miliki.</string>
+    <string name="key_custom_title">Kunci Anda sendiri</string>
+    <string name="key_custom_description">%1$s\nSHA-256 %2$s…\nEkspor dan simpan berkasnya: tanpanya, klon yang ditandatangani kunci ini tidak bisa diperbarui setelah aplikasi dipasang ulang.</string>
+    <string name="key_create">Buat</string>
+    <string name="key_import">Impor</string>
+    <string name="key_export">Ekspor</string>
+    <string name="key_reset">Pakai bawaan</string>
+    <string name="key_password">Kata sandi keystore</string>
+    <string name="key_alias">Alias kunci (opsional)</string>
+    <string name="key_created">Kunci baru dibuat</string>
+    <string name="key_imported">Kunci diimpor</string>
+    <string name="key_exported">Kunci diekspor</string>
+    <string name="key_reset_done">Kembali ke kunci bawaan</string>
+    <string name="key_failed">Operasi kunci gagal: %1$s</string>
+    <string name="key_replace_title">Ganti kunci Anda?</string>
+    <string name="key_replace_message">Klon yang ditandatangani kunci saat ini tidak akan lagi tercantum atau diperbarui sampai Anda mengimpor kunci itu lagi. Ekspor dulu bila mungkin diperlukan.</string>
+    <string name="key_replace_confirm">Ganti</string>
+    <string name="clone_badge">Tandai ikon dengan titik</string>
+    <string name="clone_rename_alias">Pengalamatan menurut nama klon</string>
+    <string name="merge_too_large">Aplikasi ini tidak bisa digabungkan di perangkat: tabel sumber dayanya (%1$d MB) butuh memori lebih banyak daripada yang Android berikan ke aplikasi. Membatalkan pilihan terpecah yang tidak perlu bisa membantu; kalau tidak, gabungkan di komputer.</string>
+    <string name="tab_sources">Sumber</string>
+    <string name="settings_check_sources">Aplikasi dari sumber</string>
+    <string name="settings_check_sources_description">Versi baru aplikasi dari tab Sumber.</string>
+    <string name="settings_sources">Pengaturan sumber</string>
+    <string name="sources_share_label">Lacak di APK Toolbox</string>
+    <string name="sources_empty">Belum ada aplikasi yang dilacak.\nTambahkan satu dengan tautannya atau cari melalui pencarian.</string>
+    <string name="sources_add">Tambah aplikasi</string>
+    <string name="sources_filter">Filter</string>
+    <string name="sources_filter_clear">Hapus filter</string>
+    <string name="settings_section_updates">Pembaruan</string>
+    <string name="settings_section_install">Pemasangan otomatis</string>
+    <string name="settings_section_experimental">Eksperimental</string>
+    <string name="settings_check_clones">Klon</string>
+    <string name="settings_check_clones_description">Klon usang ketika aslinya diperbarui atau sumbernya punya versi lebih baru.</string>
+    <string name="settings_check_on_start">Periksa saat aplikasi dibuka</string>
+    <string name="settings_check_on_start_description">Pembaruan aplikasi dari sumber dan klon dicari setiap kali APK Toolbox dibuka.</string>
+    <string name="settings_wifi_only">Tunggu Wi-Fi</string>
+    <string name="settings_wifi_only_description">Pembaruan yang ditemukan di data seluler dipasang begitu Wi-Fi tersambung.</string>
+    <string name="settings_charging_only">Tunggu pengisi daya</string>
+    <string name="settings_charging_only_description">Pembaruan yang ditemukan saat pakai baterai dipasang begitu pengisi daya disambung.</string>
+    <string name="settings_sources_description">Token, rilis yang dihitung, impor dan ekspor.</string>
+    <string name="settings_root">Pasang dengan root</string>
+    <string name="settings_root_description">Saat menyala, lebih diprioritaskan daripada cara pemasangan lain. Pemasangan dari latar belakang mungkin harus meminta akses ke manajer root setiap kali. Belum teruji.</string>
+    <string name="cloning_installed">Terpasang</string>
+    <string name="cloning_clones">Klon</string>
+    <string name="export_done">Diekspor sebagai APKS</string>
+    <string name="root_not_granted">Akses root tidak diberikan</string>
+    <string name="settings_install_method_description">Bagaimana pembaruan dipasang di latar belakang.</string>
+    <string name="hint_tab_install">Memasang bundel APKS, XAPK dan APKM serta set APK terpecah. Aplikasi terpasang dari daftar bisa diekspor sebagai berkas APKS.</string>
+    <string name="hint_tab_split">Menggabungkan aplikasi dari beberapa APK terpecah menjadi satu APK biasa. Hanya aplikasi yang dipasang sebagai terpecah yang tercantum; berkas bundel juga bisa dipilih.</string>
+    <string name="install_sign_description">Menandatangani ulang berkas dengan kunci dari pengaturan. Diperlukan bila mereka diubah atau tanda tangannya rusak; aplikasi begitu tidak bisa memperbarui di atas aslinya.</string>
+    <string name="merge_sign_description">Menandatangani APK gabungan dengan kunci dari pengaturan agar bisa dipasang. Tanpanya berkas dibiarkan tanpa tanda tangan.</string>
+    <string name="merge_force_description">Menggabungkan terpecah meski versi atau paketnya berbeda. Hanya bila penggabungan biasa menolak; hasilnya mungkin tidak jalan.</string>
+    <string name="tab_info">Tentang daftar ini</string>
+    <string name="hint_tab_sources">Melacak aplikasi dari GitHub, F-Droid, toko dan situs lain: tambahkan aplikasi dengan tautan atau nama, dan versi baru ditemukan, diunduh, dipasang dari sini.</string>
+    <string name="hint_tab_apps">Membuat salinan aplikasi terpasang dengan nama paket lain: setiap salinan punya datanya sendiri. Pilih aplikasi dari daftar atau berkas APK.</string>
+    <string name="hint_tab_clones">Klon yang Anda buat ada di sini. Klon menjadi usang ketika aslinya diperbarui atau versi baru muncul di sumbernya.</string>
+    <string name="settings_language">Bahasa</string>
+    <string name="settings_language_description">Aplikasi berbahasa sistem kecuali diberitahu yang lain.</string>
+    <string name="language_system">Sesuai sistem</string>
+    <string name="settings_log">Log</string>
+    <string name="settings_log_description">Apa yang diperiksa, diunduh, diklon, digabung dan dipasang, dan apa yang gagal. Disimpan 30 hari.</string>
+    <string name="button_show_log">Lihat log</string>
+    <string name="log_empty">Belum ada yang tercatat.</string>
+    <string name="log_save">Simpan</string>
+    <plurals name="log_show_more">
+        <item quantity="other">Tampilkan %d entri lebih lama</item>
+    </plurals>
+    <string name="button_refresh">Periksa pembaruan</string>
+    <string name="clones_up_to_date">Semua klon terkini</string>
+    <plurals name="log_days">
+        <item quantity="other">%d hari</item>
+    </plurals>
+    <string name="search_clear">Hapus pencarian</string>
+    <string name="clone_permissions">Izin</string>
+    <string name="clone_permissions_removed">Izin: %1$d dihapus</string>
+    <string name="clone_permissions_hint">Semua yang diminta aslinya. Matikan yang tidak boleh dimiliki klon; tanpa izin yang diandalkannya, aplikasi bisa berhenti bekerja.</string>
+    <string name="clone_permissions_none">Aplikasi tidak meminta izin apa pun.</string>
+    <string name="clone_patches">Tambalan</string>
+    <string name="clone_patches_on">Tambalan: %1$d dari %2$d menyala</string>
+    <string name="clone_patches_not_applied">Build terakhir tidak bisa menerapkan «%1$s»: sertifikat tanda tangan aslinya tidak bisa dibaca, jadi tambalan identitas tidak ada di klon.</string>
+    <string name="clone_patches_hint">Perubahan pada kode klon. Setiap tambalan opsional dan hanya diterapkan ke klon ini.</string>
+    <string name="clone_rename_alias_note">Menulis ulang nama paket dalam kode klon agar menemukan berkas dan komponennya sendiri. Kamuflase sebaliknya menyajikan klon sebagai asli bagi pemeriksaan.</string>
+    <string name="clone_mimicry">Kamuflase</string>
+    <string name="clone_mimicry_note">Klon menyajikan dirinya sepenuhnya sebagai ASLI — nama paket dan tanda tangan: bagi pemeriksaannya sendiri, server dan analitik. Pencarian komponen klon sendiri tetap bekerja lewat jalur cadangan.</string>
+    <string name="clone_keep_alive">Penekanan keluar</string>
+    <string name="clone_keep_alive_note">Setiap panggilan yang akan mengakhiri aplikasi — System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask — menjadi operasi kosong, jadi aplikasi tidak bisa membunuh dirinya atau melempar pengguna keluar, karena alasan apa pun: pemeriksaan tanda tangan, tidak ada akun masuk, pemeriksaan mulai yang gagal. Setelah keluar, aplikasi bisa tetap di latar belakang alih-alih menutup.</string>
+    <string name="clone_permission_absent">Tidak diminta di versi ini. Tetap mati bila kembali.</string>
+    <string name="clone_permission_new">Baru di versi ini</string>
+    <string name="button_done">Selesai</string>
+</resources>

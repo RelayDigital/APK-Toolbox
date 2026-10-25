@@ -20,7 +20,12 @@ enum class AppLanguage(val tag: String, val ownName: String) {
     SPANISH("es", "Español"),
     PORTUGUESE_BRAZIL("pt-BR", "Português (Brasil)"),
     TURKISH("tr", "Türkçe"),
-    KOREAN("ko", "한국어");
+    KOREAN("ko", "한국어"),
+    ITALIAN("it", "Italiano"),
+    POLISH("pl", "Polski"),
+    VIETNAMESE("vi", "Tiếng Việt"),
+    INDONESIAN("id", "Bahasa Indonesia"),
+    UKRAINIAN("uk", "Українська");
 
     /** Makes this the app's language; the screens on show are built again in it. */
     fun apply() {

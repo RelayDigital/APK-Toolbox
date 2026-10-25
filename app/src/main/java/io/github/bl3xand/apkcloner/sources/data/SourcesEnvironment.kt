@@ -19,7 +19,7 @@ object SourcesEnvironment {
 
     /** The languages a catalogue folder exists for; the names of the JSON files on disk. */
     private val CATALOGUES =
-        setOf("en", "ru", "zh", "de", "fr", "es", "pt-rBR", "tr", "ko", "ja", "ar")
+        setOf("en", "ru", "zh", "de", "fr", "es", "pt-rBR", "tr", "ko", "ja", "ar", "it", "pl", "vi", "id", "uk")
 
     @Volatile
     private var loadedLanguage: String? = null

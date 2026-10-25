@@ -1,0 +1,232 @@
+<resources>
+    <string name="access_title">Потрібен доступ до файлів</string>
+    <string name="access_description">Дозвольте доступ до всіх файлів, щоб APK Toolbox міг працювати з APK у спільному сховищі.</string>
+    <string name="install_access_title">Потрібен дозвіл на встановлення</string>
+    <string name="install_access_description">Дозвольте APK Toolbox встановлювати застосунки, щоб встановлювати й оновлювати клони просто звідси.</string>
+    <string name="button_grant_access">Дозволити</string>
+
+    <string name="tab_apps">Клонування</string>
+    <string name="tab_clones">Клони</string>
+    <string name="search_hint">Пошук застосунків</string>
+    <string name="chip_system_apps">Системні</string>
+    <string name="chip_clones_original">З оригіналу</string>
+    <string name="chip_clones_source">З джерела</string>
+    <string name="chip_update_available">Доступне оновлення</string>
+    <string name="chip_no_updates">Без оновлень</string>
+    <string name="empty_list">Застосунки не знайдено</string>
+    <string name="empty_clones">Клонів ще немає. Встановлені клони з\'являться тут.</string>
+    <string name="button_pick_apk">Обрати APK</string>
+    <string name="error_invalid_apk">Цей файл не є коректним APK</string>
+
+    <string name="button_update">Оновити</string>
+    <string name="field_package">Ім\'я пакета</string>
+    <string name="field_app_name">Ім\'я застосунку</string>
+    <string name="clone_conflict">Застосунок із таким ім\'ям пакета вже встановлено і підписано іншим ключем: клон поверх нього не встановиться. Задайте клону інше ім\'я пакета або видаліть установлений застосунок.</string>
+    <string name="clone_conflict_remove">Видалити установлений</string>
+    <string name="error_invalid_package">Потрібно щонайменше дві частини через крапку: літери, цифри та підкреслення</string>
+    <string name="signature_hint">Клон підписується ключем APK Toolbox, а не ключем видавця: після зміни застосунку первісний підпис стає чинним.</string>
+    <string name="button_clone">Клонувати</string>
+    <string name="button_install">Встановити</string>
+    <string name="button_save">Зберегти</string>
+    <string name="status_done">Клон готовий</string>
+    <string name="status_saved">Збережено</string>
+    <string name="status_failed">Помилка клонування: %1$s</string>
+    <string name="save_failed">Не вдалося зберегти: %1$s</string>
+
+    <string name="install_success">Встановлено</string>
+    <string name="install_failed">Помилка встановлення: %1$s</string>
+    <string name="install_confirm_needed">система запросила підтвердження</string>
+    <string name="detail_cloned_from">Зібрано з</string>
+    <string name="detail_updated_from">Перезбирається з</string>
+    <string name="detail_from_original">Установлений застосунок</string>
+    <string name="detail_from_nothing">Нізвідки: оригінал не встановлено</string>
+    <string name="detail_latest_version">Остання версія</string>
+    <string name="clone_from_original">З оригіналу</string>
+    <string name="clone_from_source">З джерела (%1$s)</string>
+    <string name="origin_system">Система</string>
+    <string name="origin_file">З файла</string>
+    <string name="clone_no_updates">Немає оригіналу</string>
+    <string name="version_no_updates">%1$s (без оновлень)</string>
+    <string name="switch_no_updates">Без оновлень</string>
+    <string name="clone_show_in_sources">Показати в джерелах</string>
+    <string name="clone_track">Відстежувати через джерело</string>
+    <string name="clone_track_message">Клон перезбирається зі встановленого оригіналу, тому без нього перестає оновлюватися, а Google Play свої файли нікому не віддає. APK Toolbox може знайти застосунок за пакетом у магазинах з тими самими збірками (APKPure, RuStore, Galaxy Store та інші, по черзі) і оновлювати клон звідти, через вкладку «Джерела». Оригінал після цього можна видалити. Оновлення, підписане іншим ключем, ніж оригінал, не встановиться.</string>
+    <string name="detail_original_version">Версія оригіналу</string>
+    <string name="detail_clone_version">Версія клона</string>
+    <string name="detail_removed_permissions">Видалені дозволи</string>
+    <string name="detail_reset_permissions">Скинути дозволи</string>
+    <string name="detail_not_installed">Не встановлено</string>
+    <string name="button_delete">Видалити</string>
+
+    <string name="settings_title">Налаштування</string>
+    <string name="settings_check_interval">Перевірка оновлень: %1$s</string>
+    <string-array name="check_intervals">
+        <item>раз на день</item>
+        <item>раз на 3 дні</item>
+        <item>раз на тиждень</item>
+        <item>раз на 2 тижні</item>
+        <item>раз на місяць</item>
+        <item>раз на 3 місяці</item>
+        <item>раз на півроку</item>
+        <item>раз на рік</item>
+    </string-array>
+    <string name="channel_updates">Оновлення клонів</string>
+    <string name="settings_play_protect_button">Налаштування Play Захисту</string>
+    <string name="notification_updating">Оновлення %1$s…</string>
+    <string name="notification_available_title">Доступні оновлення клонів</string>
+    <string name="notification_available_text">Є оновлення: %1$s. Торкніться, щоб відкрити список клонів.</string>
+
+    <string name="settings_install_method">Спосіб встановлення</string>
+    <string name="method_stock">Стандартний</string>
+
+    <string name="shizuku_title">Потрібен доступ Shizuku</string>
+    <string name="button_grant_shizuku">Видати доступ Shizuku</string>
+    <string name="shizuku_granted">Доступ Shizuku видано</string>
+    <string name="shizuku_denied">У доступі Shizuku відмовлено</string>
+
+    <string name="shizuku_not_running_title">Shizuku не запущено</string>
+    <string name="shizuku_not_running">Запустіть Shizuku і поверніться. Доти використовується стандартний спосіб.</string>
+    <string name="shizuku_description">APK Toolbox використовує Shizuku, щоб установлювати й оновлювати клони без підтверджень. Видайте доступ, щоб увімкнути цей спосіб; доти використовується стандартний.</string>
+    <string name="shizuku_granted_description">Оновлення встановлюються без підтверджень.</string>
+    <string name="play_protect_on_title">Play Захист увімкнено</string>
+    <string name="play_protect_unknown_title">Play Захист може заважати</string>
+    <string name="play_protect_on_description">Поки він увімкнений, клони у фоні цим способом не оновлюються: прийде сповіщення, оновити треба вручну. На застосунки з джерел це не впливає. Вимкнення перевірки застосунків знімає обмеження, але знижує захист пристрою.</string>
+    <string name="play_protect_off_title">Play Захист вимкнено</string>
+    <string name="play_protect_off_description">Застосунки, встановлені через APK Toolbox, включно з клонами, оновлюються без підтвердження.</string>
+
+    <string name="settings_check_updates">Перевіряти оновлення</string>
+    <string name="settings_check_updates_description">У фоні за розкладом. Про знайдене прийде сповіщення.</string>
+    <string name="settings_auto_install">Встановлювати автоматично</string>
+    <string name="settings_auto_install_description">Встановлювати знайдені оновлення без підтвердження.</string>
+    <string name="notification_failed_title">Не вдалося оновити клони</string>
+    <string name="notification_failed_text">Не вдалося оновити: %1$s (%2$s). Торкніться, щоб відкрити список клонів.</string>
+
+    <string name="tab_split">AntiSplit</string>
+    <string name="empty_split">Спліт-застосунки не знайдено. Оберіть нижче пакет (APKS, XAPK, APKM) або кілька спліт-APK.</string>
+    <string name="button_pick_split">Обрати спліт-APK</string>
+    <string name="merge_open_with">Встановити або об\'єднати APK</string>
+    <string name="merge_splits_title">Спліти: %1$d з %2$d</string>
+    <string name="merge_select_all">Усі</string>
+    <string name="merge_select_device">Для пристрою</string>
+    <string name="merge_sign">Підписати після об\'єднання</string>
+    <string name="merge_force">Об\'єднувати невідповідні спліти</string>
+    <string name="button_merge">Об\'єднати</string>
+    <string name="merge_done">Об\'єднано в один APK</string>
+    <string name="merge_done_unsigned">Об\'єднано без підпису. Непідписаний APK не можна встановити, доки його не підпишуть.</string>
+    <string name="merge_done_pairip">Об\'єднано, але не підписано: застосунок захищений PairIP і перевіряє свою цілісність, перепідписана збірка падатиме при запуску.</string>
+    <string name="merge_mismatch">У цих сплітів версія або пакет відрізняються від базового APK: %1$s. Зніміть з них позначку або увімкніть об\'єднання невідповідних сплітів.</string>
+    <string name="merge_failed">Помилка об\'єднання: %1$s</string>
+    <string name="merge_not_split">Це не схоже на спліт-APK. Оберіть пакет (APKS, XAPK, APKM, ZIP) або щонайменше два APK.</string>
+
+    <string name="tab_install">SAI</string>
+    <string name="button_pick_install">Обрати APKS</string>
+    <string name="install_sign">Підписати перед встановленням</string>
+    <string name="button_export">Експорт в APKS</string>
+    <string name="files_received_title">Що зробити з цими файлами?</string>
+    <string name="files_action_install">Встановити</string>
+    <string name="files_action_merge">Об\'єднати в один APK</string>
+
+    <string name="button_check_now">Перевірити зараз</string>
+    <string name="check_now_started">Іде перевірка; результат прийде сповіщенням</string>
+    <string name="notification_up_to_date">Оновлень немає</string>
+    <string name="install_copy_obb">Скопіювати OBB-файли (%1$d · %2$s)</string>
+
+    <string name="settings_signing_key">Ключ підпису</string>
+    <string name="key_bundled_title">Вбудований ключ</string>
+    <string name="key_bundled_description">Клони та об\'єднані APK підписуються ключем, який іде разом із застосунком. Він один для всіх і загальнодоступний. Створіть або імпортуйте свій ключ, щоб підписувати ключем, який є лише у вас.</string>
+    <string name="key_custom_title">Власний ключ</string>
+    <string name="key_custom_description">%1$s\nSHA-256 %2$s…\nЕкспортуйте його і збережіть файл: без нього клони, підписані цим ключем, не можна буде оновити після перевстановлення застосунку.</string>
+    <string name="key_create">Створити</string>
+    <string name="key_import">Імпорт</string>
+    <string name="key_export">Експорт</string>
+    <string name="key_reset">Вбудований</string>
+    <string name="key_password">Пароль сховища</string>
+    <string name="key_alias">Псевдонім ключа (необов\'язково)</string>
+    <string name="key_created">Створено новий ключ</string>
+    <string name="key_imported">Ключ імпортовано</string>
+    <string name="key_exported">Ключ експортовано</string>
+    <string name="key_reset_done">Використовується вбудований ключ</string>
+    <string name="key_failed">Помилка операції з ключем: %1$s</string>
+    <string name="key_replace_title">Замінити власний ключ?</string>
+    <string name="key_replace_message">Клони, підписані поточним ключем, зникнуть зі списку і перестануть оновлюватися, доки ви знову не імпортуєте цей ключ. Спершу експортуйте його, якщо він може знадобитися.</string>
+    <string name="key_replace_confirm">Замінити</string>
+    <string name="clone_badge">Позначити значок крапкою</string>
+    <string name="clone_rename_alias">Адресація за ім\'ям клона</string>
+    <string name="merge_too_large">Цей застосунок не можна об\'єднати на пристрої: його таблиці ресурсів (%1$d МБ) вимагають більше пам\'яті, ніж Android дає застосунку. Допомогти може зняття непотрібних сплітів; інакше об\'єднайте його на комп\'ютері.</string>
+    <string name="tab_sources">Джерела</string>
+    <string name="settings_check_sources">Застосунки з джерел</string>
+    <string name="settings_check_sources_description">Нові версії застосунків із вкладки «Джерела».</string>
+    <string name="settings_sources">Налаштування джерел</string>
+    <string name="sources_share_label">Відстежувати в APK Toolbox</string>
+    <string name="sources_empty">Ще немає застосунків, що відстежуються.\nДодайте за посиланням або знайдіть через пошук.</string>
+    <string name="sources_add">Додати застосунок</string>
+    <string name="sources_filter">Фільтр</string>
+    <string name="sources_filter_clear">Скинути фільтр</string>
+    <string name="settings_section_updates">Оновлення</string>
+    <string name="settings_section_install">Автоматичне встановлення</string>
+    <string name="settings_section_experimental">Експериментальне</string>
+    <string name="settings_check_clones">Клони</string>
+    <string name="settings_check_clones_description">Клон застарів, якщо оновився його оригінал або в його джерелі з\'явилася нова версія.</string>
+    <string name="settings_check_on_start">Перевіряти при запуску</string>
+    <string name="settings_check_on_start_description">Оновлення застосунків із джерел і клонів перевіряються при кожному відкритті APK Toolbox.</string>
+    <string name="settings_wifi_only">Чекати Wi-Fi</string>
+    <string name="settings_wifi_only_description">Знайдене в мобільній мережі встановиться при підключенні до Wi-Fi.</string>
+    <string name="settings_charging_only">Чекати зарядку</string>
+    <string name="settings_charging_only_description">Знайдене без зарядки встановиться при підключенні зарядки.</string>
+    <string name="settings_sources_description">Токени, враховані випуски, імпорт та експорт.</string>
+    <string name="settings_root">Встановлення через root</string>
+    <string name="settings_root_description">Якщо ввімкнено, має пріоритет над іншими способами встановлення. Фонове встановлення може щоразу запитувати доступ у менеджера root. Не тестувалося.</string>
+    <string name="cloning_installed">Встановлені</string>
+    <string name="cloning_clones">Клони</string>
+    <string name="export_done">Експортовано в APKS</string>
+    <string name="root_not_granted">Доступ root не видано</string>
+    <string name="settings_install_method_description">Як встановлюються оновлення у фоні.</string>
+    <string name="hint_tab_install">Встановлює пакети APKS, XAPK, APKM та набори сплітів. Установлений застосунок зі списку можна експортувати у файл APKS.</string>
+    <string name="hint_tab_split">Об\'єднує застосунок із кількох сплітів в один звичайний APK. У списку лише застосунки, встановлені сплітами; можна обрати і файл пакета.</string>
+    <string name="install_sign_description">Перепідписує файли ключем із налаштувань. Потрібно, якщо вони змінені або підпис пошкоджений; поверх оригіналу такий застосунок не оновиться.</string>
+    <string name="merge_sign_description">Підписує об\'єднаний APK ключем із налаштувань, щоб його можна було встановити. Без цього файл залишиться непідписаним.</string>
+    <string name="merge_force_description">Об\'єднує спліти, навіть якщо в них різні версії або пакети. Лише якщо звичайне об\'єднання відмовляється; результат може не працювати.</string>
+    <string name="tab_info">Про цей список</string>
+    <string name="hint_tab_sources">Відстежує застосунки з GitHub, F-Droid, магазинів та інших сайтів: додайте застосунок за посиланням або за назвою, і нові версії знаходитимуться, завантажуватимуться та встановлюватимуться звідси.</string>
+    <string name="hint_tab_apps">Робить копію встановленого застосунку з іншим ім\'ям пакета: у кожної копії свої дані. Оберіть застосунок зі списку або APK-файл.</string>
+    <string name="hint_tab_clones">Зроблені клони знаходяться тут. Клон застаріває, коли оновлюється його оригінал або в його джерелі з\'являється нова версія.</string>
+    <string name="settings_language">Мова</string>
+    <string name="settings_language_description">Використовується мова системи, якщо не обрано іншу.</string>
+    <string name="language_system">Як у системі</string>
+    <string name="settings_log">Журнал</string>
+    <string name="settings_log_description">Записи про перевірки, завантаження, клонування, об\'єднання та встановлення, включно з помилками. Зберігаються 30 днів.</string>
+    <string name="button_show_log">Показати журнал</string>
+    <string name="log_empty">У журналі ще порожньо.</string>
+    <string name="log_save">Зберегти</string>
+    <plurals name="log_show_more">
+        <item quantity="one">Показати ще %d запис</item>
+        <item quantity="few">Показати ще %d записи</item>
+        <item quantity="many">Показати ще %d записів</item>
+        <item quantity="other">Показати ще %d записи</item>
+    </plurals>
+    <string name="button_refresh">Перевірити оновлення</string>
+    <string name="clones_up_to_date">Усі клони актуальні</string>
+    <plurals name="log_days">
+        <item quantity="one">%d день</item>
+        <item quantity="few">%d дні</item>
+        <item quantity="many">%d днів</item>
+        <item quantity="other">%d дня</item>
+    </plurals>
+    <string name="search_clear">Очистити пошук</string>
+    <string name="clone_permissions">Дозволи</string>
+    <string name="clone_permissions_removed">Дозволи: прибрано %1$d</string>
+    <string name="clone_permissions_hint">Усе, що запитує оригінал. Вимкніть те, чого у клона не повинно бути; без потрібного дозволу застосунок може перестати працювати.</string>
+    <string name="clone_permissions_none">Застосунок не запитує дозволів.</string>
+    <string name="clone_patches">Патчі</string>
+    <string name="clone_patches_on">Патчі: увімкнено %1$d з %2$d</string>
+    <string name="clone_patches_not_applied">Остання збірка не змогла застосувати «%1$s»: не вдалося прочитати підпис оригіналу, тому патч підміни імені пакета в клон не потрапив.</string>
+    <string name="clone_patches_hint">Зміни коду клона. Кожен патч необов\'язковий і застосовується лише до цього клона.</string>
+    <string name="clone_rename_alias_note">Переписує ім\'я пакета в коді клона, щоб він знаходив свої файли та компоненти. Мімікрія, навпаки, представляє клон оригіналом для перевірок.</string>
+    <string name="clone_mimicry">Мімікрія</string>
+    <string name="clone_mimicry_note">Клон повністю представляется оригіналом — ім\'я пакета і підпис: своїм перевіркам, серверам та аналітиці. Пошук власних компонентів клона продовжує працювати через запасний варіант.</string>
+    <string name="clone_keep_alive">Придушення виходу</string>
+    <string name="clone_keep_alive_note">Кожен виклик, що завершує застосунок — System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask — перетворюється на порожню операцію: застосунок не може ні вбити себе, ні викинути користувача, з будь-якої причини — перевірка підпису, немає акаунта, невдала перевірка при запуску. Після виходу застосунок може залишитися у фоні замість закриття.</string>
+    <string name="clone_permission_absent">У цій версії не запитується. Якщо повернеться — залишиться вимкненим.</string>
+    <string name="clone_permission_new">Нове в цій версії</string>
+    <string name="button_done">Готово</string>
+</resources>

@@ -168,7 +168,7 @@ class RemoveAppFlowsTest : BaseUiTest() {
     private fun sourcePlural(name: String, count: Int): String {
         val locale = context.resources.configuration.locales[0].language
         val catalogue =
-            if (locale in listOf("ru", "zh", "de", "fr", "es", "tr", "ko", "ja", "ar")) locale else "en"
+            if (locale in listOf("ru", "zh", "de", "fr", "es", "tr", "ko", "ja", "ar", "it", "pl", "vi", "id", "uk")) locale else "en"
         val json = context.assets.open("sources/i18n/$catalogue.json").bufferedReader().use { it.readText() }
         val forms = JSONObject(json).getJSONObject(name)
         return forms.optString(if (count == 1) "one" else "other").ifBlank { forms.optString("other") }
