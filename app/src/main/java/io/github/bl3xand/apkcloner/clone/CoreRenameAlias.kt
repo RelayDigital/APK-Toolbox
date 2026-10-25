@@ -44,18 +44,14 @@ object CoreRenameAlias {
 
     private const val TAG = "CoreRenameAlias"
 
-    /** Set by [patchDexScoped] to avoid per-call allocation. */
-    private var originalPackage: String = ""
-    private var clonePackage: String = ""
-
     /** Patches [data] (the bytes of one dex file). Returns the original bytes on any failure. */
-    fun patchDex(data: ByteArray): ByteArray = try {
+    fun patchDex(data: ByteArray, originalPackage: String, clonePackage: String): ByteArray = try {
         val input = File.createTempFile("dex_in", ".dex")
         val output = File.createTempFile("dex_out", ".dex")
         try {
             input.writeBytes(data)
             val dexFile = DexFileFactory.loadDexFile(input, Opcodes.getDefault())
-            val rewritten = DexFileRewriter(CoreRenameAliasRewriters()).rewrite(dexFile)
+            val rewritten = DexFileRewriter(CoreRenameAliasRewriters(originalPackage, clonePackage)).rewrite(dexFile)
             DexPool.writeTo(output.absolutePath, rewritten)
             output.readBytes().also {
                 if (it.contentEquals(data)) AppLog.debug("$TAG: no original package string, unchanged")
@@ -70,20 +66,13 @@ object CoreRenameAlias {
         data
     }
 
-    /** Convenience wrapper that sets the package names for the current thread before patching. */
-    fun patchDexScoped(data: ByteArray, originalPackage: String, clonePackage: String): ByteArray {
-        this.originalPackage = originalPackage
-        this.clonePackage = clonePackage
-        return patchDex(data)
-    }
-
     /** A [Rewriters] that rewrites only methods; everything else uses the default rewriter module. */
-    private class CoreRenameAliasRewriters : DexRewriter(RewriterModule()) {
-        override fun getMethodRewriter(): MethodRewriter = AliasMethodRewriter(this)
+    private class CoreRenameAliasRewriters(private val originalPackage: String, private val clonePackage: String) : DexRewriter(RewriterModule()) {
+        override fun getMethodRewriter(): MethodRewriter = AliasMethodRewriter(this, originalPackage, clonePackage)
     }
 
     /** Rewrites the original-package const-string instructions to the clone package name. */
-    private class AliasMethodRewriter(rewriters: Rewriters) : MethodRewriter(rewriters) {
+    private class AliasMethodRewriter(rewriters: Rewriters, private val originalPackage: String, private val clonePackage: String) : MethodRewriter(rewriters) {
         override fun rewrite(method: Method): Method {
             val impl = method.implementation ?: return method
             val instructions = impl.instructions.toList()
@@ -107,18 +96,18 @@ object CoreRenameAlias {
                 newImpl,
             )
         }
-    }
 
-    /** A `const-string` (21c) whose string is exactly the original package name. */
-    private fun isOriginalPackageString(instruction: Instruction): Boolean {
-        if (instruction.opcode != Opcode.CONST_STRING) return false
-        val ref = (instruction as? ReferenceInstruction)?.reference as? StringReference ?: return false
-        return ref.string == originalPackage
-    }
+        /** A `const-string` (21c) whose string is exactly the original package name. */
+        private fun isOriginalPackageString(instruction: Instruction): Boolean {
+            if (instruction.opcode != Opcode.CONST_STRING) return false
+            val ref = (instruction as? ReferenceInstruction)?.reference as? StringReference ?: return false
+            return ref.string == originalPackage
+        }
 
-    /** Rebuilds the 21c const-string with a new string reference, keeping the same register. */
-    private fun alias(instruction: Instruction): Instruction {
-        val reg = (instruction as? OneRegisterInstruction)?.registerA ?: 0
-        return ImmutableInstruction21c(Opcode.CONST_STRING, reg, ImmutableStringReference(clonePackage))
+        /** Rebuilds the 21c const-string with a new string reference, keeping the same register. */
+        private fun alias(instruction: Instruction): Instruction {
+            val reg = (instruction as? OneRegisterInstruction)?.registerA ?: 0
+            return ImmutableInstruction21c(Opcode.CONST_STRING, reg, ImmutableStringReference(clonePackage))
+        }
     }
 }

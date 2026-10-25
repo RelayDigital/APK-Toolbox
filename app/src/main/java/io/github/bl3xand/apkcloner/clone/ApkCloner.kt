@@ -200,7 +200,7 @@ internal class DexPatchChain(
         // mimicry into reporting the clone's name. The other direction is safe: the spoof
         // retargets getPackageInfo/getPackageName invokes, and the alias rewriter only touches
         // const-strings - the retargeted calls and the helper it reads them for compose.
-        if (PatchIds.RENAME_ALIAS in patches) patched = CoreRenameAlias.patchDexScoped(patched, original, clonePackage)
+        if (PatchIds.RENAME_ALIAS in patches) patched = CoreRenameAlias.patchDex(patched, original, clonePackage)
         if (certificate != null) patched = SignatureSpoof.patchDex(patched, name, certificate, original, clonePackage, PatchIds.MIMICRY in patches)
         return patched
     }

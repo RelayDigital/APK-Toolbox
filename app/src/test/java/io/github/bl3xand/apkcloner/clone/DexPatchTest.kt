@@ -357,7 +357,7 @@ class DexPatchTest {
         val before = dex(
             Triple("a", "(I)V", listOf(constString("com.example.app"), constString("com.example.app.extra"))),
         )
-        val after = CoreRenameAlias.patchDexScoped(before, "com.example.app", "com.example.app.clone")
+        val after = CoreRenameAlias.patchDex(before, "com.example.app", "com.example.app.clone")
         val strings = stringConstants(after)
         org.junit.Assert.assertEquals(listOf("com.example.app.clone", "com.example.app.extra"), strings)
     }
@@ -365,13 +365,13 @@ class DexPatchTest {
     @org.junit.Test
     fun renameAliasNoOriginalStringMeansUnchanged() {
         val before = dex(Triple("a", "(I)V", listOf(constString("something.else"))))
-        org.junit.Assert.assertArrayEquals(before, CoreRenameAlias.patchDexScoped(before, "com.example.app", "com.example.app.clone"))
+        org.junit.Assert.assertArrayEquals(before, CoreRenameAlias.patchDex(before, "com.example.app", "com.example.app.clone"))
     }
 
     @org.junit.Test
     fun renameAliasFailSafeOnGarbage() {
         val garbage = byteArrayOf(7)
-        org.junit.Assert.assertArrayEquals(garbage, CoreRenameAlias.patchDexScoped(garbage, "a.b", "a.b.c"))
+        org.junit.Assert.assertArrayEquals(garbage, CoreRenameAlias.patchDex(garbage, "a.b", "a.b.c"))
     }
 
     // ---- the chain: patches compose ----

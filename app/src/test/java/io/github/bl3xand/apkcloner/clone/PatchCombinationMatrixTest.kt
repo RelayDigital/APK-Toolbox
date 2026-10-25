@@ -386,7 +386,7 @@ class PatchCombinationMatrixTest {
         // exactly what an unpatched clone reports, while every marker of a "successful" build
         // stayed green. Shown here by running the two patches in the wrong order by hand.
         val dexBytes = DexPatchChain(setOf(PatchIds.MIMICRY), certificate, { original }, clone).apply("classes.dex", matrixDex())
-        val wronglyOrdered = CoreRenameAlias.patchDexScoped(dexBytes, original, clone)
+        val wronglyOrdered = CoreRenameAlias.patchDex(dexBytes, original, clone)
         val input = File.createTempFile("wrong", ".dex")
         val dex = try {
             input.writeBytes(wronglyOrdered)
