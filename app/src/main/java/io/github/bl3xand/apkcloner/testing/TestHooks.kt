@@ -115,6 +115,10 @@ object TestHooks {
         if (!enabled) return
         state.reset()
         val app = context.applicationContext
+        // The log's database file was wiped while this process held it open (BaseUiTest);
+        // without this, every later write lands in a deleted file, silently.
+        io.github.bl3xand.apkcloner.log.AppLog.resetForTesting()
+        io.github.bl3xand.apkcloner.log.AppLog.init(app)
         val repo = SourcesRepository.get(app)
         // Nothing in flight, and no error of a previous test's checks left standing.
         repo.downloads.value.keys.toList().forEach { repo.setDownload(it, null) }

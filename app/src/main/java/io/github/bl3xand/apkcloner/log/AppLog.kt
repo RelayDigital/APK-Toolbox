@@ -57,6 +57,24 @@ object AppLog {
         runCatching { clear(before = System.currentTimeMillis() - MAX_AGE_MS) }
     }
 
+    /**
+     * Puts the log back to a never-initialized state. For the instrumentation tests, whose
+     * data wipe (BaseUiTest) removes the database file while this process holds it open: a
+     * handle on a deleted file turns every later write into a silent SQLITE_READONLY_DBMOVED,
+     * so the tests' assertions on the log would read a store nothing landed in. Called from
+     * [io.github.bl3xand.apkcloner.testing.TestHooks.resetAppState] after the wipe, together
+     * with the rest of the fresh-state reset; the next [init] rebuilds everything.
+     */
+    @Synchronized
+    fun resetForTesting() {
+        val handler = writer
+        writer = null
+        (handler?.looper?.thread as? HandlerThread)?.quit()
+        runCatching { helper?.close() }
+        helper = null
+        ring = null
+    }
+
     fun debug(message: String) = log(LogLevel.DEBUG, message)
     fun info(message: String) = log(LogLevel.INFO, message)
     fun warn(message: String) = log(LogLevel.WARNING, message)
