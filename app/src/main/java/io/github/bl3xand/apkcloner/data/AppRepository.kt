@@ -16,7 +16,10 @@ import io.github.bl3xand.apkcloner.install.Installer
 import io.github.bl3xand.apkcloner.settings.AppSettings
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
+import io.github.bl3xand.apkcloner.sources.data.certHashesOf
 import java.io.File
+import java.util.Optional
+import java.util.concurrent.ConcurrentHashMap
 
 class AppRepository(private val context: Context, private val cloner: ApkCloner) {
 
@@ -26,12 +29,13 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
         val packages = packageManager.getInstalledPackages(SIGNERS_FLAG)
             .filter { it.packageName != context.packageName && it.applicationInfo != null }
         // Asked first: it also sees to it that the tracked apps have been read.
-        val asClones = runCatching { SourcesRepository.get(context).installedAsClones() }.getOrDefault(emptyMap())
-        val trackedByPackage = runCatching { SourcesRepository.get(context).all() }.getOrDefault(emptyList())
+        val sourcesRepository = runCatching { SourcesRepository.get(context) }.getOrNull()
+        val asClones = sourcesRepository?.let { runCatching { it.installedAsClones() }.getOrDefault(emptyMap()) } ?: emptyMap()
+        val trackedByPackage = (sourcesRepository?.let { runCatching { it.all() }.getOrDefault(emptyList()) } ?: emptyList())
             .filter { it.installedInfo != null }.associateBy { it.app.devicePackage }
         val sources = packages.associate { info ->
             val app = info.applicationInfo!!
-            info.packageName to toSource(info, app, originOf(app, trackedByPackage[info.packageName]))
+            info.packageName to toSource(info, app, originOf(info, app, trackedByPackage[info.packageName], sourcesRepository))
         }
 
         // Clones are recognised by the key they are signed with rather than by a local database,
@@ -42,7 +46,7 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
         val clones = packages.mapNotNull { info ->
             val key = info.currentSigners.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) } ?: return@mapNotNull null
             val source = sources.getValue(info.packageName)
-            val metadata = ApkCloner.readMetadata(source.apkPaths.first()) ?: return@mapNotNull null
+            val metadata = info.applicationInfo?.sourceDir?.let { cloneMetadata(info, it) } ?: return@mapNotNull null
             CloneInfo(source, metadata.originalPackage, sources[metadata.originalPackage], key, metadata.badged, metadata.removedPermissions, metadata.patches, tracked[info.packageName], info.packageName in frozen, categories[info.packageName].orEmpty(),
             )
         }
@@ -59,7 +63,7 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
     fun clonesOf(originalPackage: String): Map<String, CloneMetadata> =
         packageManager.getInstalledPackages(SIGNERS_FLAG).mapNotNull { info ->
             if (info.currentSigners.none { cloner.keys.matching(it.toByteArray()) != null }) return@mapNotNull null
-            val metadata = info.applicationInfo?.sourceDir?.let(ApkCloner::readMetadata) ?: return@mapNotNull null
+            val metadata = info.applicationInfo?.sourceDir?.let { cloneMetadata(info, it) } ?: return@mapNotNull null
             if (metadata.originalPackage == originalPackage) info.packageName to metadata else null
         }.toMap()
 
@@ -89,19 +93,43 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
      * An app this app installed from a source is from that source; anything else, from whatever
      * installed it - a tracked app too: tracking an app from Google Play does not make it less
      * of one.
+     *
+     * The installer of record is the system's memory of the LAST install only: an adb install
+     * leaves it empty on many systems, a file manager that sideloads an APK sets itself, so
+     * after an uninstall and a reinstall done another way the label drifts. What the app is
+     * signed with does not drift: a build a source once offered carries a certificate the
+     * source recorded for it, and a clone made here carries this app's key. Those are asked
+     * first; the record decides only what nothing else can vouch for.
      */
-    private fun originOf(app: ApplicationInfo, tracked: AppEntry?): String {
+    private fun originOf(info: PackageInfo, app: ApplicationInfo, tracked: AppEntry?, sourcesRepository: SourcesRepository?): String {
         val installer = packageManager.installerOf(app.packageName)
-        return when {
-            tracked != null && (installer == null || installer == context.packageName) -> tracked.sourceName()
-            installer == Installer.PLAY_STORE_PACKAGE -> "Google Play"
-            installer == context.packageName -> context.getString(R.string.app_name)
-            installer != null -> runCatching {
-                packageManager.getApplicationInfo(installer, 0).loadLabel(packageManager).toString()
-            }.getOrDefault(installer)
-            app.flags and ApplicationInfo.FLAG_SYSTEM != 0 -> context.getString(R.string.origin_system)
-            else -> context.getString(R.string.origin_file)
+        val ours = info.currentSigners.any { cloner.keys.matching(it.toByteArray()) != null }
+        if (tracked != null) {
+            // A clone of the tracked app built here goes on being kept by its source, whatever
+            // way it was last put on the device.
+            if (ours) return tracked.sourceName()
+            val offered = sourcesRepository?.storedApkCertHashes(tracked.app.id).orEmpty()
+            if (offered.isNotEmpty()) {
+                // A match vouches for the installed build whoever put it on the device; a miss
+                // says this build is not the source's, and the source must not be named for it.
+                return if (certHashesOf(info).any { it in offered }) tracked.sourceName() else fromInstallerRecord(app, installer)
+            }
+            if (installer == null || installer == context.packageName) return tracked.sourceName()
+            return fromInstallerRecord(app, installer)
         }
+        // A clone: ours by the key it is signed with, whatever the last install went through.
+        if (ours) return context.getString(R.string.app_name)
+        return fromInstallerRecord(app, installer)
+    }
+
+    private fun fromInstallerRecord(app: ApplicationInfo, installer: String?): String = when {
+        installer == Installer.PLAY_STORE_PACKAGE -> "Google Play"
+        installer == context.packageName -> context.getString(R.string.app_name)
+        installer != null -> runCatching {
+            packageManager.getApplicationInfo(installer, 0).loadLabel(packageManager).toString()
+        }.getOrDefault(installer)
+        app.flags and ApplicationInfo.FLAG_SYSTEM != 0 -> context.getString(R.string.origin_system)
+        else -> context.getString(R.string.origin_file)
     }
 
     private fun toSource(info: PackageInfo, app: ApplicationInfo, origin: String? = null) = ApkSource(
@@ -114,4 +142,18 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
         appInfo = app,
         origin = origin,
     )
+
+    /**
+     * What a clone says about itself, read from the base APK named by [info]. The APK of an
+     * installed app changes only when the app is updated, so the read is cached by what the
+     * system knows about the app - (package, versionCode, lastUpdateTime) - and a rescan that
+     * sees the same version reads nothing. One cache per repository; the repository of the main
+     * list lives as long as the view model does, so the cache rides along with it.
+     */
+    private val metadataCache = ConcurrentHashMap<String, Optional<CloneMetadata>>()
+
+    private fun cloneMetadata(info: PackageInfo, baseApk: String): CloneMetadata? {
+        val key = "${info.packageName}@${info.versionCodeLong}@${info.lastUpdateTime}"
+        return metadataCache.computeIfAbsent(key) { Optional.ofNullable(ApkCloner.readMetadata(baseApk)) }.orElse(null)
+    }
 }

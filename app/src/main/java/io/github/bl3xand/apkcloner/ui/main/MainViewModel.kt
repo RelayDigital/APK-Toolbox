@@ -21,12 +21,14 @@ import io.github.bl3xand.apkcloner.ui.apps.ClonesFilter
 import io.github.bl3xand.apkcloner.ui.split.SplitController
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -83,7 +85,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Leftovers from a run that was killed mid-clone.
         tempDir.deleteRecursively()
         tempDir.mkdirs()
-        viewModelScope.launch { InstallReceiver.sessionFinished.collect { refresh() } }
+        // A multi-APK install reports the end of every session as it goes, and reading what is
+        // installed takes seconds on a full device: one rescan once the burst settles, not one
+        // per session. Delayed (not dropped): a rescan asked for is always done, just once.
+        val bursts = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        viewModelScope.launch { bursts.collectLatest { delay(750); refresh() } }
+        viewModelScope.launch { InstallReceiver.sessionFinished.collect { bursts.tryEmit(Unit) } }
         viewModelScope.launch { SourcesRepository.get(application).apps.drop(1).collect { onTrackedAppsChanged() } }
     }
 
