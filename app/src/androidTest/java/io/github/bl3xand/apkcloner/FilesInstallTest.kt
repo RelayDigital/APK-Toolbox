@@ -28,8 +28,14 @@ class FilesInstallTest : BaseUiTest() {
     @Test
     fun sharedApkInstallsAsIsThroughTheFork() {
         val apk = targetApk()
-        // Start clean: whatever an earlier run left installed is gone first.
+        // Start clean: whatever an earlier run left installed is gone first, and a system
+        // prompt it left behind is dismissed - an orphaned confirm window would swallow
+        // this test's own prompt clicks.
         device.executeShellCommand("pm uninstall $targetPackage")
+        if (device.findObject(By.pkg("com.google.android.packageinstaller")) != null) {
+            device.pressBack()
+            device.waitForIdle(1_000)
+        }
 
         // Share the APK file in: the fork asks what to do with it.
         sendShare(apk)
@@ -51,13 +57,24 @@ class FilesInstallTest : BaseUiTest() {
 
         // A new package through the system installer asks for its confirmation - the
         // system's own window, with the framework's Install/Cancel buttons. The test
-        // confirms it the way a user would.
+        // confirms it the way a user would. The window can re-layout while it is read (a
+        // stale node is re-found, not a failure), and a prompt left over from an earlier
+        // run is dismissed before this one is answered.
         val cancelText = frameworkText("cancel")
         if (device.wait(Until.hasObject(By.text(cancelText)), 30_000)) {
-            val buttons = device.findObjects(By.clazz("android.widget.Button"))
-            val confirm = buttons.firstOrNull { it.text != cancelText && it.text.isNotBlank() }
-                ?: error("No confirming button on the install prompt. Screen:\n${dumpVisibleTexts()}")
-            confirm.click()
+            var clicked = false
+            repeat(6) {
+                if (clicked) return@repeat
+                val confirm = runCatching {
+                    device.findObjects(By.clazz("android.widget.Button"))
+                        ?.firstOrNull { it.text != cancelText && it.text.isNotBlank() }
+                }.getOrNull()
+                if (confirm != null) {
+                    clicked = runCatching { confirm.click(); true }.getOrDefault(false)
+                }
+                if (!clicked) device.waitForIdle(500)
+            }
+            check(clicked) { "Could not confirm the install prompt. Screen:\n${dumpVisibleTexts()}" }
         }
 
         // The app landed on the device.

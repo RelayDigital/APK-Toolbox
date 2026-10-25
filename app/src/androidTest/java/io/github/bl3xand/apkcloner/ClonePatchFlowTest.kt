@@ -58,6 +58,11 @@ class ClonePatchFlowTest : BaseUiTest() {
         // clone"), so both packages start from gone.
         device.executeShellCommand("pm uninstall $targetPackage")
         device.executeShellCommand("pm uninstall $clonePackage")
+        // A system prompt an earlier test left behind would swallow this run's own clicks.
+        if (device.findObject(By.pkg("com.google.android.packageinstaller")) != null) {
+            device.pressBack()
+            device.waitForIdle(1_000)
+        }
 
         val server = FakeApkServer(apk).also { it.startAndWait() }
         try {
@@ -95,10 +100,19 @@ class ClonePatchFlowTest : BaseUiTest() {
             install.click()
             val cancelText = context.getString(android.R.string::class.java.getField("cancel").getInt(null))
             if (device.wait(Until.hasObject(By.text(cancelText)), 30_000)) {
-                val buttons = device.findObjects(By.clazz("android.widget.Button"))
-                val confirm = buttons.firstOrNull { it.text != cancelText && it.text.isNotBlank() }
-                    ?: error("No confirming button on the install prompt. Screen:\n${dumpVisibleTexts()}")
-                confirm.click()
+                var clicked = false
+                repeat(6) {
+                    if (clicked) return@repeat
+                    val confirm = runCatching {
+                        device.findObjects(By.clazz("android.widget.Button"))
+                            ?.firstOrNull { it.text != cancelText && it.text.isNotBlank() }
+                    }.getOrNull()
+                    if (confirm != null) {
+                        clicked = runCatching { confirm.click(); true }.getOrDefault(false)
+                    }
+                    if (!clicked) device.waitForIdle(500)
+                }
+                check(clicked) { "Could not confirm the install prompt. Screen:\n${dumpVisibleTexts()}" }
             }
             awaitCondition(120_000, "the clone to be installed") {
                 context.packageManager.packageInfoOrNull(clonePackage, 0) != null
