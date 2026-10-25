@@ -6,6 +6,7 @@ import io.github.bl3xand.apkcloner.sources.core.InvalidUrlError
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
 import io.github.bl3xand.apkcloner.sources.core.RemoteApk
+import io.github.bl3xand.apkcloner.sources.core.ReleaseBranchGoneError
 import io.github.bl3xand.apkcloner.sources.core.SourceEnv
 import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.Tr
@@ -59,6 +60,12 @@ class TelegramChannel : AppSource("TelegramChannel") {
     override val additionalSourceAppSpecificSettingFormItems: List<List<SettingItem>>
         get() = listOf(listOf(TextItem(SETTING_KIND, "telegramFilePattern", required = false, hint = "instander | clone")))
 
+    /** The family ("instander | clone") holds across releases; the file's own name does not. */
+    override fun releaseBranchKeyOf(file: NamedUrl): String? = TelegramFileName.family(file.name)
+
+    /** The kind setting is the branch itself: the list returned is that kind alone. */
+    override fun followedBranchKey(settings: Map<String, Any?>): String? = kindOf(settings)
+
     override fun sourceSpecificStandardizeURL(url: String, forSelection: Boolean): String {
         val channel = CHANNEL_URL.find(url)?.groupValues?.get(1)
         if (channel == null || channel.lowercase() in NOT_CHANNELS) throw InvalidUrlError(name)
@@ -72,7 +79,22 @@ class TelegramChannel : AppSource("TelegramChannel") {
     /** Said in the words of the settings where the signing in is done, not as "credentials". */
     private fun gateway(): TelegramGateway = gatewayOrNull() ?: throw SourceError(Tr.get("telegramSignInFirst"))
 
-    override val signInNote: String? get() = if (Telegram.gateway?.hasAccount == true) null else Tr.get("srcNeedsSignIn")
+    /**
+     * A session that was ended needs signing in again before anything of Telegram can be
+     * checked; the note says so on the row. [TelegramClient.sessionEnded] is the cheap tell
+     * here - the flag the client raised when its session closed from outside or could not be
+     * opened - because the sign-in preference alone still reads as an account until the client
+     * has been started and told what became of it, and the background check must not start the
+     * client just to learn that. The ended case gets its own words on the row: "sign-in
+     * needed" is true of an app never signed in for, while an ended session says the app was
+     * being checked and cannot be any more.
+     */
+    override val signInNote: String?
+        get() = when {
+            Telegram.gateway?.hasAccount != true -> Tr.get("srcNeedsSignIn")
+            Telegram.gateway?.isSessionEnded == true -> Tr.get("telegramSessionEnded")
+            else -> null
+        }
 
     private fun channelOf(standardUrl: String): String = standardUrl.substringAfterLast('/')
 
@@ -129,6 +151,11 @@ class TelegramChannel : AppSource("TelegramChannel") {
         val top = gateway.channel(channel, if (newest == null) SCAN_LIMIT else TOP_LIMIT)
         newestOf(top.files)?.let { fromTop -> if (newest == null || fromTop.date > newest!!.date) newest = fromTop }
         AppLog.debug("Telegram: $channel, '$kind': ${found.files.size} file(s) by name, newest ${newest?.name ?: "none"}")
+        if (newest == null) {
+            // A kind once chosen and now posted no more. Not a failure to check: a thrown
+            // NoApkError would ride the error-and-retry path and nag every cycle.
+            throw ReleaseBranchGoneError()
+        }
         return found.title to listOfNotNull(newest)
     }
 

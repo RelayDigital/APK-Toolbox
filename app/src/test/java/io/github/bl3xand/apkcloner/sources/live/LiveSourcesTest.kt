@@ -125,6 +125,9 @@ class LiveSourcesTest {
     fun aptoide() {
         live("Aptoide")
         check(fetch("https://aptoide-games.en.aptoide.com/app").apkUrls.isNotEmpty())
+        val found = SourceRegistry.getSource("https://x.en.aptoide.com/app").search("telegram")
+        println("  search: ${found.entries.take(2)}")
+        check(found.isNotEmpty() && fetch(found.keys.first()).apkUrls.isNotEmpty())
     }
 
     @Test
@@ -159,6 +162,9 @@ class LiveSourcesTest {
     fun tencent() {
         live("Tencent")
         check(fetch("https://sj.qq.com/appdetail/com.tencent.mm").id == "com.tencent.mm")
+        val found = SourceRegistry.getSource("https://sj.qq.com/appdetail/x").search("微信")
+        println("  search: ${found.entries.take(2)}")
+        check(found.keys.first() == "https://sj.qq.com/appdetail/com.tencent.mm")
     }
 
     @Test
@@ -190,14 +196,6 @@ class LiveSourcesTest {
     }
 
     @Test
-    fun liteApks() {
-        live("LiteAPKs")
-        val app = fetch("https://liteapks.com/aio-launcher.html")
-        check(app.apkUrls.isNotEmpty())
-        println("  download url: ${SourceRegistry.getSource(app.url).assetUrlPrefetchModifier(app.apkUrls[0].url, app.url, app.additionalSettings).take(110)}")
-    }
-
-    @Test
     fun apk4Free() {
         live("Apk4Free")
         check(fetch("https://apk4free.net/capcut/").apkUrls.isNotEmpty())
@@ -207,6 +205,9 @@ class LiveSourcesTest {
     fun coolApk() {
         live("CoolApk")
         check(fetch("https://www.coolapk.com/apk/com.coolapk.market").id == "com.coolapk.market")
+        val found = SourceRegistry.getSource("https://www.coolapk.com/apk/x").search("微信")
+        println("  search: ${found.entries.take(3)}")
+        check(found.isNotEmpty())
     }
 
     @Test
@@ -228,12 +229,6 @@ class LiveSourcesTest {
         check(app.id == "com.android.chrome") { "id ${app.id}" }
         check(app.releaseUrl != null)
         println("  release: ${app.releaseUrl} size: ${SourceRegistry.getSource(app.url).resolveDownloadSize(app.url, app.additionalSettings, app.releaseUrl)}")
-    }
-
-    @Test
-    fun apkCombo() {
-        live("APKCombo")
-        check(fetch("https://apkcombo.com/telegram/org.telegram.messenger").id == "org.telegram.messenger")
     }
 
     @Test

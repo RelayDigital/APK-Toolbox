@@ -28,16 +28,27 @@ android {
 
     defaultConfig {
         applicationId = "io.github.bl3xand.apkcloner"
-        minSdk = 35
+        // Android 8.0: adaptive icons and notification channels, which the app counts on.
+        minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.1.0"
+        versionCode = 12
+        versionName = "1.2"
 
         buildConfigField("int", "TELEGRAM_API_ID", (telegramProperties.getProperty("apiId")?.trim()?.toIntOrNull() ?: 0).toString())
         buildConfigField("String", "TELEGRAM_API_HASH", "\"${telegramProperties.getProperty("apiHash")?.trim().orEmpty()}\"")
 
-        // Android 15 and up runs on 64-bit ARM only; TDLib's other builds would be dead weight.
-        ndk { abiFilters += "arm64-v8a" }
+    }
+
+    // TDLib is native code, a couple of dozen megabytes for each kind of processor. The
+    // universal APK carries all of them and installs anywhere; next to it there is a smaller
+    // APK for each kind, for whoever knows which one their device needs.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+            isUniversalApk = true
+        }
     }
 
     signingConfigs {
@@ -74,10 +85,12 @@ android {
     }
 
     testOptions {
+        unitTests.isReturnDefaultValues = true
         unitTests.all {
             // Tests that reach real sites only run on request: -Plive=true [-Plive.only=<Source>].
             it.systemProperty("live", providers.gradleProperty("live").getOrElse("false"))
             it.systemProperty("live.only", providers.gradleProperty("live.only").getOrElse(""))
+            it.systemProperty("live.query", providers.gradleProperty("live.query").getOrElse(""))
             it.testLogging.showStandardStreams = true
         }
     }
@@ -104,6 +117,8 @@ dependencies {
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.recyclerview)
+    // Pull-to-refresh around the Sources and Clones lists.
+    implementation(libs.androidx.swiperefreshlayout)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.material)
@@ -112,6 +127,9 @@ dependencies {
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
     implementation(files(strippedArsclib))
+    // dexlib2 is not bundled inside the stripped ARSCLib jar (thin, isTransitive=false), so it is
+    // added directly. Used by SignatureBypass to rewrite dex bytecode without a new toolchain.
+    implementation(libs.dexlib2)
     implementation(libs.apksig)
     implementation(libs.jsoup)
     implementation(libs.jbcrypt)
@@ -126,4 +144,13 @@ dependencies {
     testImplementation(libs.junit)
     // The org.json classes in android.jar are stubs; unit tests need a real implementation.
     testImplementation(libs.org.json)
+
+    // ---- UI instrumentation tests (app/src/androidTest) ----
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.rules)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.uiautomator)
+    // A tiny in-process HTTP server; the fake update source tests serve an APK from it.
+    androidTestImplementation(libs.nanohttpd)
 }

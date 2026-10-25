@@ -7,12 +7,21 @@ import java.math.BigInteger
 
 private const val DEFAULT_MATCH_GROUP = "0"
 
-/** Returns an error text when [value] is not a valid regular expression. */
+/** A pattern like this, run over a plain run of "a"s, is the classic blowup probe. */
+private val VALIDATOR_PROBE_INPUT = "a".repeat(48)
+
+/** Returns an error text when [value] is not a valid, safely-matchable regular expression. */
 fun regExValidator(value: String?): String? {
     if (value.isNullOrEmpty()) return null
     return try {
-        Regex(value)
+        val regex = Regex(value)
+        // Compiling is not enough: a pattern that backtracks catastrophically would pass here
+        // and then hang the update checks. Run it against a synthetic worst-case input with a
+        // budget - imports (SourcesBackup.importJson) skip this form check, the checks do not.
+        TimeBoxedRegex.containsMatchIn(regex, VALIDATOR_PROBE_INPUT, TimeBoxedRegex.SHORT_INPUT_BUDGET_MS)
         null
+    } catch (e: RegExTimeoutError) {
+        Tr.get("invalidRegExTooSlow")
     } catch (e: Exception) {
         Tr.get("invalidRegEx")
     }
@@ -28,7 +37,9 @@ fun extractVersion(
     stringToCheck: String,
 ): String? {
     if (versionExtractionRegEx.isNullOrEmpty()) return null
-    val match = Regex(versionExtractionRegEx).findAll(stringToCheck).lastOrNull()
+    // The page text is source-provided and can be long: run with a budget, so a catastrophic
+    // pattern fails this one app instead of hanging every check.
+    val match = TimeBoxedRegex.lastMatch(Regex(versionExtractionRegEx), stringToCheck, TimeBoxedRegex.PAGE_INPUT_BUDGET_MS)
         ?: throw NoVersionError()
     val trimmedGroup = matchGroupString?.trim()
     val version = replaceMatchGroupsInString(
@@ -40,7 +51,7 @@ fun extractVersion(
 }
 
 /** Replaces `$N` references with match groups; `\$N` keeps the reference literal. */
-private fun replaceMatchGroupsInString(match: MatchResult, groupString: String): String? {
+private fun replaceMatchGroupsInString(match: TimeBoxedRegex.Match, groupString: String): String? {
     var matchGroupString = groupString
     if (Regex("^\\d+$").containsMatchIn(matchGroupString)) matchGroupString = "$$matchGroupString"
     val numbers = Regex("\\$\\d+").findAll(matchGroupString).toList()
@@ -49,7 +60,7 @@ private fun replaceMatchGroupsInString(match: MatchResult, groupString: String):
     for (numberMatch in numbers) {
         val number = numberMatch.value
         val index = number.substring(1).toInt()
-        val group = if (index <= match.groupValues.size - 1) match.groups[index]?.value ?: "" else ""
+        val group = if (index <= match.groupValues.size - 1) match.groupValues[index] else ""
         val escaped = output.contains("\\$number")
         output = if (!escaped) output.replace(number, group) else output.replace("\\$number", number)
     }

@@ -82,6 +82,35 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="2"
+                        android:text="@string/detail_updated_from"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    <TextView
+                        android:id="@+id/textUpdatedFrom"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="3"
+                        android:textAlignment="viewEnd"
+                        android:textAppearance="?attr/textAppearanceBodyLarge"
+                        tools:text="GitHub" />
+
+                </LinearLayout>
+                <com.google.android.material.divider.MaterialDivider
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingVertical="10dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="2"
+                        android:id="@+id/textOriginalVersionTitle"
                         android:text="@string/detail_original_version"
                         android:textAppearance="?attr/textAppearanceBodyMedium"
                         android:textColor="?attr/colorOnSurfaceVariant" />
@@ -159,25 +188,45 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Which of the original's permissions the clone keeps; a change is applied by an update. -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/buttonPermissions"
-            style="@style/Widget.ApkCloner.Button.Action"
+        <include
+            android:id="@+id/permissions"
+            layout="@layout/view_clone_permissions"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/clone_permissions"
-            app:icon="@drawable/ic_tune" />
+            android:layout_height="wrap_content" />
 
+        <!-- For a clone that a source keeps current: its page among the tracked apps. -->
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/buttonResetPermissions"
+            android:id="@+id/buttonShowTracked"
             style="@style/Widget.ApkCloner.Button.Action"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="@string/detail_reset_permissions"
+            android:text="@string/clone_show_in_sources"
             android:visibility="gone"
-            app:icon="@drawable/ic_update" />
+            app:icon="@drawable/ic_open" />
+
+        <!-- For a clone that only an installed original keeps current. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonTrack"
+            style="@style/Widget.ApkCloner.Button.Action"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/clone_track"
+            app:icon="@drawable/ic_search" />
+
+        <!-- Keeps the app at the version it has. The switch brings 8dp of its own on each side;
+             the bottom margin takes it back, as far as it goes without cutting into the switch. -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchNoUpdates"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="-8dp"
+            android:text="@string/switch_no_updates"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:visibility="gone" />
+
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

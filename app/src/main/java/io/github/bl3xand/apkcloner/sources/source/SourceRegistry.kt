@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.sources.source
 
+import io.github.bl3xand.apkcloner.sources.core.notForProcessor
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
 import io.github.bl3xand.apkcloner.sources.core.MinUpdateAgeError
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
@@ -44,13 +45,11 @@ object SourceRegistry {
         { RuStore() },
         { Farsroid() },
         { SamsungGalaxyStore() },
-        { LiteAPKs() },
         { Apk4Free() },
         { CoolApk() },
         { SourceForge() },
         { Jenkins() },
         { APKMirror() },
-        { APKCombo() },
         { RockMods() },
         { TelegramApp() },
         { TelegramChannel() },
@@ -70,7 +69,9 @@ object SourceRegistry {
 
     fun getSource(url: String, overrideSource: String? = null): AppSource {
         val prepared = preStandardizeUrl(url)
-        if (overrideSource != null) {
+        // A link that names its source needs no forcing - and apps added while a search still
+        // forced it are put right here.
+        if (overrideSource != null && overrideFor(prepared, overrideSource) != null) {
             val factory = factoriesById[overrideSource] ?: throw UnsupportedUrlError().also { it.url = prepared }
             // The override changes the host of the chosen source, so it gets its own instance.
             val source = factory()
@@ -93,6 +94,14 @@ object SourceRegistry {
         }
         throw UnsupportedUrlError().also { it.url = prepared }
     }
+
+    /**
+     * The source to force for [url] when it is known to be of [sourceId] - none when the link
+     * says so itself. Forcing a source takes its host from the link and skips what the source
+     * does to its own links, which is only right for an instance of it under another address.
+     */
+    fun overrideFor(url: String, sourceId: String?): String? =
+        sourceId?.takeIf { runCatching { getSource(url).sourceIdentifier }.getOrNull() != it }
 
     /** A placeholder id used until the real package name is known. */
     fun generateTempId(standardUrl: String, additionalSettings: Map<String, Any?>): String =
@@ -170,9 +179,10 @@ object SourceRegistry {
         if (apk.apkUrls.isEmpty() && !trackOnly) throw NoApkError().also { it.url = standardUrl }
         if (additionalSettings["autoApkFilterByArch"] == true) {
             apk = apk.copy(apkUrls = ApkFilter.filterApksByArch(apk.apkUrls, SourceEnv.platform.supportedAbis))
-            if (apk.apkUrls.isEmpty() && !trackOnly) throw NoApkError().also { it.url = standardUrl }
+            if (apk.apkUrls.isEmpty() && !trackOnly) throw notForProcessor().also { it.url = standardUrl }
         }
-        val name = currentApp?.name?.trim()?.takeIf { it.isNotEmpty() } ?: apk.names.name
+        // A package name standing in for the name gives way as soon as the source tells the name.
+        val name = currentApp?.name?.trim()?.takeIf { it.isNotEmpty() && it != currentApp.id } ?: apk.names.name
         val app = TrackedApp(
             id = resolveAppId(source, currentApp, additionalSettings, trackOnly, standardUrl, inferAppIdIfOptional),
             url = standardUrl,

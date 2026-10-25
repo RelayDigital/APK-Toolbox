@@ -46,7 +46,7 @@ class NeutronCode : AppSource("NeutronCode") {
         ApkDetails(
             version,
             ApkFilter.apkUrlsFromUrls(listOf("https://${hosts[0]}/download/$fileName")),
-            AppNames(name, html.selectFirst(".pd-title")?.html() ?: standardUrl.split('/').last()),
+            AppNames(shortName, html.selectFirst(".pd-title")?.html() ?: standardUrl.split('/').last()),
             releaseDate = Dates.tryParse(date),
             changeLog = html.select(".pd-fdesc p").lastOrNull()?.html(),
         )

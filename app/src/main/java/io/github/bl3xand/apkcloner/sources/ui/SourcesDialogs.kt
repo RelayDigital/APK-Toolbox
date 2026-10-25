@@ -6,12 +6,10 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
-import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CheckBox
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -22,9 +20,10 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDragHandleView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.divider.MaterialDivider
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -43,6 +42,7 @@ import io.github.bl3xand.apkcloner.ui.actionButton
 import io.github.bl3xand.apkcloner.ui.add
 import io.github.bl3xand.apkcloner.ui.addDivider
 import io.github.bl3xand.apkcloner.ui.addHeading
+import io.github.bl3xand.apkcloner.ui.anyOfChips
 import io.github.bl3xand.apkcloner.ui.column
 import io.github.bl3xand.apkcloner.ui.confirm
 import io.github.bl3xand.apkcloner.ui.dp
@@ -54,10 +54,10 @@ import io.github.bl3xand.apkcloner.ui.label
 import io.github.bl3xand.apkcloner.ui.markdownToSpanned
 import io.github.bl3xand.apkcloner.ui.openUrl
 import io.github.bl3xand.apkcloner.ui.scrollable
+import io.github.bl3xand.apkcloner.ui.scrollableUnderHandle
 import io.github.bl3xand.apkcloner.ui.sectionTitle
 import io.github.bl3xand.apkcloner.ui.showSheet
 import io.github.bl3xand.apkcloner.ui.switchRow
-import io.github.bl3xand.apkcloner.ui.textButton
 import io.github.bl3xand.apkcloner.ui.themeColor
 import kotlin.coroutines.resume
 import kotlinx.coroutines.Dispatchers
@@ -97,6 +97,15 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
             Tr.get("warning"),
             Tr.get("sourceIsXButPackageFromYPrompt", Uri.parse(sourceUrl).host ?: sourceUrl,
                 Uri.parse(apkUrl.lines().first()).host ?: apkUrl),
+        )
+    }
+
+    override suspend fun removeThenInstall(appName: String): Boolean = withContext(Dispatchers.Main) {
+        context.confirm(
+            Tr.get("removeThenInstallTitle"),
+            Tr.get("removeThenInstallBody", appName),
+            confirmText = Tr.get("removeThenInstallConfirm"),
+            cancelText = Tr.get("removeThenInstallCancel"),
         )
     }
 
@@ -162,35 +171,56 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         val chosen = LinkedHashSet<String>(updates + trackOnly)
         if (updates.isEmpty()) chosen.addAll(installs)
         val all = updates + installs + trackOnly
-        val boxes = ArrayList<Pair<String, CheckBox>>()
+        // Chips at the top switch everything, or one group, on and off; each is on while all of
+        // what it stands for is. Only the groups that have something in them get a chip.
+        val groups = listOf(Tr.get("updates") to updates, Tr.get("nonInstalledApps") to installs, Tr.get("trackOnly") to trackOnly)
+            .filter { it.second.isNotEmpty() }
+        val toggles = LinkedHashMap<String, MaterialSwitch>()
+        val chips = ArrayList<Pair<Chip, List<String>>>()
+        var syncing = false
+        fun syncChips() {
+            syncing = true
+            chips.forEach { (chip, ids) -> chip.isChecked = chosen.containsAll(ids) }
+            syncing = false
+        }
+        fun chipFor(label: String, ids: List<String>): Chip = context.filterChip(label, chosen.containsAll(ids)) { on ->
+            if (syncing) return@filterChip
+            syncing = true
+            ids.forEach { toggles[it]?.isChecked = on }
+            syncing = false
+            syncChips()
+        }.also { chips.add(it to ids) }
         val view = body().apply {
-            fun section(title: String, ids: List<String>) {
-                if (ids.isEmpty()) return
-                add(context.sectionTitle("$title (${ids.size})"), topMargin = 12)
+            add(
+                ChipGroup(context).apply {
+                    addView(chipFor(Tr.get("selectAll"), all))
+                    if (groups.size > 1) groups.forEach { (title, ids) -> addView(chipFor(title, ids)) }
+                },
+            )
+            // The rows of the settings: a name with a line under it, and a switch.
+            for ((index, group) in groups.withIndex()) {
+                val (title, ids) = group
+                if (index > 0) addDivider()
+                addHeading("$title (${ids.size})", afterDivider = index > 0)
                 for (id in ids) {
                     val entry = repo.entry(id) ?: continue
-                    val box = CheckBox(context).apply {
-                        text = "${entry.name}  ·  ${Tr.get("byX", entry.author)}"
-                        isChecked = id in chosen
-                        setOnCheckedChangeListener { _, checked -> if (checked) chosen.add(id) else chosen.remove(id) }
+                    // The arrow between versions stays left-to-right even in right-to-left locales,
+                    // so the older version reads before the newer one the way the numbers do.
+                    val versions = listOfNotNull(entry.app.installedVersion, entry.app.latestVersion).distinct()
+                        .joinToString(" → ")
+                    val row = context.switchRow(
+                        entry.name, id in chosen, listOf(entry.author, versions).filter { it.isNotBlank() }.joinToString(" · "),
+                    ) { on ->
+                        if (on) chosen.add(id) else chosen.remove(id)
+                        if (!syncing) syncChips()
                     }
-                    boxes.add(id to box)
-                    add(box)
+                    toggles[id] = row.getChildAt(1) as MaterialSwitch
+                    add(row)
                 }
             }
-            add(
-                context.textButton(Tr.get("selectAll")) {
-                    val select = chosen.size != all.size
-                    boxes.forEach { it.second.isChecked = select }
-                },
-                width = ViewGroup.LayoutParams.WRAP_CONTENT,
-            )
-            section(Tr.get("updates"), updates)
-            section(Tr.get("nonInstalledApps"), installs)
-            section(Tr.get("trackOnly"), trackOnly)
         }
         val confirmed = context.confirm(
-            Tr.get("changeX", Tr.plural("apps", all.size).lowercase()), view = view.scrollable(),
+            Tr.get("bulkUpdateTitle"), view = view.scrollable(),
         )
         return if (confirmed) chosen.toList() else null
     }
@@ -198,21 +228,13 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
     /** Narrowing the list: by state, by source and by category, all as chips. */
     suspend fun askFilter(current: AppsFilter): AppsFilter? {
         var filter = current
-        fun chip(text: String, checked: Boolean, color: Int? = null, onChange: (Boolean) -> Unit) =
-            context.filterChip(text, checked, onChange).apply {
-                if (color != null) {
-                    setChipIconResource(R.drawable.ic_label)
-                    chipIconTint = ColorStateList.valueOf(color or 0xFF000000.toInt())
-                    isChipIconVisible = true
-                }
-            }
+        // Chips of a filter wrap, like the categories under them: all of a filter is in sight at once.
         val view = body().apply {
             add(context.sectionTitle(Tr.get("fltState")))
             add(
-                ChipGroup(context).apply {
-                    addView(chip(Tr.get("fltUpToDate"), filter.includeUpToDate) { filter = filter.copy(includeUpToDate = it) })
-                    addView(chip(Tr.get("fltNotInstalled"), filter.includeNonInstalled) { filter = filter.copy(includeNonInstalled = it) })
-                }.inScrollingRow(),
+                context.anyOfChips(Tr.get("fltAll"), AppKind.entries.map { it to Tr.get(it.label) }, filter.kinds) {
+                    filter = filter.copy(kinds = it)
+                },
                 topMargin = Spacing.UNDER_HEADING,
             )
             // Only the sources that are actually in use.
@@ -220,20 +242,20 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
             if (used.size > 1) {
                 addDivider()
                 addHeading(Tr.get("fltSource"))
-                val group = ChipGroup(context).apply { isSingleSelection = true }
-                val names = SourceRegistry.sources.associate { it.sourceIdentifier to it.name }
-                group.addView(chip(Tr.get("fltAll"), filter.source.isEmpty()) { if (it) filter = filter.copy(source = "") })
-                for (id in used) {
-                    group.addView(chip(names[id] ?: id, filter.source == id) { if (it) filter = filter.copy(source = id) })
-                }
-                add(group.inScrollingRow(), topMargin = Spacing.UNDER_HEADING)
+                val names = SourceRegistry.sources.associate { it.sourceIdentifier to it.shortName }
+                add(
+                    context.anyOfChips(Tr.get("fltAll"), used.map { it to (names[it] ?: it) }, filter.sources) {
+                        filter = filter.copy(sources = it)
+                    },
+                    topMargin = Spacing.UNDER_HEADING,
+                )
             }
             // The same chips as everywhere categories are picked: one can be made right here, and
             // held down to be removed. They wrap, and the sheet scrolls when there are many.
             addDivider()
             addHeading(Tr.get("categories"))
             add(
-                categorySelector(filter.categories, showTitle = false) { filter = filter.copy(categories = it) },
+                categorySelector(emptySet(), showTitle = false, selectedOrAll = filter.categories, onFilter = { filter = filter.copy(categories = it) }),
                 topMargin = Spacing.UNDER_HEADING,
             )
         }
@@ -246,18 +268,43 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         selected: Set<String>,
         allowCreate: Boolean = true,
         showTitle: Boolean = true,
-        onChange: (Set<String>) -> Unit,
+        /**
+         * For a filter: a first chip stands for every category and is on by itself while nothing
+         * narrows the list. It is given the choice instead of [onChange]: null while that chip is
+         * on, a set of categories otherwise - an empty one when everything was switched off.
+         */
+        onFilter: ((Set<String>?) -> Unit)? = null,
+        /** For a filter: null stands for every category. */
+        selectedOrAll: Set<String>? = selected,
+        onChange: (Set<String>) -> Unit = {},
     ): View {
-        val current = LinkedHashSet(selected)
+        val withAll = onFilter != null
+        var everything = withAll && selectedOrAll == null
+        val current = LinkedHashSet(if (withAll) selectedOrAll.orEmpty() else selected)
+        fun report() {
+            if (onFilter != null) onFilter(if (everything) null else current.toSet()) else onChange(current.toSet())
+        }
         val group = ChipGroup(context)
         fun rebuild() {
             group.removeAllViews()
             val categories = settings.categories
+            if (withAll && categories.isNotEmpty()) {
+                group.addView(
+                    context.filterChip(Tr.get("fltAll"), everything) { on ->
+                        everything = on
+                        current.clear()
+                        report()
+                        group.post { rebuild() }
+                    },
+                )
+            }
             for ((name, color) in categories.entries.sortedBy { it.key.lowercase() }) {
                 group.addView(
                     context.filterChip(name, name in current) { checked ->
                         if (checked) current.add(name) else current.remove(name)
-                        onChange(current.toSet())
+                        everything = false
+                        report()
+                        if (withAll) group.post { rebuild() }
                     }.apply {
                         // The colour of the category, as on the rows of the list.
                         setChipIconResource(R.drawable.ic_label)
@@ -267,7 +314,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                         setOnLongClickListener {
                             confirmCategoryRemoval(name) {
                                 current.remove(name)
-                                onChange(current.toSet())
+                                report()
                                 rebuild()
                             }
                             true
@@ -284,7 +331,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                         setOnClickListener {
                             askNewCategory { name ->
                                 current.add(name)
-                                onChange(current.toSet())
+                                report()
                                 rebuild()
                             }
                         }
@@ -372,14 +419,11 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
 
     /** A small question before a category is removed; apps simply lose it. */
     private fun confirmCategoryRemoval(name: String, onRemoved: () -> Unit) {
-        MaterialAlertDialogBuilder(context)
-            .setTitle(Tr.get("catRemoveQuestion", name))
-            .setPositiveButton(Tr.get("remove")) { _, _ ->
-                repo.setCategories(settings.categories - name)
-                onRemoved()
-            }
-            .setNegativeButton(Tr.get("cancel"), null)
-            .show()
+        context.showSheet(Tr.get("catRemoveQuestion", name), positive = Tr.get("remove"), negative = Tr.get("cancel")) {
+            repo.setCategories(settings.categories - name)
+            onRemoved()
+            true
+        }
     }
 
     /** A new category: its name and its colour in one sheet. Names already taken are refused. */
@@ -442,8 +486,6 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 )
                 row.addView(
                     context.label(name, MaterialR.attr.textAppearanceBodyLarge).apply {
-                        maxLines = 1
-                        ellipsize = TextUtils.TruncateAt.END
                         setOnClickListener {
                             promptText(Tr.get("category"), Tr.get("catName"), name) { newName ->
                                 val trimmed = newName.trim()
@@ -583,10 +625,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                         add(context.label(item.title, MaterialR.attr.textAppearanceTitleMedium))
                         if (item.description.isNotBlank()) {
                             add(
-                                context.label(item.description, colorAttr = MaterialR.attr.colorOnSurfaceVariant).apply {
-                                    maxLines = 3
-                                    ellipsize = TextUtils.TruncateAt.END
-                                },
+                                context.label(item.description, colorAttr = MaterialR.attr.colorOnSurfaceVariant),
                                 topMargin = 2,
                             )
                         }
@@ -598,8 +637,17 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                         }
                     }
                     row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                    if (item.current) {
+                        row.addView(
+                            ImageView(context).apply {
+                                setImageResource(R.drawable.ic_check)
+                                imageTintList = ColorStateList.valueOf(context.themeColor(AppCompatR.attr.colorPrimary))
+                            },
+                            LinearLayout.LayoutParams(context.dp(24), context.dp(24)).apply { marginStart = context.dp(Spacing.BLOCK) },
+                        )
+                    }
                     if (multiple) {
-                        val box = CheckBox(context).apply {
+                        val box = MaterialCheckBox(context).apply {
                             isChecked = item.key in chosen
                             setOnCheckedChangeListener { _, checked -> if (checked) chosen.add(item.key) else chosen.remove(item.key) }
                         }
@@ -611,7 +659,9 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                     list.addView(
                         card,
                         LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                            setMargins(context.dp(Spacing.SHEET), 0, context.dp(Spacing.SHEET), context.dp(Spacing.BLOCK / 2))
+                            marginStart = context.dp(Spacing.SHEET)
+                            marginEnd = context.dp(Spacing.SHEET)
+                            bottomMargin = context.dp(Spacing.BLOCK / 2)
                         },
                     )
                 }
@@ -623,7 +673,10 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                     addView(
                         header,
                         LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                            setMargins(context.dp(Spacing.SHEET), context.dp(4), context.dp(Spacing.SHEET), context.dp(16))
+                            marginStart = context.dp(Spacing.SHEET)
+                            marginEnd = context.dp(Spacing.SHEET)
+                            topMargin = context.dp(4)
+                            bottomMargin = context.dp(16)
                         },
                     )
                 }
@@ -657,7 +710,9 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                     addView(
                         layout,
                         LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                            setMargins(context.dp(Spacing.SHEET), 0, context.dp(Spacing.SHEET), context.dp(8))
+                            marginStart = context.dp(Spacing.SHEET)
+                            marginEnd = context.dp(Spacing.SHEET)
+                            bottomMargin = context.dp(8)
                         },
                     )
                 }
@@ -673,7 +728,10 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                             setOnClickListener { finish(chosen.toList()) }
                         },
                         LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                            setMargins(context.dp(Spacing.SHEET), context.dp(8), context.dp(Spacing.SHEET), context.dp(16))
+                            marginStart = context.dp(Spacing.SHEET)
+                            marginEnd = context.dp(Spacing.SHEET)
+                            topMargin = context.dp(8)
+                            bottomMargin = context.dp(16)
                         },
                     )
                 }
@@ -690,20 +748,20 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
         val dialog = BottomSheetDialog(context)
         Messages.track(dialog)
         val root = context.column().apply {
-            addView(BottomSheetDragHandleView(context))
             if (entry != null) {
                 addView(
                     context.appCard(entry),
                     LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                        setMargins(context.dp(Spacing.SHEET), context.dp(4), context.dp(Spacing.SHEET), context.dp(8))
+                        marginStart = context.dp(Spacing.SHEET)
+                        marginEnd = context.dp(Spacing.SHEET)
+                        topMargin = context.dp(4)
+                        bottomMargin = context.dp(8)
                     },
                 )
             } else if (title != null) {
                 add(
                     context.label(title, MaterialR.attr.textAppearanceTitleLarge).apply {
                         setPadding(context.dp(Spacing.SHEET), 0, context.dp(Spacing.SHEET), context.dp(8))
-                        maxLines = 1
-                        ellipsize = TextUtils.TruncateAt.END
                     },
                 )
             }
@@ -739,7 +797,7 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
             }
             add(View(context), topMargin = 12)
         }
-        dialog.setContentView(root.scrollable())
+        dialog.setContentView(root.scrollableUnderHandle())
         dialog.expandFully()
         dialog.show()
     }

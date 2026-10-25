@@ -10,10 +10,33 @@ import io.github.bl3xand.apkcloner.sources.model.AppNames
 import io.github.bl3xand.apkcloner.sources.net.Http
 import org.jsoup.Jsoup
 
+import java.util.concurrent.Executors
+
 class Apk4Free : AppSource("Apk4Free") {
     init {
         fixedName = "Apk4Free"
         hosts = listOf("apk4free.net")
+        canSearch = true
+    }
+
+    /**
+     * The site keeps the pages of apps whose files it has taken down, and its search finds them
+     * like any other. Whether a page still leads to a file shows only on the page, so the first
+     * results are looked at, side by side, and those without a download are left out.
+     */
+    override fun search(query: String, querySettings: Map<String, Any?>): Map<String, List<String>> {
+        val found = searchWordPress("https://${hosts[0]}", query, querySettings).entries.take(CHECKED_RESULTS)
+        val pool = Executors.newFixedThreadPool(CHECK_THREADS)
+        try {
+            val checks = found.map { hit ->
+                pool.submit<Boolean> {
+                    runCatching { DOWNLOAD_LINK.containsMatchIn(sourceRequest(hit.key, querySettings).body) }.getOrDefault(false)
+                }
+            }
+            return found.filterIndexed { index, _ -> checks[index].get() }.associate { it.key to it.value }
+        } finally {
+            pool.shutdownNow()
+        }
     }
 
     override fun sourceSpecificStandardizeURL(url: String, forSelection: Boolean): String =
@@ -72,9 +95,15 @@ class Apk4Free : AppSource("Apk4Free") {
                 }
             }
             if (version == null) throw NoVersionError()
-            return ApkDetails(version.trim(), apkUrls, AppNames(name, title))
+            return ApkDetails(version.trim(), apkUrls, AppNames(shortName, title))
         } catch (e: Throwable) {
             rethrowOrWrap(e)
         }
+    }
+
+    companion object {
+        private val DOWNLOAD_LINK = Regex("href=\"[^\"]+/download/\"")
+        private const val CHECKED_RESULTS = 16
+        private const val CHECK_THREADS = 8
     }
 }

@@ -27,6 +27,8 @@ data class TrackedApp(
     val overrideSource: String? = null,
     val allowIdChange: Boolean = false,
     val pendingRepoRenameUrl: String? = null,
+    val preferredBranchKey: String? = null,
+    val releaseBranchGone: Boolean = false,
 ) {
     val hasPendingRepoRename: Boolean get() = !pendingRepoRenameUrl.isNullOrEmpty()
 
@@ -45,6 +47,51 @@ data class TrackedApp(
     val isVersionPseudo: Boolean
         get() = settings.getBool(SettingKeys.TRACK_ONLY) ||
             (installedVersion != null && !settings.getBool(SettingKeys.VERSION_DETECTION))
+
+    /** Kept at the version that is installed: new releases are neither offered nor installed. */
+    val updatesOff: Boolean get() = settings.getBool(SettingKeys.NO_UPDATES)
+
+    /**
+     * The package of the clone this app is set up to be installed as - rebuilt under another
+     * name, without the permissions the user took away - whether or not that has happened yet.
+     */
+    val cloneTarget: String? get() = settings.getStringOrNull(SettingKeys.CLONE_PACKAGE)?.takeIf { it.isNotBlank() }
+
+    /**
+     * The package this app is installed under as a clone, once it is: null while the clone is
+     * only set up. Until the clone is on the device nothing about the app changes - what is
+     * installed as the app itself stays what is shown, checked and updated.
+     */
+    val clonePackage: String? get() = cloneTarget?.takeIf { settings.getBool(SettingKeys.CLONE_ACTIVE) }
+
+    /** The package to look for on the device: the clone's when the app is installed as one. */
+    val devicePackage: String get() = clonePackage ?: id
+
+    /**
+     * Permissions the clone is built without. A name stays here whatever a single release asks
+     * for, so a permission that is dropped by one release and brought back by a later one is
+     * taken away again.
+     */
+    val cloneRemovedPermissions: Set<String> get() = listSetting(SettingKeys.CLONE_REMOVED_PERMISSIONS)
+
+    /** What the last APK seen of this app asks for; empty until one has been downloaded. */
+    val cloneRequestedPermissions: Set<String> get() = listSetting(SettingKeys.CLONE_REQUESTED_PERMISSIONS)
+
+    /** Dex patches (PatchIds) the clone of this app is built with. */
+    val clonePatches: Set<String> get() = listSetting(SettingKeys.CLONE_PATCHES)
+
+    /** Every permission the user has been shown for this app. */
+    val cloneKnownPermissions: Set<String> get() = listSetting(SettingKeys.CLONE_KNOWN_PERMISSIONS)
+
+    /** Permissions a release brought that the user has not been shown yet. Nothing before the first look. */
+    val cloneNewPermissions: Set<String>
+        get() = cloneKnownPermissions.takeIf { it.isNotEmpty() }?.let { cloneRequestedPermissions - it }.orEmpty()
+
+    /** The signer of the APK the installed clone was built from: the clone itself carries our key. */
+    val cloneSourceSigner: Set<String> get() = listSetting(SettingKeys.CLONE_SOURCE_SIGNER)
+
+    private fun listSetting(key: String): Set<String> =
+        settings.getStringOrNull(key).orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
 
     fun withSetting(key: String, value: Any?): TrackedApp =
         copy(additionalSettings = LinkedHashMap(additionalSettings).also { it[key] = value })
@@ -69,6 +116,8 @@ data class TrackedApp(
         put("overrideSource", overrideSource ?: JSONObject.NULL)
         put("allowIdChange", allowIdChange)
         put("pendingRepoRenameUrl", pendingRepoRenameUrl ?: JSONObject.NULL)
+        put("preferredBranchKey", preferredBranchKey ?: JSONObject.NULL)
+        put("releaseBranchGone", releaseBranchGone)
     }
 
     companion object {
@@ -104,6 +153,8 @@ data class TrackedApp(
                 overrideSource = json["overrideSource"] as String?,
                 allowIdChange = (json["allowIdChange"] as Boolean?) ?: false,
                 pendingRepoRenameUrl = json["pendingRepoRenameUrl"] as String?,
+                preferredBranchKey = json["preferredBranchKey"] as String?,
+                releaseBranchGone = (json["releaseBranchGone"] as Boolean?) ?: false,
             )
         }
 
@@ -134,3 +185,94 @@ fun applyMinAgeSuppression(currentApp: TrackedApp, fetchedApp: TrackedApp): Trac
     apkUrls = currentApp.apkUrls,
     otherAssetUrls = currentApp.otherAssetUrls,
 )
+
+/**
+ * Carries the choice of a release file from [currentApp] onto [fetchedApp], judging whether the
+ * branch that choice stood for is still there:
+ *
+ * - The file is chosen, not merely defaulted to, only when the index is a real pick (0 or more);
+ *   -1 is the app's "nothing chosen" and is carried over as is, branch or no branch.
+ * - When the app's settings name the branch to follow ([settingsBranchKey], the kind of a
+ *   Telegram file), that is a choice made on purpose: the fresh list is that branch alone, so
+ *   the place in it and the shrinking of it say nothing, and the named branch is simply adopted.
+ * - Gone otherwise: with a remembered branch (by its key, when the source names branches), a
+ *   branch no file of the new release carries - but only once something else agrees that a file
+ *   went missing (the remembered place is past the end of the list, or the list shrank), because
+ *   a source whose file names carry the version renames every file every release; without a
+ *   remembered branch, a list too short to hold the remembered place in it. The fresh release
+ *   data is kept as it is - the page has to offer the new files for choosing another branch -
+ *   while the old index and key stay, so that a branch coming back is recognized; nothing
+ *   installs on its own from then on.
+ * - Not gone: the index moves to the file whose key is the remembered one, when there is one (a
+ *   source reordering or renaming its files); the key is written down anew from the file at the
+ *   kept place when the remembered one is not carried any more (a version-bearing name), so
+ *   that the judgment stays by name and not by place alone.
+ *
+ * [branchKeyOf] names the branch a file belongs to, as the source sees it; null is a source
+ * whose file names carry the version - there only the shrinking of the list can be judged.
+ */
+fun carryPreferredFile(
+    currentApp: TrackedApp,
+    fetchedApp: TrackedApp,
+    branchKeyOf: (NamedUrl) -> String?,
+    settingsBranchKey: String? = null,
+): TrackedApp {
+    if (fetchedApp.apkUrls.isEmpty()) {
+        // Nothing to judge a branch by (a track-only app whose files were all filtered away):
+        // whatever was known stays as it was.
+        return fetchedApp.copy(
+            preferredApkIndex = currentApp.preferredApkIndex,
+            preferredBranchKey = currentApp.preferredBranchKey,
+            releaseBranchGone = currentApp.releaseBranchGone,
+        )
+    }
+    if (settingsBranchKey != null) {
+        // The settings say which branch to follow, so the list is that branch alone: the place
+        // in it means nothing. A named branch that is not there at all is the source's own
+        // error to tell; should it slip through anyway, it is said here all the same.
+        val index = fetchedApp.apkUrls.indexOfFirst { branchKeyOf(it) == settingsBranchKey }
+        return fetchedApp.copy(
+            preferredApkIndex = index.takeIf { it >= 0 }
+                ?: fetchedApp.preferredApkIndex.coerceIn(0, fetchedApp.apkUrls.size - 1),
+            preferredBranchKey = settingsBranchKey,
+            releaseBranchGone = index < 0,
+        )
+    }
+    val key = currentApp.preferredBranchKey
+    val keyFound = key != null && fetchedApp.apkUrls.any { branchKeyOf(it) == key }
+    val gone = currentApp.preferredApkIndex >= 0 && (
+        if (key != null) {
+            !keyFound && (currentApp.preferredApkIndex >= fetchedApp.apkUrls.size ||
+                fetchedApp.apkUrls.size < currentApp.apkUrls.size)
+        } else {
+            currentApp.preferredApkIndex >= fetchedApp.apkUrls.size
+        }
+        )
+    if (gone) {
+        // The old index and key stay - the ones a branch coming back has to be recognized by.
+        return fetchedApp.copy(
+            preferredApkIndex = currentApp.preferredApkIndex,
+            preferredBranchKey = key,
+            releaseBranchGone = true,
+        )
+    }
+    if (currentApp.preferredApkIndex < 0) {
+        // Nothing chosen: only a pick clears a branch already said to be gone.
+        return fetchedApp.copy(
+            preferredApkIndex = -1,
+            preferredBranchKey = null,
+            releaseBranchGone = currentApp.releaseBranchGone,
+        )
+    }
+    val index = if (keyFound) {
+        fetchedApp.apkUrls.indexOfFirst { branchKeyOf(it) == key }
+    } else {
+        currentApp.preferredApkIndex.takeIf { it < fetchedApp.apkUrls.size }
+            ?: currentApp.preferredApkIndex.coerceAtMost(fetchedApp.apkUrls.size - 1)
+    }
+    return fetchedApp.copy(
+        preferredApkIndex = index,
+        preferredBranchKey = if (keyFound) key else branchKeyOf(fetchedApp.apkUrls[index]),
+        releaseBranchGone = false,
+    )
+}

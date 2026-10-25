@@ -11,18 +11,20 @@
     <string name="tab_clones">Clones</string>
     <string name="search_hint">Search apps</string>
     <string name="chip_system_apps">System apps</string>
+    <string name="chip_clones_original">From the original</string>
+    <string name="chip_clones_source">From a source</string>
+    <string name="chip_update_available">Update available</string>
+    <string name="chip_no_updates">Without updates</string>
     <string name="empty_list">No apps found</string>
     <string name="empty_clones">No clones yet. Installed clones will show up here.</string>
     <string name="button_pick_apk">Choose APK</string>
     <string name="error_invalid_apk">This file is not a valid APK</string>
 
-    <string name="app_version">Version %1$s</string>
-    <string name="clone_up_to_date">Version %1$s · up to date</string>
-    <string name="clone_update_available">Update available: %1$s → %2$s</string>
-    <string name="clone_original_missing">%1$s is not installed</string>
     <string name="button_update">Update</string>
     <string name="field_package">Package name</string>
     <string name="field_app_name">App name</string>
+    <string name="clone_conflict">An app with this package name is already installed and is signed with another key: the clone cannot be installed over it. Give the clone another package name or remove the installed app.</string>
+    <string name="clone_conflict_remove">Remove the installed app</string>
     <string name="error_invalid_package">Use at least two dot-separated parts made of letters, digits and underscores</string>
     <string name="signature_hint">The clone is signed with APK Toolbox\'s key, not the original one: a signature stops matching once the app is modified.</string>
     <string name="button_clone">Clone</string>
@@ -35,7 +37,22 @@
 
     <string name="install_success">Installed</string>
     <string name="install_failed">Installation failed: %1$s</string>
-    <string name="detail_cloned_from">Cloned from</string>
+    <string name="install_confirm_needed">the system asked for confirmation</string>
+    <string name="detail_cloned_from">Built from</string>
+    <string name="detail_updated_from">Rebuilt from</string>
+    <string name="detail_from_original">The installed app</string>
+    <string name="detail_from_nothing">Nothing: the original is not installed</string>
+    <string name="detail_latest_version">Latest version</string>
+    <string name="clone_from_original">From the original</string>
+    <string name="clone_from_source">From a source (%1$s)</string>
+    <string name="origin_system">System</string>
+    <string name="origin_file">From a file</string>
+    <string name="clone_no_updates">No original</string>
+    <string name="version_no_updates">%1$s (without updates)</string>
+    <string name="switch_no_updates">Without updates</string>
+    <string name="clone_show_in_sources">Show in Sources</string>
+    <string name="clone_track">Track through a source</string>
+    <string name="clone_track_message">A clone is rebuilt from the installed original, so it stops being updated when the original is removed - and Google Play hands its files to nobody else. APK Toolbox can look the app up by its package in stores that carry the same builds (APKPure, RuStore, Galaxy Store and others, one after another) and keep the clone up to date from there, in the Sources tab. The original can then be removed. An update signed by someone else than the original is refused.</string>
     <string name="detail_original_version">Original version</string>
     <string name="detail_clone_version">Clone version</string>
     <string name="detail_removed_permissions">Removed permissions</string>
@@ -44,7 +61,7 @@
     <string name="button_delete">Delete</string>
 
     <string name="settings_title">Settings</string>
-    <string name="settings_check_interval">Check for updates: %1$s</string>
+    <string name="settings_check_interval">Update check: %1$s</string>
     <string-array name="check_intervals">
         <item>once a day</item>
         <item>every 3 days</item>
@@ -89,6 +106,7 @@
     <string name="settings_auto_install">Install automatically</string>
     <string name="settings_auto_install_description">Install found updates without confirmation.</string>
     <string name="notification_failed_title">Could not update clones</string>
+    <string name="notification_failed_text">Could not update: %1$s (%2$s). Tap to open the clones list.</string>
 
     <string name="tab_split">AntiSplit</string>
     <string name="empty_split">No split apps found. Pick a bundle (APKS, XAPK, APKM) or several split APKs below.</string>
@@ -117,7 +135,7 @@
     <string name="files_action_merge">Merge into a single APK</string>
 
     <string name="button_check_now">Check now</string>
-    <string name="check_now_started">Checking; the result will come as a notification</string>
+    <string name="check_now_started">A check is running; the result will come as a notification</string>
     <string name="notification_up_to_date">No updates</string>
     <string name="install_copy_obb">Copy OBB files (%1$d · %2$s)</string>
 
@@ -141,6 +159,7 @@
     <string name="key_replace_message">Clones signed with the current key will no longer be listed or updated unless you import that key again. Export it first if you may need it.</string>
     <string name="key_replace_confirm">Replace</string>
     <string name="clone_badge">Mark the icon with a dot</string>
+    <string name="clone_rename_alias">Addressing by the clone name</string>
     <string name="merge_too_large">This app cannot be merged on the device: its resource tables (%1$d MB) need more memory than Android gives an app. Deselecting splits you do not need may help; otherwise merge it on a computer.</string>
     <string name="tab_sources">Sources</string>
     <string name="settings_check_sources">Apps from sources</string>
@@ -155,14 +174,16 @@
     <string name="settings_section_install">Automatic installation</string>
     <string name="settings_section_experimental">Experimental</string>
     <string name="settings_check_clones">Clones</string>
-    <string name="settings_check_clones_description">A clone is outdated when its original was updated.</string>
+    <string name="settings_check_clones_description">A clone is outdated when its original was updated or its source has a newer version.</string>
+    <string name="settings_check_on_start">Check when the app opens</string>
+    <string name="settings_check_on_start_description">Updates of apps from sources and of clones are looked for every time APK Toolbox is opened.</string>
     <string name="settings_wifi_only">Wait for Wi-Fi</string>
     <string name="settings_wifi_only_description">Updates found on mobile data are installed once Wi-Fi is connected.</string>
     <string name="settings_charging_only">Wait for the charger</string>
     <string name="settings_charging_only_description">Updates found on battery are installed once the charger is connected.</string>
-    <string name="settings_sources_description">Tokens, choosing releases, import and export.</string>
+    <string name="settings_sources_description">Tokens, counted releases, import and export.</string>
     <string name="settings_root">Install with root</string>
-    <string name="settings_root_description">When on, takes priority over the other installation methods. Not tested.</string>
+    <string name="settings_root_description">When on, takes priority over the other installation methods. Installs from the background may have to ask the root manager for access each time. Not tested.</string>
     <string name="cloning_installed">Installed</string>
     <string name="cloning_clones">Clones</string>
     <string name="export_done">Exported as APKS</string>
@@ -175,14 +196,21 @@
     <string name="merge_force_description">Merges splits even when their versions or packages differ. Use only if the normal merge refuses; the result may not work.</string>
     <string name="tab_info">About this list</string>
     <string name="hint_tab_sources">Tracks apps from GitHub, F-Droid, stores and other sites: add an app by link or by name, and new versions are found, downloaded and installed from here.</string>
-    <string name="hint_tab_apps">Makes a second copy of an installed app under another package name, so both live side by side with separate data. Pick an app from the list or an APK file.</string>
-    <string name="hint_tab_clones">The clones made here. A clone becomes outdated when its original is updated; it can be rebuilt from the new version here or automatically.</string>
+    <string name="hint_tab_apps">Makes a copy of an installed app under another package name: every copy has its own data. Pick an app from the list or an APK file.</string>
+    <string name="hint_tab_clones">The clones you have made are here. A clone becomes outdated when its original is updated or a new version appears in its source.</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_description">The app speaks the language of the system unless told another.</string>
+    <string name="language_system">As in the system</string>
     <string name="settings_log">Log</string>
     <string name="settings_log_description">What was checked, downloaded, cloned, merged and installed, and what failed. Kept for 30 days.</string>
     <string name="button_show_log">Show the log</string>
     <string name="log_empty">Nothing has been logged yet.</string>
     <string name="log_save">Save</string>
-    <string name="button_refresh">Refresh</string>
+    <plurals name="log_show_more">
+        <item quantity="one">Show %d older entry</item>
+        <item quantity="other">Show %d older entries</item>
+    </plurals>
+    <string name="button_refresh">Check for updates</string>
     <string name="clones_up_to_date">All clones are up to date</string>
     <plurals name="log_days">
         <item quantity="one">%d day</item>
@@ -193,5 +221,16 @@
     <string name="clone_permissions_removed">Permissions: %1$d removed</string>
     <string name="clone_permissions_hint">Everything the original asks for. Switch off what the clone should not have; the app may stop working without a permission it relies on.</string>
     <string name="clone_permissions_none">The app asks for no permissions.</string>
+    <string name="clone_patches">Patches</string>
+    <string name="clone_patches_on">Patches: %1$d of %2$d on</string>
+    <string name="clone_patches_not_applied">The last build could not apply %1$s: the original\'s signing certificate could not be read, so the identity patch is not in the clone.</string>
+    <string name="clone_patches_hint">Changes to the code of the clone. Every patch is optional and applied only to this clone.</string>
+    <string name="clone_rename_alias_note">Rewrites the package name in the clone code so it finds its own files and components. Mimicry, the other way round, presents the clone as the original to checks.</string>
+    <string name="clone_mimicry">Mimicry</string>
+    <string name="clone_mimicry_note">The clone presents itself as the ORIGINAL entirely - package name and signature: to its own checks, servers and analytics. Lookups of the clone\'s own components keep working through a fallback.</string>
+    <string name="clone_keep_alive">Exit suppression</string>
+    <string name="clone_keep_alive_note">Every call that would end the app - System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask - becomes a no-op, so the app cannot kill itself or throw the user out, whatever the reason: a signature check, no account signed in, a failed startup check. After logout the app may stay in the background instead of closing.</string>
+    <string name="clone_permission_absent">Not asked for by this version. Stays off if it comes back.</string>
+    <string name="clone_permission_new">New in this version</string>
     <string name="button_done">Done</string>
 </resources>

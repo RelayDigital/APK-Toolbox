@@ -2,6 +2,8 @@ package io.github.bl3xand.apkcloner.sources.core
 
 import com.reandroid.arsc.chunk.xml.AndroidManifestBlock
 import java.io.ByteArrayInputStream
+import java.io.File
+import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.security.cert.CertificateFactory
@@ -56,7 +58,23 @@ object RemoteApk {
         // Who signed it is good to know and not worth failing over.
         val signers = runCatching { blockSigners(directoryOffset, reader) }.getOrNull().orEmpty()
             .ifEmpty { runCatching { jarSigners(entries, reader) }.getOrNull().orEmpty() }
-        ApkPeek(packageName, signers.map(CertHashes::format).toSet(), block.versionName, block.versionCode?.toLong())
+        val permissions = runCatching { block.usesPermissions.filterNotNull().toSet() }.getOrDefault(emptySet())
+        ApkPeek(packageName, signers.map(CertHashes::format).toSet(), block.versionName, block.versionCode?.toLong(), permissions)
+    }.getOrNull()
+
+    /**
+     * The same for a file that is here already. The system reads an APK better - but not every
+     * one: the base of a set of splits it refuses by itself, as it could not be installed alone.
+     */
+    fun peek(file: File): ApkPeek? = runCatching {
+        RandomAccessFile(file, "r").use { input ->
+            peek(input.length()) { offset, length ->
+                ByteArray(length).also {
+                    input.seek(offset)
+                    input.readFully(it)
+                }
+            }
+        }
     }.getOrNull()
 
     private fun little(bytes: ByteArray): ByteBuffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)

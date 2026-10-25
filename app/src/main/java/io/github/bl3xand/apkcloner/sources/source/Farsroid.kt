@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.sources.source
 
+import io.github.bl3xand.apkcloner.sources.core.notForProcessor
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
@@ -21,7 +22,11 @@ class Farsroid : AppSource("Farsroid") {
     init {
         hosts = listOf("farsroid.com")
         fixedName = "Farsroid"
+        canSearch = true
     }
+
+    override fun search(query: String, querySettings: Map<String, Any?>): Map<String, List<String>> =
+        searchWordPress("https://www.${hosts[0]}", query, querySettings)
 
     override val additionalSourceAppSpecificSettingFormItems: List<List<SettingItem>>
         get() = listOf(
@@ -63,13 +68,14 @@ class Farsroid : AppSource("Farsroid") {
             if (apkLinks.isEmpty()) throw NoApkError()
             if (additionalSettings["autoApkFilterByArch"] == true) {
                 apkLinks = ApkFilter.filterApksByArch(apkLinks, SourceEnv.platform.supportedAbis)
+                if (apkLinks.isEmpty()) throw notForProcessor()
             }
             if (additionalSettings["useFirstApkOfVersion"] == true) apkLinks = listOf(apkLinks.first())
             if (additionalSettings["releaseTitleAsVersion"] == true) {
                 if (apkLinks.size != 1) throw NoVersionError()
                 version = apkLinks.single().name
             }
-            return ApkDetails(version, apkLinks, AppNames(name, appName))
+            return ApkDetails(version, apkLinks, AppNames(shortName, appName))
         } catch (e: Throwable) {
             rethrowOrWrap(e)
         }

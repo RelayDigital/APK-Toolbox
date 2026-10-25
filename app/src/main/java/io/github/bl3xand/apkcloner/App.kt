@@ -5,6 +5,7 @@ import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.telegram.Telegram
 import io.github.bl3xand.apkcloner.sources.telegram.TelegramClient
+import io.github.bl3xand.apkcloner.sources.work.SourcesNotifications
 import io.github.bl3xand.apkcloner.ui.Messages
 import java.io.File
 import kotlin.concurrent.thread
@@ -16,7 +17,12 @@ class App : Application() {
         AppLog.init(this)
         TelegramClient.attach(this)
         Telegram.gateway = TelegramClient
-        TelegramClient.onSessionEnded = { Messages.show(this, Tr.get("telegramErrSession")) }
+        // A session ended from outside would otherwise only be noticed on the next add or check;
+        // said here at once, in passing and as a notification for when nothing is on screen.
+        TelegramClient.onSessionEnded = {
+            Messages.show(this, Tr.get("telegramErrSession"))
+            runCatching { SourcesNotifications.telegramSessionEnded(this) }
+        }
         clearDownloads()
         checkTelegram()
         AppLog.info("APK Toolbox ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) started")
@@ -24,6 +30,7 @@ class App : Application() {
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, error ->
             AppLog.error("Crashed on ${thread.name}:\n${error.stackTraceToString().take(MAX_TRACE)}")
+            AppLog.flush()
             previous?.uncaughtException(thread, error)
         }
     }

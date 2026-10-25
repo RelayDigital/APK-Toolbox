@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.sources.source
 
+import io.github.bl3xand.apkcloner.sources.core.notForDeviceHere
 import io.github.bl3xand.apkcloner.sources.core.InvalidUrlError
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
@@ -19,6 +20,8 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 
 class SamsungGalaxyStore : AppSource("SamsungGalaxyStore") {
+    override val shortName: String get() = "Galaxy Store"
+
     init {
         fixedName = "Samsung Galaxy Store"
         hosts = listOf(
@@ -84,7 +87,8 @@ class SamsungGalaxyStore : AppSource("SamsungGalaxyStore") {
             )
         }
         val apkUrl = Regex("<downloadURI><!\\[CDATA\\[([^\\]]+)\\]\\]></downloadURI>").find(body)?.groupValues?.get(1)
-            ?: throw NoApkError().also { it.url = standardUrl }
+            // Asked for this Android version: an answer without a file is the store's "not for it".
+            ?: throw notForDeviceHere(shortName).also { it.url = standardUrl }
         val version = Regex("<versionName>([^<]+)</versionName>").find(body)?.groupValues?.get(1)
             ?: throw NoVersionError()
         val appName = Regex("<productName>(?:<!\\[CDATA\\[)?([^<\\]]+)(?:\\]\\]>)?</productName>")
@@ -92,7 +96,7 @@ class SamsungGalaxyStore : AppSource("SamsungGalaxyStore") {
         return ApkDetails(
             version,
             listOf(NamedUrl("$packageName.apk", apkUrl)),
-            AppNames(name, appName),
+            AppNames(shortName, appName),
             releaseDate = releaseDateFromUrl(apkUrl),
         )
     }

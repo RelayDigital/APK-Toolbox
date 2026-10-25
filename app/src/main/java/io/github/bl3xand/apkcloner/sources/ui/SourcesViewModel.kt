@@ -1,14 +1,20 @@
 package io.github.bl3xand.apkcloner.sources.ui
 
 import android.app.Application
+import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.bl3xand.apkcloner.log.AppLog
+import io.github.bl3xand.apkcloner.sources.core.CancellationSignal
 import io.github.bl3xand.apkcloner.sources.core.RepositoryRenamedError
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
 import io.github.bl3xand.apkcloner.sources.data.DownloadState
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
+import io.github.bl3xand.apkcloner.clone.build.ApkCloner
+import io.github.bl3xand.apkcloner.data.AppRepository
+import io.github.bl3xand.apkcloner.sources.data.certHashesOf
+import io.github.bl3xand.apkcloner.ui.clone.requestedPermissionsOf
 import io.github.bl3xand.apkcloner.sources.install.InstallPrompts
 import io.github.bl3xand.apkcloner.sources.install.SourcesInstaller
 import io.github.bl3xand.apkcloner.sources.model.CheckUpdatesException
@@ -90,7 +96,32 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch { TelegramClient.auth.collect { settingsVersion.value++ } }
         // So does a check that failed, or went through after one that had.
         viewModelScope.launch { repo.checkErrors.collect { settingsVersion.value++ } }
+        // A differently-signed build being removed for a new one re-renders its page's bar.
+        viewModelScope.launch { installer.uninstalling.collect { settingsVersion.value++ } }
         reload()
+    }
+
+    /**
+     * The first thing on the list is this app itself, tracked from where it is published, so
+     * that it is kept up to date like everything else. It is put there once: taken off the list,
+     * it stays off. Without the network it waits for the next start.
+     */
+    @Synchronized
+    private fun trackSelfOnce() {
+        if (settings.selfTracked) return
+        val self = getApplication<Application>().packageName
+        if (repo.entry(self) == null) {
+            val app = SourceRegistry.getAppsByUrlNaive(listOf(SELF_URL)).first.firstOrNull() ?: return
+            // A release holds one APK for each kind of processor and one for all of them: the
+            // one for this device is the one to take, or the only one of an older release.
+            val abi = Regex.escape(Build.SUPPORTED_ABIS.firstOrNull().orEmpty())
+            repo.saveApps(
+                listOf(app.copy(id = self, allowIdChange = false).withSetting("apkFilterRegEx", "$abi\\.apk$|APK-Toolbox-[0-9.]+\\.apk$")),
+                onlyIfExists = false,
+            )
+            AppLog.info("Added this app to the tracked ones, from $SELF_URL")
+        }
+        settings.selfTracked = true
     }
 
     /** Re-reads the stored apps and the state of their installed copies. */
@@ -98,9 +129,18 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 repo.loadApps()
+                runCatching { trackSelfOnce() }.onFailure { AppLog.debug("Could not add this app to the tracked ones yet: ${it.message}") }
                 if (!checkedOnStart) {
                     checkedOnStart = true
-                    if (settings.checkOnStart && repo.all().isNotEmpty()) refresh()
+                    // Nobody asked for this check, so it does not come forward with what went
+                    // wrong: an app that could not be checked says so in its own row.
+                    if (settings.checkOnStart && repo.all().isNotEmpty()) {
+                        try {
+                            repo.updates.checkUpdates(forceAll = true)
+                        } catch (e: CheckUpdatesException) {
+                            AppLog.debug("Check at start: ${e.errors.idsByErrorString.values.sumOf { it.size }} app(s) could not be checked")
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 _events.tryEmit(SourcesEvent.Error(e))
@@ -113,17 +153,16 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         settingsVersion.value++
     }
 
-    private fun matches(entry: AppEntry, filter: AppsFilter): Boolean {
+    private fun kindsOf(app: TrackedApp, pending: Set<String>): Set<AppKind> = buildSet {
+        if (app.id in pending) add(AppKind.UPDATE_AVAILABLE)
+        if (app.installedVersion == null) add(AppKind.NOT_INSTALLED)
+        if (app.updatesOff && app.installedVersion != null) add(AppKind.NOT_UPDATED)
+        add(if (app.clonePackage != null) AppKind.CLONE else AppKind.ORIGINAL)
+    }
+
+    private fun matches(entry: AppEntry, filter: AppsFilter, pending: Set<String>): Boolean {
         val app = entry.app
-        val updatable = repo.isAppUpdateable(app)
-        if (app.installedVersion == app.latestVersion && !filter.includeUpToDate) return false
-        // A hidden downgrade counts as up to date.
-        if (app.installedVersion != null && app.installedVersion != app.latestVersion && !updatable &&
-            !filter.includeUpToDate
-        ) {
-            return false
-        }
-        if (app.installedVersion == null && !filter.includeNonInstalled) return false
+        if (filter.kinds != null && filter.kinds.intersect(kindsOf(app, pending)).isEmpty()) return false
         for (token in filter.name.split(' ').filter { it.isNotBlank() }) {
             if (!entry.name.lowercase().contains(token.lowercase())) return false
         }
@@ -131,8 +170,8 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
             if (!entry.author.lowercase().contains(token.lowercase())) return false
         }
         if (filter.id.isNotEmpty() && !app.id.contains(filter.id)) return false
-        if (filter.categories.isNotEmpty() && filter.categories.intersect(app.categories.toSet()).isEmpty()) return false
-        if (filter.source.isNotEmpty() && entry.sourceType != filter.source) return false
+        if (filter.categories != null && filter.categories.intersect(app.categories.toSet()).isEmpty()) return false
+        if (filter.sources != null && entry.sourceType !in filter.sources) return false
         return true
     }
 
@@ -171,7 +210,7 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         val pendingAll = repo.findAppIdsWithPendingUpdates(installedOnly = true).toSet()
         val conflicts = all.filter(repo::hasSignerConflict).map { it.app.id }.toSet()
 
-        var listed = sorted(all.filter { matches(it, filter) })
+        var listed = sorted(all.filter { matches(it, filter, pendingAll) })
         if (settings.pinUpdates) listed = listed.filter { it.app.id in pendingAll } + listed.filter { it.app.id !in pendingAll }
         if (settings.buryNonInstalled) {
             listed = listed.filter { it.app.installedVersion != null } + listed.filter { it.app.installedVersion == null }
@@ -214,7 +253,7 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
             listed.forEach { rows.add(appRow(it, null)) }
         } else {
             val groups = LinkedHashMap<String?, MutableList<AppEntry>>()
-            val sourceNames = SourceRegistry.sources.associate { it.sourceIdentifier to it.name }
+            val sourceNames = SourceRegistry.sources.associate { it.sourceIdentifier to it.shortName }
             for (entry in listed) {
                 if (groupBy == "category") {
                     if (entry.app.categories.isEmpty()) groups.getOrPut(null) { ArrayList() }.add(entry)
@@ -268,8 +307,15 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             try {
                 block()
+            } catch (e: CancellationSignal) {
+                // Stopped on purpose: there is nothing to report.
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // The scope itself was cancelled: that is teardown, not an error of the sources.
+                throw e
             } catch (e: Exception) {
-                AppLog.error("Sources", e)
+                // CheckUpdatesException carries its report in toString (the message itself is
+                // empty), so a plain "Sources: " line would say nothing at all.
+                AppLog.error("Sources: ${e.toString().trim()}")
                 _events.tryEmit(SourcesEvent.Error(if (e is CheckUpdatesException) e.errors else e))
             }
         }
@@ -303,6 +349,241 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
                 }
             }
         }
+    }
+
+    /**
+     * Switches installing [id] as a clone of itself on or off. Switched on, a clone of the app
+     * that is already on the device - [existingClone], or else any that was made from the
+     * installed original - is taken over with what it was made with: it is the one kept up to
+     * date from the source from then on.
+     */
+    fun setCloneMode(id: String, on: Boolean, existingClone: String? = null) = saving { applyCloneMode(id, on, existingClone) }
+
+    private fun applyCloneMode(id: String, on: Boolean, existingClone: String? = null) {
+        val app = repo.entry(id)?.app ?: return
+        if (on == (app.cloneTarget != null)) return
+        var updated = app.withSetting(SettingKeys.CLONE_SOURCE_SIGNER, "").withSetting(SettingKeys.CLONE_ACTIVE, false)
+        if (on) {
+            val context = getApplication<Application>()
+            val clones = runCatching { AppRepository(context, ApkCloner(context)).clonesOf(id) }.getOrDefault(emptyMap())
+            val existing = clones.entries.firstOrNull { it.key == existingClone } ?: clones.entries.firstOrNull()
+            // Without a clone to take over this only sets one up: nothing about the app changes
+            // until the clone is installed.
+            updated = updated.withSetting(SettingKeys.CLONE_PACKAGE, existing?.key ?: "$id.clone")
+            if (existing != null) {
+                updated = updated.withSetting(SettingKeys.CLONE_ACTIVE, true)
+                    .withSetting(SettingKeys.CLONE_BADGE, existing.value.badged)
+                    .withSetting(SettingKeys.CLONE_REMOVED_PERMISSIONS, existing.value.removedPermissions.sorted().joinToString(","))
+                    .withSetting(SettingKeys.CLONE_PATCHES, existing.value.patches.sorted().joinToString(","))
+                    // The clone was made from the original that is installed: what the source
+                    // offers has to be signed as that one is, or it is not the same app.
+                    .withSetting(SettingKeys.CLONE_SOURCE_SIGNER, certHashesOf(repo.installedInfo(id)).joinToString(","))
+            }
+        } else {
+            updated = updated.withSetting(SettingKeys.CLONE_PACKAGE, "")
+        }
+        repo.saveApps(listOf(updated))
+        AppLog.info("$id: ${updated.clonePackage?.let { "installed as the clone $it" } ?: updated.cloneTarget?.let { "set up to be installed as the clone $it" } ?: "installed as it is"}")
+    }
+
+    /**
+     * Finds a source for a clone whose original came from somewhere this app cannot fetch from -
+     * Google Play above all - and has the clone kept up to date from there, so that it goes on
+     * without the original. The stores that carry the builds of other stores are asked by the
+     * app's package; the first that has it is tracked, with [clonePackage] as what it is installed as.
+     */
+    fun trackClone(originalPackage: String, clonePackage: String) = launchReporting {
+        if (clonePackage in _lookingUp.value) return@launchReporting
+        _lookingUp.update { it + clonePackage }
+        val found = try {
+            findSourceFor(originalPackage, clonePackage)
+        } finally {
+            _lookingUp.update { it - clonePackage }
+        }
+        _events.tryEmit(SourcesEvent.Message(Tr.get(if (found) "cloneTracked" else "cloneNoSource")))
+    }
+
+    private val _lookingUp = MutableStateFlow<Set<String>>(emptySet())
+
+    /** The clones, by package, a source is being looked for right now. */
+    val lookingUp: StateFlow<Set<String>> = _lookingUp
+
+    private suspend fun findSourceFor(originalPackage: String, clonePackage: String): Boolean =
+        withContext(Dispatchers.IO) {
+            if (repo.entry(originalPackage) == null) {
+                for (url in MIRRORS.map { it.replace("{}", originalPackage) }) {
+                    val app = SourceRegistry.getAppsByUrlNaive(listOf(url)).first.firstOrNull { it.id == originalPackage } ?: continue
+                    // Tracked for the clone's sake: the app itself came from somewhere else and
+                    // goes on being that store's once the clone is gone.
+                    repo.saveApps(listOf(app.withSetting(SettingKeys.TRACKED_FOR_CLONE, true)), onlyIfExists = false)
+                    AppLog.info("The clone $clonePackage of $originalPackage is tracked from $url")
+                    break
+                }
+            }
+            if (repo.entry(originalPackage) != null) applyCloneMode(originalPackage, true, clonePackage)
+            repo.entry(originalPackage)?.app?.clonePackage == clonePackage
+        }
+
+    /**
+     * Goes back from the clone to the app itself: the clone is removed - the system asks - and
+     * the app is installed as its publisher made it, unless it has been there next to the clone
+     * all along. Nothing happens if the clone stays.
+     */
+    fun backToOriginal(id: String) = launchReporting {
+        val forClone = isTrackedForClone(id)
+        if (!uninstallFromDevice(id)) return@launchReporting
+        withContext(Dispatchers.IO) {
+            applyCloneMode(id, false)
+            // An app that was only tracked to keep its clone current, and is on the device from
+            // wherever it came, stops being tracked with the clone: it is that store's app again.
+            if (forClone && isOriginalInstalled(id)) {
+                repo.removeApps(listOf(id))
+                AppLog.info("$id is no longer tracked: its clone is gone and the app itself comes from elsewhere")
+                return@withContext
+            }
+        }
+        if (repo.entry(id) != null && !isOriginalInstalled(id)) obtain(listOf(id))
+    }
+
+    /** Whether [id] is tracked only because a clone of it was handed to a source. */
+    fun isTrackedForClone(id: String): Boolean = repo.entry(id)?.app?.settings?.getBool(SettingKeys.TRACKED_FOR_CLONE) == true
+
+    /** Whether the app itself is on the device under its own package, whatever it is tracked as. */
+    fun isOriginalInstalled(id: String): Boolean = repo.installedInfo(id) != null
+
+    /** What the clone [id] is installed as is made with; with [install] it is then installed. */
+    fun setCloneOptions(
+        id: String,
+        packageName: String,
+        name: String,
+        badge: Boolean,
+        install: Boolean = false,
+        /** For an app that is on the device: whether it goes once its clone is there. */
+        deleteOriginal: Boolean = false,
+    ) = saving {
+        val app = repo.entry(id)?.app ?: return@saving
+        repo.saveApps(
+            listOf(
+                app.withSetting(SettingKeys.CLONE_PACKAGE, packageName).withSetting(SettingKeys.CLONE_NAME, name)
+                    .withSetting(SettingKeys.CLONE_BADGE, badge),
+            ),
+        )
+        if (!install) return@saving
+        if (repo.installedInfo(id) != null && repo.entry(id)?.app?.clonePackage == null) {
+            reinstallAsClone(id, deleteOriginal)
+        } else {
+            installer.installAsClone(id)
+            obtain(listOf(id))
+        }
+    }
+
+    /**
+     * The app that is on the device becomes a clone of itself: the clone is built from what is
+     * installed, and only when it is there for certain is the original removed, if that was
+     * asked - a "Cancel" in the system's dialog then leaves the app as it was.
+     */
+    private fun reinstallAsClone(id: String, deleteOriginal: Boolean) {
+        if (!synchronized(obtaining) { obtaining.add(id) }) return
+        launchReporting {
+            try {
+                if (!installer.cloneInstalledOriginal(id)) return@launchReporting
+                _events.tryEmit(SourcesEvent.Message(Tr.get("msgInstalledOne")))
+                if (deleteOriginal && repo.installedInfo(id) != null) {
+                    AppLog.info("$id: its clone is installed, the original is being removed")
+                    installer.uninstallApp(id)
+                }
+            } finally {
+                synchronized(obtaining) { obtaining.remove(id) }
+            }
+        }
+    }
+
+    /**
+     * Forgets a clone of [id] that was set up and never installed, for an app that is on the
+     * device: leaving its page without installing the clone leaves the app what it is.
+     */
+    fun dropCloneDraft(id: String) {
+        val app = repo.entry(id)?.app ?: return
+        if (app.cloneTarget == null || app.clonePackage != null || repo.installedInfo(id) == null) return
+        if (synchronized(obtaining) { id in obtaining }) return
+        setCloneMode(id, false)
+    }
+
+    /**
+     * The permissions the clone [id] is installed as goes without; [seen] is what the user had in
+     * front of them while choosing. An installed clone is built again from the latest release and
+     * installed over itself, so its data stays.
+     */
+    fun setClonePermissions(id: String, removed: Set<String>, seen: Set<String>) = saving {
+        val app = repo.entry(id)?.app ?: return@saving
+        repo.saveApps(
+            listOf(
+                app.withSetting(SettingKeys.CLONE_REMOVED_PERMISSIONS, removed.sorted().joinToString(","))
+                    .withSetting(SettingKeys.CLONE_KNOWN_PERMISSIONS, (app.cloneKnownPermissions + seen).sorted().joinToString(",")),
+            ),
+        )
+        // A clone that is only set up is made when it is installed. One that is there is built
+        // again from itself; only when that cannot be done is the release fetched for it.
+        if (removed != app.cloneRemovedPermissions && app.clonePackage != null && !installer.rebuildInstalledClone(id)) {
+            obtain(listOf(id))
+        }
+    }
+
+    /**
+     * The dex patches (PatchIds) the clone [id] is installed as is built with. An installed clone
+     * is built again from the latest release and installed over itself, so its data stays.
+     */
+    fun setClonePatches(id: String, patches: Set<String>) = saving {
+        val app = repo.entry(id)?.app ?: return@saving
+        repo.saveApps(listOf(app.withSetting(SettingKeys.CLONE_PATCHES, patches.sorted().joinToString(","))))
+        // The dex of an installed clone cannot be patched in place - it already carries the old
+        // set - so a patch change always fetches the release and builds the clone from it, as
+        // for an update. A clone that is only set up is made with the new set when it installs.
+        if (patches != app.clonePatches && app.clonePackage != null) obtain(listOf(id))
+    }
+
+    /** Whether [packageName] cannot be the clone of [id]: another app has it, tracked or installed. */
+    fun isTakenForClone(id: String, packageName: String): Boolean {
+        if (repo.all().any { it.app.id != id && it.app.devicePackage == packageName }) return true
+        if (repo.installedInfo(packageName) == null) return false
+        val context = getApplication<Application>()
+        return runCatching { AppRepository(context, ApkCloner(context)).clonesOf(id) }.getOrDefault(emptyMap())[packageName] == null
+    }
+
+    private fun saving(block: suspend () -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                block()
+            } catch (e: Exception) {
+                _events.tryEmit(SourcesEvent.Error(e))
+            }
+        }
+    }
+
+    /**
+     * Finds out which permissions the latest release of [id] asks for, downloading it if no
+     * release has been seen yet. [onReady] gets the app's id - a new one if the download was what
+     * told the app's package - and the permissions; it is not called when that failed.
+     */
+    fun clonePermissions(id: String, onReady: (id: String, requested: Set<String>) -> Unit) = launchReporting {
+        val tracked = repo.entry(id)?.app?.takeUnless { it.hasTempId }
+        // An app that is on the device is made into a clone as it is there: what it asks for is
+        // read from it, with nothing to download.
+        val local = tracked?.takeIf { it.clonePackage == null }?.let { repo.installedInfo(id)?.applicationInfo?.sourceDir }
+            ?.let { getApplication<Application>().requestedPermissionsOf(it).toSet() }.orEmpty()
+        val known = local.ifEmpty { tracked?.cloneRequestedPermissions.orEmpty() }
+        val (resolved, requested) = if (known.isNotEmpty()) {
+            id to known
+        } else {
+            // The download is the one an install would make: the two must not run side by side.
+            if (!synchronized(obtaining) { obtaining.add(id) }) return@launchReporting
+            try {
+                withContext(Dispatchers.IO) { installer.downloadForPermissions(id) }
+            } finally {
+                synchronized(obtaining) { obtaining.remove(id) }
+            }
+        }
+        onReady(resolved, requested)
     }
 
     /** Downloads and installs (or, for track-only apps, marks as updated) the given apps. */
@@ -357,10 +638,12 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
      * being uninstalled for the whole wait. True when nothing is installed under it afterwards.
      */
     private suspend fun uninstallFromDevice(id: String): Boolean {
-        if (repo.installedInfo(id) == null) return true
+        // An app installed as a clone is on the device under the clone's package.
+        val installedAs = repo.entry(id)?.app?.devicePackage ?: id
+        if (repo.installedInfo(installedAs) == null) return true
         _uninstalling.update { it + id }
         return try {
-            installer.uninstallApp(id)
+            installer.uninstallApp(installedAs)
         } finally {
             _uninstalling.update { it - id }
         }
@@ -428,6 +711,25 @@ class SourcesViewModel(application: Application) : AndroidViewModel(application)
         if (app.installedVersion != null && !repo.isVersionDetectionPossible(app, entry?.installedInfo)) {
             app.copy(installedVersion = app.latestVersion)
         } else app
+    }
+
+    private companion object {
+        const val SELF_URL = "https://github.com/bl3xand/APK-Toolbox"
+
+        /** Stores that hand out, by package name, the builds other stores publish. */
+        /**
+         * Asked in this order, the ones that carry what Google Play has first. Only stores are
+         * here: a repository or a channel found by a package name could be anybody's.
+         */
+        val MIRRORS = listOf(
+            "https://apkpure.net/app/{}",
+            "https://www.rustore.ru/catalog/app/{}",
+            "https://galaxystore.samsung.com/detail/{}",
+            "https://sj.qq.com/appdetail/{}",
+            "https://www.coolapk.com/apk/{}",
+            "https://f-droid.org/packages/{}",
+            "https://apt.izzysoft.de/fdroid/index/apk/{}",
+        )
     }
 
     fun emit(event: SourcesEvent) {

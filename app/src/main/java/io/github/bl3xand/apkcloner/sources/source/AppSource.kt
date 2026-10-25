@@ -4,6 +4,7 @@ import io.github.bl3xand.apkcloner.sources.core.ApkFilter
 import io.github.bl3xand.apkcloner.sources.core.ApkPeek
 import io.github.bl3xand.apkcloner.sources.core.CertHashes
 import io.github.bl3xand.apkcloner.sources.core.InvalidUrlError
+import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NotImplementedSourceError
 import io.github.bl3xand.apkcloner.sources.core.SourceEnv
 import io.github.bl3xand.apkcloner.sources.core.SourceSettings
@@ -19,6 +20,9 @@ import io.github.bl3xand.apkcloner.sources.form.TextItem
 import io.github.bl3xand.apkcloner.sources.form.cloneItems
 import io.github.bl3xand.apkcloner.sources.model.ApkDetails
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
+import io.github.bl3xand.apkcloner.sources.model.JsonValues
+import io.github.bl3xand.apkcloner.sources.model.asMap
+import org.jsoup.Jsoup
 import io.github.bl3xand.apkcloner.sources.net.Http
 import io.github.bl3xand.apkcloner.sources.net.HttpResponse
 import io.github.bl3xand.apkcloner.sources.net.ProgressListener
@@ -38,6 +42,9 @@ abstract class AppSource(
     var hostChanged = false
     var hostIdenticalDespiteAnyChange = false
     open val name: String get() = fixedName ?: sourceIdentifier
+
+    /** The name for where there is room for a word or two: next to an app in a list, in a table. */
+    open val shortName: String get() = name
 
     /**
      * What is missing before this source can be asked for anything - an account that has to be
@@ -68,6 +75,12 @@ abstract class AppSource(
     var allowIncludeZips = false
     var allowIncludeTarballs = false
     var canSearch = false
+
+    /**
+     * The source answers for the device that asks - its Android version and processor - so that
+     * asking it for an app tells whether there is a version of the app for this device.
+     */
+    var answersForDevice = false
     var includeAdditionalOptsInMainSearch = false
 
     private var hostMatchRegex: Regex? = null
@@ -92,6 +105,21 @@ abstract class AppSource(
     }
 
     open fun postProcessApp(app: TrackedApp): TrackedApp = app
+
+    /**
+     * What every release of the same file of this source is called, for telling whether the file
+     * an app is set up to use is still there. Null, the default, is for sources whose file names
+     * carry the version or the date: nothing but the file itself is stable in them, so only the
+     * shrinking of the list can be judged there.
+     */
+    open fun releaseBranchKeyOf(file: NamedUrl): String? = null
+
+    /**
+     * The branch the app's settings tell the source to follow, when they do (the kind of a
+     * Telegram file). What such a setting names is a choice made on purpose, and the list the
+     * source returns is that branch alone - so the branch is carried by name, never by place.
+     */
+    open fun followedBranchKey(settings: Map<String, Any?>): String? = null
 
     /** Per-app settings with the source-level configuration merged in. */
     fun buildMergedSettings(
@@ -362,6 +390,26 @@ abstract class AppSource(
     /** Maps a result URL to [title, description]. */
     open fun search(query: String, querySettings: Map<String, Any?> = emptyMap()): Map<String, List<String>> =
         throw NotImplementedSourceError()
+
+    /**
+     * The search every site built on WordPress answers to: the posts of [site] that match, by
+     * their link. Sites that keep one app to a post are searched this way.
+     */
+    protected fun searchWordPress(site: String, query: String, querySettings: Map<String, Any?>): Map<String, List<String>> {
+        val res = sourceRequest(
+            "$site/wp-json/wp/v2/search?subtype=post&per_page=30&search=${Url.encodeQueryComponent(query)}", querySettings,
+        )
+        Http.ensureSuccess(res)
+        val results = LinkedHashMap<String, List<String>>()
+        for (entry in (JsonValues.parse(res.body) as? List<*>).orEmpty()) {
+            val post = entry.asMap() ?: continue
+            val url = post["url"]?.toString()?.takeIf { it.isNotEmpty() } ?: continue
+            // Titles come with their dashes and quotes written as HTML.
+            val title = Jsoup.parse(post["title"]?.toString().orEmpty()).text().takeIf { it.isNotEmpty() } ?: continue
+            results[url] = listOf(title, shortName)
+        }
+        return results
+    }
 
     open fun tryInferringAppId(
         standardUrl: String,

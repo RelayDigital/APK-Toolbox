@@ -43,7 +43,10 @@ fun Context.showSheet(
             addView(
                 header,
                 LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                    setMargins(side, dp(4), side, dp(16))
+                    marginStart = side
+                    marginEnd = side
+                    topMargin = dp(4)
+                    bottomMargin = dp(16)
                 },
             )
         }

@@ -14,6 +14,8 @@ import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 class Codeberg : AppSource("Codeberg") {
     private val gh = GitHub(hostChanged = true)
 
+    override val shortName: String get() = "Codeberg"
+
     init {
         fixedName = "Forgejo (Codeberg)"
         hosts = listOf(DEFAULT_HOST)

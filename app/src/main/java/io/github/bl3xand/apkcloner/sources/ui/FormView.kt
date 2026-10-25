@@ -79,6 +79,21 @@ class FormView(
         if (!building) onChange(values, isValid)
     }
 
+    private companion object {
+        /**
+         * Field validators run here, one field at a time, so a slow or spinning validator (the
+         * regex probe of a catastrophic pattern, say) holds up only other validations - never
+         * the main thread. A validator that exceeds its own budget throws on its own; one that
+         * truly never returns blocks the queue, and only that queue.
+         */
+        val validationExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, "form-validation").apply { isDaemon = true }
+        }
+
+        /** Where validation results land; the one thread that touches the fields and [errors]. */
+        val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    }
+
     private fun optionLabel(option: String, raw: Boolean): String = when {
         raw -> option
         option.contains(" x ") -> option.split(" x ").joinToString(" x ") { Tr.get(it) }
@@ -121,7 +136,13 @@ class FormView(
     }
 
     private fun addText(item: TextItem) {
-        val layout = TextInputLayout(context, null, MaterialR.attr.textInputOutlinedStyle).apply {
+        // A field without suggestions is a plain one: a suggesting field in a plain frame is drawn
+        // squeezed, and in a drop-down frame it would promise a list that is not there.
+        val options = item.autoCompleteOptions?.distinct()?.takeIf { it.isNotEmpty() }
+        val layout = TextInputLayout(
+            context, null,
+            if (options != null) MaterialR.attr.textInputOutlinedExposedDropdownMenuStyle else MaterialR.attr.textInputOutlinedStyle,
+        ).apply {
             // The link to the help is always at the start; the end is for the eye of a hidden value.
             if (item.password) endIconMode = TextInputLayout.END_ICON_PASSWORD_TOGGLE
             if (item.helpUrl != null) {
@@ -131,10 +152,9 @@ class FormView(
             // Every field says what goes into it, in a word or two.
             hint = hint(item)
         }
-        val options = item.autoCompleteOptions
         val edit = if (options != null) {
             MaterialAutoCompleteTextView(layout.context).apply {
-                setAdapter(ArrayAdapter(context, android.R.layout.simple_list_item_1, options.distinct()))
+                setAdapter(ArrayAdapter(context, android.R.layout.simple_list_item_1, options))
             }
         } else TextInputEditText(layout.context)
         edit.apply {
@@ -146,17 +166,29 @@ class FormView(
             maxLines = item.maxLines
             setText(values[item.key]?.toString() ?: "")
         }
+        // Validators can be slow by design - the regex one runs the pattern to see whether it
+        // backtracks catastrophically, and a match that never ends must not take the thread
+        // that types on with it. Each field's validation runs off the main thread; the result
+        // lands back on it, and only the newest text is listened to (a slow validation of an
+        // earlier text never overwrites a newer one's).
+        var validationNumber = 0L
         fun validate(text: String) {
-            val error = item.validate(text)
-            errors[item.key] = error != null
-            // A required field that is still empty is not shouted about before anything was typed.
-            layout.error = if (error != null && !(text.isEmpty() && building)) error else null
+            val number = ++validationNumber
+            validationExecutor.execute {
+                val error = item.validate(text)
+                mainHandler.post {
+                    if (number != validationNumber) return@post
+                    errors[item.key] = error != null
+                    // A required field that is still empty is not shouted about before anything was typed.
+                    layout.error = if (error != null && !(text.isEmpty() && building)) error else null
+                    changed()
+                }
+            }
         }
         validate(edit.text.toString())
         edit.doAfterTextChanged {
             values[item.key] = it?.toString() ?: ""
             validate(it?.toString() ?: "")
-            changed()
         }
         layout.addView(edit)
         add(context.settingBlock(title(item) + if (item.required) " *" else "", description(item), layout))

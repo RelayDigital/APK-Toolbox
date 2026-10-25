@@ -190,6 +190,21 @@ class SourcesSettings private constructor(context: Context) : SourceSettings {
         } ?: SourceRegistry.sources.filter { it.sourceIdentifier !in DEFAULT_SEARCH_SOURCES }.map { it.name }
         set(value) = prefs.edit().putStringSet("searchDeselected", value.toSet()).apply()
 
+    /** The app has put itself on the list of tracked apps; it does so once. */
+    var selfTracked: Boolean
+        get() = bool("selfTracked", false)
+        set(value) = setBool("selfTracked", value)
+
+    /** Search by name asks every source that can be searched, whatever is picked one by one. */
+    var searchEverywhere: Boolean
+        get() = bool("searchEverywhere", true)
+        set(value) = setBool("searchEverywhere", value)
+
+    /** Search by name only shows apps that have a version for this device. */
+    var searchForDevice: Boolean
+        get() = bool("searchForDevice", false)
+        set(value) = setBool("searchForDevice", value)
+
     /** all, updatesOnly or none. */
     var actionBannerMode: String
         get() = getString("actionBannerMode")?.takeIf { it in listOf("all", "updatesOnly", "none") } ?: "updatesOnly"

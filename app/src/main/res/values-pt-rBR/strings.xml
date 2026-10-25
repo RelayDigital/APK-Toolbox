@@ -1,0 +1,230 @@
+<resources>
+    <string name="access_title">Acesso aos arquivos necessário</string>
+    <string name="access_description">Permita o acesso a todos os arquivos para que o APK Toolbox possa trabalhar com APKs no armazenamento compartilhado.</string>
+    <string name="install_access_title">Permissão de instalação necessária</string>
+    <string name="install_access_description">Permita que o APK Toolbox instale aplicativos para que clones possam ser instalados e atualizados direto daqui.</string>
+    <string name="button_grant_access">Permitir acesso</string>
+
+    <string name="tab_apps">Clonagem</string>
+    <string name="tab_clones">Clones</string>
+    <string name="search_hint">Pesquisar aplicativos</string>
+    <string name="chip_system_apps">Do sistema</string>
+    <string name="chip_clones_original">Do original</string>
+    <string name="chip_clones_source">De uma fonte</string>
+    <string name="chip_update_available">Atualização disponível</string>
+    <string name="chip_no_updates">Sem atualizações</string>
+    <string name="empty_list">Nenhum aplicativo encontrado</string>
+    <string name="empty_clones">Ainda não há clones. Os clones instalados aparecerão aqui.</string>
+    <string name="button_pick_apk">Escolher APK</string>
+    <string name="error_invalid_apk">Este arquivo não é um APK válido</string>
+
+    <string name="button_update">Atualizar</string>
+    <string name="field_package">Nome do pacote</string>
+    <string name="field_app_name">Nome do aplicativo</string>
+    <string name="clone_conflict">Já há um aplicativo instalado com esse nome de pacote e assinado com outra chave: o clone não pode ser instalado por cima. Dê ao clone outro nome de pacote ou remova o aplicativo instalado.</string>
+    <string name="clone_conflict_remove">Remover o instalado</string>
+    <string name="error_invalid_package">Use pelo menos duas partes separadas por pontos, de letras, dígitos e sublinhados</string>
+    <string name="signature_hint">O clone é assinado com a chave do APK Toolbox, não com a do original: uma assinatura deixa de corresponder assim que o aplicativo é modificado.</string>
+    <string name="button_clone">Clonar</string>
+    <string name="button_install">Instalar</string>
+    <string name="button_save">Salvar</string>
+    <string name="status_done">O clone está pronto</string>
+    <string name="status_saved">Salvo</string>
+    <string name="status_failed">Falha ao clonar: %1$s</string>
+    <string name="save_failed">Não foi possível salvar: %1$s</string>
+
+    <string name="install_success">Instalado</string>
+    <string name="install_failed">Falha na instalação: %1$s</string>
+    <string name="install_confirm_needed">o sistema pediu confirmação</string>
+    <string name="detail_cloned_from">Compilado de</string>
+    <string name="detail_updated_from">É recompilado de</string>
+    <string name="detail_from_original">O aplicativo instalado</string>
+    <string name="detail_from_nothing">De nada: o original não está instalado</string>
+    <string name="detail_latest_version">Versão mais recente</string>
+    <string name="clone_from_original">Do original</string>
+    <string name="clone_from_source">De uma fonte (%1$s)</string>
+    <string name="origin_system">Sistema</string>
+    <string name="origin_file">De um arquivo</string>
+    <string name="clone_no_updates">Sem original</string>
+    <string name="version_no_updates">%1$s (sem atualizações)</string>
+    <string name="switch_no_updates">Sem atualizações</string>
+    <string name="clone_show_in_sources">Mostrar em Fontes</string>
+    <string name="clone_track">Acompanhar por uma fonte</string>
+    <string name="clone_track_message">Um clone é recompilado a partir do original instalado, por isso para de ser atualizado quando o original é removido - e o Google Play não entrega seus arquivos a mais ninguém. O APK Toolbox pode procurar o aplicativo pelo pacote em lojas que carregam as mesmas compilações (APKPure, RuStore, Galaxy Store e outras, uma depois da outra) e manter o clone em dia a partir daí, na aba «Fontes». O original pode ser removido depois. Uma atualização assinada por outra pessoa que não o original é recusada.</string>
+    <string name="detail_original_version">Versão do original</string>
+    <string name="detail_clone_version">Versão do clone</string>
+    <string name="detail_removed_permissions">Permissões removidas</string>
+    <string name="detail_reset_permissions">Redefinir permissões</string>
+    <string name="detail_not_installed">Não instalado</string>
+    <string name="button_delete">Excluir</string>
+
+    <string name="settings_title">Configurações</string>
+    <string name="settings_check_interval">Verificação de atualizações: %1$s</string>
+    <string-array name="check_intervals">
+        <item>uma vez por dia</item>
+        <item>a cada 3 dias</item>
+        <item>uma vez por semana</item>
+        <item>a cada 2 semanas</item>
+        <item>uma vez por mês</item>
+        <item>a cada 3 meses</item>
+        <item>a cada 6 meses</item>
+        <item>uma vez por ano</item>
+    </string-array>
+    <string name="channel_updates">Atualizações de clones</string>
+    <string name="settings_play_protect_button">Configurações do Play Protect</string>
+    <string name="notification_updating">Atualizando %1$s…</string>
+    <string name="notification_available_title">Atualizações de clones disponíveis</string>
+    <string name="notification_available_text">Atualizações disponíveis: %1$s. Toque para abrir a lista de clones.</string>
+
+    <string name="settings_install_method">Método de instalação</string>
+    <string name="method_stock">Padrão</string>
+
+    <string name="shizuku_title">Acesso ao Shizuku necessário</string>
+    <string name="button_grant_shizuku">Conceder acesso ao Shizuku</string>
+    <string name="shizuku_granted">Acesso ao Shizuku concedido</string>
+    <string name="shizuku_denied">Acesso ao Shizuku negado</string>
+
+    <string name="shizuku_not_running_title">O Shizuku não está em execução</string>
+    <string name="shizuku_not_running">Inicie o Shizuku e volte. Até lá, o método padrão é usado.</string>
+    <string name="shizuku_description">O APK Toolbox usa o Shizuku para instalar e atualizar clones sem avisos. Conceda o acesso para ativá-lo; até lá, o método padrão é usado.</string>
+    <string name="shizuku_granted_description">As atualizações são instaladas sem confirmação.</string>
+    <string name="play_protect_on_title">O Play Protect está ligado</string>
+    <string name="play_protect_unknown_title">O Play Protect pode atrapalhar</string>
+    <string name="play_protect_on_description">Enquanto estiver ligado, os clones não são atualizados em segundo plano por esse método: você recebe uma notificação e atualiza à mão. Os aplicativos das fontes não são afetados. Desligar a verificação de aplicativos levanta o limite, mas reduz a proteção do aparelho.</string>
+    <string name="play_protect_off_title">O Play Protect está desligado</string>
+    <string name="play_protect_off_description">Os aplicativos instalados pelo APK Toolbox, clones incluídos, são atualizados sem confirmação.</string>
+
+    <string name="settings_check_updates">Verificar atualizações</string>
+    <string name="settings_check_updates_description">Em segundo plano, por agenda. Você recebe uma notificação sobre o que foi encontrado.</string>
+    <string name="settings_auto_install">Instalar automaticamente</string>
+    <string name="settings_auto_install_description">Instalar as atualizações encontradas sem confirmação.</string>
+    <string name="notification_failed_title">Não foi possível atualizar os clones</string>
+    <string name="notification_failed_text">Não foi possível atualizar: %1$s (%2$s). Toque para abrir a lista de clones.</string>
+
+    <string name="tab_split">AntiSplit</string>
+    <string name="empty_split">Nenhum aplicativo dividido encontrado. Escolha abaixo um pacote (APKS, XAPK, APKM) ou vários APKs divididos.</string>
+    <string name="button_pick_split">Escolher APKs divididos</string>
+    <string name="merge_open_with">Instalar ou mesclar APKs</string>
+    <string name="merge_splits_title">Divisões: %1$d de %2$d</string>
+    <string name="merge_select_all">Todas</string>
+    <string name="merge_select_device">Para este aparelho</string>
+    <string name="merge_sign">Assinar depois de mesclar</string>
+    <string name="merge_force">Mesclar divisões sem correspondência mesmo assim</string>
+    <string name="button_merge">Mesclar</string>
+    <string name="merge_done">Mesclado em um único APK</string>
+    <string name="merge_done_unsigned">Mesclado, não assinado. Um APK não assinado não pode ser instalado até ser assinado.</string>
+    <string name="merge_done_pairip">Mesclado, deixado sem assinatura: este aplicativo é protegido por PairIP e confere a própria integridade, então uma compilação reassinada vai travar ao iniciar.</string>
+    <string name="merge_mismatch">Essas divisões têm versão ou pacote diferente do APK base: %1$s. Desmarque-as, ou ative a mesclagem de divisões sem correspondência.</string>
+    <string name="merge_failed">Falha ao mesclar: %1$s</string>
+    <string name="merge_not_split">Isso não parece um APK dividido. Escolha um pacote (APKS, XAPK, APKM, ZIP) ou pelo menos dois APKs.</string>
+
+    <string name="tab_install">SAI</string>
+    <string name="button_pick_install">Escolher APKS</string>
+    <string name="install_sign">Assinar antes de instalar</string>
+    <string name="button_export">Exportar como APKS</string>
+    <string name="files_received_title">O que fazer com esses arquivos?</string>
+    <string name="files_action_install">Instalar</string>
+    <string name="files_action_merge">Mesclar em um único APK</string>
+
+    <string name="button_check_now">Verificar agora</string>
+    <string name="check_now_started">Uma verificação está em andamento; o resultado virá como notificação</string>
+    <string name="notification_up_to_date">Sem atualizações</string>
+    <string name="install_copy_obb">Copiar arquivos OBB (%1$d · %2$s)</string>
+
+    <string name="settings_signing_key">Chave de assinatura</string>
+    <string name="key_bundled_title">Chave embutida</string>
+    <string name="key_bundled_description">Os clones e os APKs mesclados são assinados com a chave que vem no aplicativo. Ela é a mesma para todos e pública. Crie ou importe uma chave própria para assinar com algo que só você tem.</string>
+    <string name="key_custom_title">Sua própria chave</string>
+    <string name="key_custom_description">%1$s\nSHA-256 %2$s…\nExporte-a e guarde o arquivo: sem ela, os clones assinados com essa chave não poderão ser atualizados depois de reinstalar o aplicativo.</string>
+    <string name="key_create">Criar</string>
+    <string name="key_import">Importar</string>
+    <string name="key_export">Exportar</string>
+    <string name="key_reset">Usar a embutida</string>
+    <string name="key_password">Senha do keystore</string>
+    <string name="key_alias">Alias da chave (opcional)</string>
+    <string name="key_created">Uma nova chave foi criada</string>
+    <string name="key_imported">Chave importada</string>
+    <string name="key_exported">Chave exportada</string>
+    <string name="key_reset_done">De volta à chave embutida</string>
+    <string name="key_failed">Falha na operação com a chave: %1$s</string>
+    <string name="key_replace_title">Substituir sua chave?</string>
+    <string name="key_replace_message">Os clones assinados com a chave atual deixarão de ser listados e atualizados, a não ser que você importe essa chave de novo. Exporte-a antes, caso venha a precisar.</string>
+    <string name="key_replace_confirm">Substituir</string>
+    <string name="clone_badge">Marcar o ícone com um ponto</string>
+    <string name="clone_rename_alias">Endereçamento pelo nome do clone</string>
+    <string name="merge_too_large">Este aplicativo não pode ser mesclado no aparelho: suas tabelas de recursos (%1$d MB) pedem mais memória do que o Android dá a um aplicativo. Desmarcar divisões desnecessárias pode ajudar; senão, mescle-o num computador.</string>
+    <string name="tab_sources">Fontes</string>
+    <string name="settings_check_sources">Aplicativos das fontes</string>
+    <string name="settings_check_sources_description">Novas versões dos aplicativos da aba «Fontes».</string>
+    <string name="settings_sources">Configurações das fontes</string>
+    <string name="sources_share_label">Acompanhar no APK Toolbox</string>
+    <string name="sources_empty">Ainda não há aplicativos acompanhados.\nAdicione um pelo link ou encontre pela pesquisa.</string>
+    <string name="sources_add">Adicionar aplicativo</string>
+    <string name="sources_filter">Filtro</string>
+    <string name="sources_filter_clear">Limpar o filtro</string>
+    <string name="settings_section_updates">Atualizações</string>
+    <string name="settings_section_install">Instalação automática</string>
+    <string name="settings_section_experimental">Experimental</string>
+    <string name="settings_check_clones">Clones</string>
+    <string name="settings_check_clones_description">Um clone fica desatualizado quando seu original é atualizado ou sua fonte tem uma versão mais nova.</string>
+    <string name="settings_check_on_start">Verificar ao abrir</string>
+    <string name="settings_check_on_start_description">As atualizações dos aplicativos das fontes e dos clones são procuradas toda vez que o APK Toolbox é aberto.</string>
+    <string name="settings_wifi_only">Esperar o Wi-Fi</string>
+    <string name="settings_wifi_only_description">O que for encontrado em dados móveis é instalado assim que o Wi-Fi conectar.</string>
+    <string name="settings_charging_only">Esperar o carregador</string>
+    <string name="settings_charging_only_description">O que for encontrado na bateria é instalado assim que o carregador conectar.</string>
+    <string name="settings_sources_description">Tokens, versões contadas, importar e exportar.</string>
+    <string name="settings_root">Instalar com root</string>
+    <string name="settings_root_description">Ligado, tem prioridade sobre os outros métodos de instalação. Instalações em segundo plano podem ter que pedir acesso ao gerenciador de root toda vez. Não testado.</string>
+    <string name="cloning_installed">Instalados</string>
+    <string name="cloning_clones">Clones</string>
+    <string name="export_done">Exportado como APKS</string>
+    <string name="root_not_granted">O acesso root não foi concedido</string>
+    <string name="settings_install_method_description">Como as atualizações são instaladas em segundo plano.</string>
+    <string name="hint_tab_install">Instala pacotes APKS, XAPK e APKM e conjuntos de APKs divididos. Um aplicativo instalado da lista pode ser exportado como arquivo APKS.</string>
+    <string name="hint_tab_split">Mescla em um único APK comum um aplicativo feito de vários APKs divididos. Só aplicativos instalados como divisões são listados; um arquivo de pacote também pode ser escolhido.</string>
+    <string name="install_sign_description">Reassina os arquivos com a chave das configurações. Necessário quando foram modificados ou a assinatura está quebrada; o aplicativo não poderá ser atualizado por cima do original.</string>
+    <string name="merge_sign_description">Assina o APK mesclado com a chave das configurações para que possa ser instalado. Sem isso, o arquivo fica sem assinatura.</string>
+    <string name="merge_force_description">Mescla divisões mesmo quando suas versões ou pacotes diferem. Use só se a mesclagem normal recusar; o resultado pode não funcionar.</string>
+    <string name="tab_info">Sobre esta lista</string>
+    <string name="hint_tab_sources">Acompanha aplicativos do GitHub, F-Droid, lojas e outros sites: adicione um aplicativo por link ou por nome, e as novas versões são encontradas, baixadas e instaladas daqui.</string>
+    <string name="hint_tab_apps">Faz uma cópia de um aplicativo instalado sob outro nome de pacote: cada cópia tem seus próprios dados. Escolha um aplicativo da lista ou um arquivo APK.</string>
+    <string name="hint_tab_clones">Os clones que você fez estão aqui. Um clone fica desatualizado quando seu original é atualizado ou aparece uma versão nova na sua fonte.</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_description">O aplicativo fala o idioma do sistema, a não ser que lhe digam outro.</string>
+    <string name="language_system">Como o sistema</string>
+    <string name="settings_log">Registro</string>
+    <string name="settings_log_description">O que foi verificado, baixado, clonado, mesclado e instalado, e o que falhou. Guardado por 30 dias.</string>
+    <string name="button_show_log">Mostrar o registro</string>
+    <string name="log_empty">Nada foi registrado ainda.</string>
+    <string name="log_save">Salvar</string>
+    <plurals name="log_show_more">
+        <item quantity="one">Mostrar %d entrada mais antiga</item>
+        <item quantity="many">Mostrar %d entradas mais antigas</item>
+        <item quantity="other">Mostrar %d entradas mais antigas</item>
+    </plurals>
+    <string name="button_refresh">Verificar atualizações</string>
+    <string name="clones_up_to_date">Todos os clones estão em dia</string>
+    <plurals name="log_days">
+        <item quantity="one">%d dia</item>
+        <item quantity="many">%d dias</item>
+        <item quantity="other">%d dias</item>
+    </plurals>
+    <string name="search_clear">Limpar a pesquisa</string>
+    <string name="clone_permissions">Permissões</string>
+    <string name="clone_permissions_removed">Permissões: %1$d removidas</string>
+    <string name="clone_permissions_hint">Tudo o que o original pede. Desligue o que o clone não deve ter; sem uma permissão da qual dependa, o aplicativo pode parar de funcionar.</string>
+    <string name="clone_permissions_none">O aplicativo não pede permissões.</string>
+    <string name="clone_patches">Patches</string>
+    <string name="clone_patches_on">Patches: %1$d de %2$d ligados</string>
+    <string name="clone_patches_not_applied">A última compilação não conseguiu aplicar «%1$s»: o certificado de assinatura do original não pôde ser lido, então o patch de identidade não está no clone.</string>
+    <string name="clone_patches_hint">Mudanças no código do clone. Cada patch é opcional e aplicado só a este clone.</string>
+    <string name="clone_rename_alias_note">Reescreve o nome do pacote no código do clone para que ele encontre seus próprios arquivos e componentes. O mimetismo, ao contrário, apresenta o clone como o original às verificações.</string>
+    <string name="clone_mimicry">Mimetismo</string>
+    <string name="clone_mimicry_note">O clone se apresenta inteiramente como o ORIGINAL - nome de pacote e assinatura: às suas próprias verificações, servidores e análises. As buscas dos componentes do próprio clone continuam funcionando por uma alternativa.</string>
+    <string name="clone_keep_alive">Suprimir a saída</string>
+    <string name="clone_keep_alive_note">Toda chamada que encerraria o aplicativo - System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask - vira uma operação vazia, então o aplicativo não pode nem se matar nem expulsar o usuário, seja qual for o motivo: uma verificação de assinatura, nenhuma conta conectada, uma verificação fracassada na inicialização. Depois de sair da conta, o aplicativo pode ficar em segundo plano em vez de fechar.</string>
+    <string name="clone_permission_absent">Não é pedida nesta versão. Se voltar, continua desligada.</string>
+    <string name="clone_permission_new">Nova nesta versão</string>
+    <string name="button_done">Pronto</string>
+</resources>

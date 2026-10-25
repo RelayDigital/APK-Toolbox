@@ -15,6 +15,7 @@ import io.github.bl3xand.apkcloner.sources.core.isReleaseTooYoung
 import io.github.bl3xand.apkcloner.sources.core.preStandardizeUrl
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.sources.model.applyMinAgeSuppression
+import io.github.bl3xand.apkcloner.sources.model.carryPreferredFile
 import io.github.bl3xand.apkcloner.sources.model.JsonValues
 import java.time.Instant
 import java.time.LocalDateTime
@@ -164,5 +165,187 @@ class CoreTest {
         assertEquals(original, restored)
         assertFalse(original.hasTempId)
         assertTrue(original.copy(id = "0123456789ab").hasTempId)
+    }
+
+    // ---- the release branch a followed file belongs to --------------------------------------
+
+    /** The named branch of a file: its name up to the version, as a keyed source would give it. */
+    private val byName: (NamedUrl) -> String? = { it.name.substringBefore('-') }
+
+    private fun branchApp(
+        apkUrls: List<NamedUrl>,
+        preferredApkIndex: Int,
+        preferredBranchKey: String? = null,
+        releaseBranchGone: Boolean = false,
+    ) = TrackedApp(
+        id = "com.example.app", url = "https://example.com/app", author = "Author", name = "App",
+        latestVersion = "2.0", apkUrls = apkUrls, preferredApkIndex = preferredApkIndex,
+        preferredBranchKey = preferredBranchKey, releaseBranchGone = releaseBranchGone,
+        additionalSettings = emptyMap(),
+    )
+
+    @Test
+    fun branchGoneWhenTheRememberedNameIsNoLongerOffered() {
+        val current = branchApp(
+            listOf(NamedUrl("app-1.0.apk", "u1"), NamedUrl("extra-1.0.apk", "u2")),
+            preferredApkIndex = 1, preferredBranchKey = "extra",
+        )
+        val fresh = branchApp(listOf(NamedUrl("app-2.0.apk", "u3")), preferredApkIndex = 0)
+        val carried = carryPreferredFile(current, fresh, byName)
+        // The fresh release is kept - the page has to offer it for choosing another branch -
+        // while the old place and key stay (the place may sit past the end now), so that the
+        // branch coming back is recognized.
+        assertTrue(carried.releaseBranchGone)
+        assertEquals(1, carried.preferredApkIndex)
+        assertEquals("extra", carried.preferredBranchKey)
+        assertEquals(fresh.apkUrls, carried.apkUrls)
+    }
+
+    @Test
+    fun branchBackAfterBeingGone() {
+        val current = branchApp(
+            listOf(NamedUrl("app-2.0.apk", "u3")), preferredApkIndex = 1,
+            preferredBranchKey = "extra", releaseBranchGone = true,
+        )
+        val fresh = branchApp(
+            listOf(NamedUrl("app-2.1.apk", "u4"), NamedUrl("extra-2.1.apk", "u5")),
+            preferredApkIndex = 1,
+        )
+        val carried = carryPreferredFile(current, fresh, byName)
+        assertFalse(carried.releaseBranchGone)
+        assertEquals(1, carried.preferredApkIndex)
+        assertEquals("extra", carried.preferredBranchKey)
+    }
+
+    @Test
+    fun aReorderedListIsHealedByName() {
+        // The remembered place is past the end, but the branch it stood for is still there.
+        val current = branchApp(
+            listOf(NamedUrl("app-1.0.apk", "u1"), NamedUrl("extra-1.0.apk", "u2")),
+            preferredApkIndex = 1, preferredBranchKey = "extra",
+        )
+        val fresh = branchApp(
+            listOf(NamedUrl("extra-2.0.apk", "u5"), NamedUrl("app-2.0.apk", "u4")),
+            preferredApkIndex = 1,
+        )
+        val carried = carryPreferredFile(current, fresh, byName)
+        assertFalse(carried.releaseBranchGone)
+        assertEquals(0, carried.preferredApkIndex)
+    }
+
+    @Test
+    fun aKeylessSourceIsJudgedOnlyByTheShrinkingOfTheList() {
+        val keyless: (NamedUrl) -> String? = { null }
+        val current = branchApp(listOf(NamedUrl("a-1.0.apk", "u1"), NamedUrl("b-1.0.apk", "u2")), preferredApkIndex = 1)
+        val shrunk = branchApp(listOf(NamedUrl("a-2.0.apk", "u3")), preferredApkIndex = 1)
+        assertTrue(carryPreferredFile(current, shrunk, keyless).releaseBranchGone)
+        val reordered = branchApp(listOf(NamedUrl("b-2.0.apk", "u4"), NamedUrl("a-2.0.apk", "u3")), preferredApkIndex = 1)
+        val carried = carryPreferredFile(current, reordered, keyless)
+        assertFalse(carried.releaseBranchGone)
+        assertEquals(1, carried.preferredApkIndex)
+    }
+
+    @Test
+    fun noFileChosenYetNeverMarksTheBranch() {
+        val current = branchApp(listOf(NamedUrl("a-1.0.apk", "u1")), preferredApkIndex = -1)
+        val fresh = branchApp(listOf(NamedUrl("a-2.0.apk", "u2")), preferredApkIndex = 0)
+        val carried = carryPreferredFile(current, fresh, byName)
+        assertFalse(carried.releaseBranchGone)
+        assertEquals(-1, carried.preferredApkIndex)
+        // The app was already marked gone and the user has not chosen yet: it stays so.
+        val stillGone = carryPreferredFile(
+            current.copy(releaseBranchGone = true, preferredBranchKey = "gone"),
+            fresh, byName,
+        )
+        assertTrue(stillGone.releaseBranchGone)
+        assertNull(stillGone.preferredBranchKey)
+    }
+
+    @Test
+    fun theKeyIsWrittenDownFromTheKeptPlace() {
+        // Old records have no key; the file at the remembered place is what has been installed,
+        // so its name becomes the branch from then on.
+        val current = branchApp(
+            listOf(NamedUrl("app-1.0.apk", "u1"), NamedUrl("extra-1.0.apk", "u2")),
+            preferredApkIndex = 1,
+        )
+        val fresh = branchApp(
+            listOf(NamedUrl("app-2.0.apk", "u3"), NamedUrl("extra-2.0.apk", "u4")),
+            preferredApkIndex = 1,
+        )
+        val carried = carryPreferredFile(current, fresh, byName)
+        assertFalse(carried.releaseBranchGone)
+        assertEquals("extra", carried.preferredBranchKey)
+    }
+
+    @Test
+    fun aKindChosenInTheSettingsIsAdoptedAsTheBranch() {
+        // The Telegram kind path: the settings name the kind to follow, and the fresh list is
+        // that kind alone, so the place in it says nothing. A re-pointed kind heals the flag,
+        // and a kept one keeps it healed however the list shrank or grew.
+        val current = branchApp(
+            listOf(NamedUrl("old-1.0.apk", "u1"), NamedUrl("other-1.0.apk", "u2")),
+            preferredApkIndex = 0, preferredBranchKey = "old", releaseBranchGone = true,
+        )
+        val fresh = branchApp(listOf(NamedUrl("new-2.0.apk", "u2")), preferredApkIndex = 0)
+        val repointed = carryPreferredFile(current, fresh, byName, settingsBranchKey = "new")
+        assertFalse(repointed.releaseBranchGone)
+        assertEquals("new", repointed.preferredBranchKey)
+        assertEquals(0, repointed.preferredApkIndex)
+        val kept = carryPreferredFile(current, fresh, byName, settingsBranchKey = "old")
+        assertTrue(kept.releaseBranchGone)
+        assertEquals("old", kept.preferredBranchKey)
+    }
+
+    @Test
+    fun branchFieldsRoundTripThroughJson() {
+        val original = branchApp(
+            listOf(NamedUrl("a-1.0.apk", "u1"), NamedUrl("b-1.0.apk", "u2")),
+            preferredApkIndex = 1, preferredBranchKey = "b", releaseBranchGone = true,
+        )
+        val restored = TrackedApp.fromJson(JsonValues.parseObject(original.toJson().toString()))
+        assertEquals(original, restored)
+        // Records from before the fields existed parse to null/false.
+        val plain = TrackedApp.fromJson(
+            JsonValues.parseObject(branchApp(emptyList(), preferredApkIndex = -1).toJson().toString()),
+        )
+        assertNull(plain.preferredBranchKey)
+        assertFalse(plain.releaseBranchGone)
+    }
+
+    // ---- the remembered pick of a release file ----------------------------------------------
+
+    @Test
+    fun rememberedApkResolvesByExactUrlThenNameThenDigitsOut() {
+        val choices = listOf(
+            NamedUrl("app-1.3.0-arm64-v8a.apk", "https://e.com/v2/app-arm64.apk"),
+            NamedUrl("app-1.3.0-armeabi-v7a.apk", "https://e.com/v2/app-arm32.apk"),
+        )
+        // The same URL, wherever the file sits now.
+        val byUrl = ApkFilter.resolvePreferredApk(NamedUrl("old.apk", "https://e.com/v2/app-arm32.apk"), choices)
+        assertEquals(choices[1], byUrl)
+        // The same name, on a new URL.
+        val byName = ApkFilter.resolvePreferredApk(NamedUrl("app-1.3.0-armeabi-v7a.apk", "https://e.com/v1/x.apk"), choices)
+        assertEquals(choices[1], byName)
+        // A new release, new names: the digits out, when they leave one choice standing.
+        val byDigits = ApkFilter.resolvePreferredApk(NamedUrl("app-1.2.9-armeabi-v7a.apk", "https://e.com/v1/x.apk"), choices)
+        assertEquals(choices[1], byDigits)
+        // Two choices that differ only in their digits match nothing by name: the place decides.
+        val same = listOf(NamedUrl("app-1.0.apk", "u1"), NamedUrl("app-2.0.apk", "u2"))
+        val byPlace = ApkFilter.resolvePreferredApk(NamedUrl("app-0.9.apk", "u0"), same, preferredApkIndex = 1)
+        assertEquals(same[1], byPlace)
+        // Nothing remembered, nothing chosen.
+        assertNull(ApkFilter.resolvePreferredApk(null, same))
+        assertNull(ApkFilter.resolvePreferredApk(null, emptyList()))
+    }
+
+    @Test
+    fun rememberedApkStaysStoredAndReadsBack() {
+        val pick = NamedUrl("app-1.2.9-armeabi-v7a.apk", "https://e.com/v1/x.apk")
+        val stored = TrackedApp.namedUrlsToJson(listOf(pick))
+        assertEquals(pick, ApkFilter.storedPreferredApk(stored))
+        assertNull(ApkFilter.storedPreferredApk(null))
+        assertNull(ApkFilter.storedPreferredApk(""))
+        assertNull(ApkFilter.storedPreferredApk("nonsense"))
     }
 }

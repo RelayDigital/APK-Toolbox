@@ -5,6 +5,7 @@ import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.settings.AppSettings
 import io.github.bl3xand.apkcloner.sources.core.MultiAppMultiError
 import io.github.bl3xand.apkcloner.sources.core.RateLimitError
+import io.github.bl3xand.apkcloner.sources.core.ReleaseBranchGoneError
 import io.github.bl3xand.apkcloner.sources.core.RepositoryRenamedError
 import io.github.bl3xand.apkcloner.sources.core.effectiveMinUpdateAgeDays
 import io.github.bl3xand.apkcloner.sources.core.errorText
@@ -13,8 +14,10 @@ import io.github.bl3xand.apkcloner.sources.model.CheckUpdatesException
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.sources.model.applyMinAgeSuppression
+import io.github.bl3xand.apkcloner.sources.model.carryPreferredFile
 import io.github.bl3xand.apkcloner.sources.source.DEFAULT_FETCH_CONCURRENCY
 import io.github.bl3xand.apkcloner.sources.source.SourceRegistry
+import io.github.bl3xand.apkcloner.testing.TestHooks
 import java.io.IOException
 import java.time.Instant
 import java.util.Collections
@@ -37,18 +40,32 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
     fun fetchUpdate(id: String): TrackedApp? {
         val current = repo.entry(id)?.app ?: return null
         if (current.hasPendingRepoRename) return null
-        var fresh = SourceRegistry.getApp(repo.sourceOf(current), current.url, current.additionalSettings, currentApp = current)
+        var fresh = try {
+            SourceRegistry.getApp(repo.sourceOf(current), current.url, current.additionalSettings, currentApp = current)
+        } catch (e: ReleaseBranchGoneError) {
+            // The kind of file this app follows is not offered any more, and the source has no
+            // list to choose another from here. Nothing is said to have failed - that would put
+            // the app on the error-and-retry path - it simply needs its kind chosen again.
+            AppLog.info("$id: the followed file kind is gone (${repo.sourceOf(current).sourceIdentifier})")
+            return current.copy(releaseBranchGone = true, lastUpdateCheck = Instant.now())
+        }
         if (fresh.latestVersion != current.latestVersion &&
             isReleaseTooYoung(fresh.releaseDate, effectiveMinUpdateAgeDays(current.additionalSettings, settings))
         ) {
             // Too young to be offered yet (a guard against bad or hijacked releases).
             fresh = applyMinAgeSuppression(current, fresh)
         }
-        fresh = if (current.preferredApkIndex < fresh.apkUrls.size) {
-            fresh.copy(preferredApkIndex = current.preferredApkIndex)
-        } else if (fresh.apkUrls.isNotEmpty()) {
-            fresh.copy(preferredApkIndex = 0)
-        } else fresh
+        val source = repo.sourceOf(current)
+        val wasGone = current.releaseBranchGone
+        fresh = carryPreferredFile(
+            current, fresh, source::releaseBranchKeyOf,
+            settingsBranchKey = source.followedBranchKey(current.additionalSettings),
+        )
+        if (!wasGone && fresh.releaseBranchGone) {
+            AppLog.warn("$id: the followed release branch is gone; another file has to be chosen")
+        } else if (wasGone && !fresh.releaseBranchGone) {
+            AppLog.info("$id: the followed release branch is back")
+        }
         return fresh
     }
 
@@ -78,7 +95,7 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
             throw e
         } ?: return null
         repo.setCheckError(id, null)
-        repo.saveApps(listOf(fresh))
+        repo.saveApps(listOf(fresh), preserveUserFields = true)
         if (fresh.latestVersion != current.latestVersion) {
             AppLog.info("$id: new version ${fresh.latestVersion} (was ${current.latestVersion})")
             return fresh
@@ -109,6 +126,21 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
         forceAll: Boolean = false,
         throwErrorsForRetry: Boolean = false,
     ): List<TrackedApp> = synchronized(checkLock) {
+        // What a whole check pass took, said to the test hooks (empty unless the
+        // instrumentation enabled them) as a started/finished pair.
+        TestHooks.checkStarted()
+        try {
+            checkUpdatesInside(specificIds, forceAll, throwErrorsForRetry)
+        } finally {
+            TestHooks.checkFinished()
+        }
+    }
+
+    private fun checkUpdatesInside(
+        specificIds: List<String>?,
+        forceAll: Boolean,
+        throwErrorsForRetry: Boolean,
+    ): List<TrackedApp> {
         val wanted = specificIds?.toList()
             ?: getAppsSortedByUpdateCheckTime(settings.onlyCheckInstalledOrTrackOnlyApps, forceAll)
         // An app whose source has to be signed in to first cannot be checked; it says so on its
@@ -162,12 +194,12 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
             }
             workers.forEach { it.join() }
             fatal?.let { throw it }
-            if (fetched.isNotEmpty()) repo.saveApps(fetched.toList(), reuseInstalledInfo = true)
+            if (fetched.isNotEmpty()) repo.saveApps(fetched.toList(), reuseInstalledInfo = true, preserveUserFields = true)
             if (failed.isNotEmpty()) {
-                repo.saveApps(failed.toList(), attemptToCorrectInstallStatus = false, reuseInstalledInfo = true)
+                repo.saveApps(failed.toList(), attemptToCorrectInstallStatus = false, reuseInstalledInfo = true, preserveUserFields = true)
             }
             if (errors.idsByErrorString.isNotEmpty()) throw CheckUpdatesException(updates.toList(), errors)
-            updates.toList()
+            return updates.toList()
         } finally {
             _progress.value = null
         }

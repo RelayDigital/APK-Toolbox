@@ -1,0 +1,236 @@
+<resources>
+    <string name="access_title">الوصول إلى الملفات مطلوب</string>
+    <string name="access_description">اسمح بالوصول إلى كل الملفات ليعمل APK Toolbox مع ملفات APK في التخزين المشترك.</string>
+    <string name="install_access_title">إذن التثبيت مطلوب</string>
+    <string name="install_access_description">اسمح لـ APK Toolbox بتثبيت التطبيقات لتُثبَّت النسخ المطابقة وتُحدَّث من هنا مباشرة.</string>
+    <string name="button_grant_access">السماح بالوصول</string>
+
+    <string name="tab_apps">الاستنساخ</string>
+    <string name="tab_clones">النسخ المطابقة</string>
+    <string name="search_hint">البحث عن تطبيقات</string>
+    <string name="chip_system_apps">تطبيقات النظام</string>
+    <string name="chip_clones_original">من الأصل</string>
+    <string name="chip_clones_source">من مصدر</string>
+    <string name="chip_update_available">يتوفر تحديث</string>
+    <string name="chip_no_updates">بلا تحديثات</string>
+    <string name="empty_list">لم يُعثر على تطبيقات</string>
+    <string name="empty_clones">لا نسخ مطابقة بعد. ستظهر النسخ المثبتة هنا.</string>
+    <string name="button_pick_apk">اختيار APK</string>
+    <string name="error_invalid_apk">هذا الملف ليس APK صالحًا</string>
+
+    <string name="button_update">تحديث</string>
+    <string name="field_package">اسم الحزمة</string>
+    <string name="field_app_name">اسم التطبيق</string>
+    <string name="clone_conflict">تطبيق بهذا الاسم للحزمة مثبَّت من قبل وموقَّع بمفتاح آخر: لا يمكن تثبيت النسخة المطابقة فوقه. أعطِ النسخة اسم حزمة آخر أو أزل التطبيق المثبَّت.</string>
+    <string name="clone_conflict_remove">إزالة المثبَّت</string>
+    <string name="error_invalid_package">يلزم جزءان على الأقل يفصل بينهما نقطة، من حروف وأرقام وشرطات سفلية</string>
+    <string name="signature_hint">تُوقَّع النسخة المطابقة بمفتاح APK Toolbox لا بمفتاح الأصل: التوقيع يتوقف عن التطابق بعد تعديل التطبيق.</string>
+    <string name="button_clone">استنساخ</string>
+    <string name="button_install">تثبيت</string>
+    <string name="button_save">حفظ</string>
+    <string name="status_done">النسخة المطابقة جاهزة</string>
+    <string name="status_saved">تم الحفظ</string>
+    <string name="status_failed">فشل الاستنساخ: %1$s</string>
+    <string name="save_failed">تعذّر الحفظ: %1$s</string>
+
+    <string name="install_success">تم التثبيت</string>
+    <string name="install_failed">فشل التثبيت: %1$s</string>
+    <string name="install_confirm_needed">طلب النظام تأكيدًا</string>
+    <string name="detail_cloned_from">مبني من</string>
+    <string name="detail_updated_from">يُعاد بناؤه من</string>
+    <string name="detail_from_original">التطبيق المثبَّت</string>
+    <string name="detail_from_nothing">لا شيء: الأصل غير مثبَّت</string>
+    <string name="detail_latest_version">أحدث إصدار</string>
+    <string name="clone_from_original">من الأصل</string>
+    <string name="clone_from_source">من مصدر (%1$s)</string>
+    <string name="origin_system">النظام</string>
+    <string name="origin_file">من ملف</string>
+    <string name="clone_no_updates">بلا أصل</string>
+    <string name="version_no_updates">%1$s (بلا تحديثات)</string>
+    <string name="switch_no_updates">بلا تحديثات</string>
+    <string name="clone_show_in_sources">الإظهار في المصادر</string>
+    <string name="clone_track">التتبع عبر مصدر</string>
+    <string name="clone_track_message">تُعاد حياكة النسخة المطابقة من الأصل المثبَّت، لذا تتوقف عن التحديث إذا أُزيل الأصل - وGoogle Play لا يعطي ملفاته لأحد سواه. يستطيع APK Toolbox البحث عن التطبيق باسم حزمته في المتاجر التي تحمل البُنى نفسها (APKPure وRuStore وGalaxy Store وغيرها، واحدًا بعد الآخر) وإبقاء النسخة المطابقة محدَّثة من هناك، في تبويب «المصادر». يمكن بعد ذلك إزالة الأصل. التحديث الموقَّع بغير مفتاح الأصل يُرفض.</string>
+    <string name="detail_original_version">إصدار الأصل</string>
+    <string name="detail_clone_version">إصدار النسخة المطابقة</string>
+    <string name="detail_removed_permissions">الأذونات المزالة</string>
+    <string name="detail_reset_permissions">إعادة ضبط الأذونات</string>
+    <string name="detail_not_installed">غير مثبَّت</string>
+    <string name="button_delete">حذف</string>
+
+    <string name="settings_title">الإعدادات</string>
+    <string name="settings_check_interval">التحقق من التحديثات: %1$s</string>
+    <string-array name="check_intervals">
+        <item>مرة يوميًا</item>
+        <item>كل 3 أيام</item>
+        <item>مرة أسبوعيًا</item>
+        <item>كل أسبوعين</item>
+        <item>مرة شهريًا</item>
+        <item>كل 3 أشهر</item>
+        <item>كل 6 أشهر</item>
+        <item>مرة سنويًا</item>
+    </string-array>
+    <string name="channel_updates">تحديثات النسخ المطابقة</string>
+    <string name="settings_play_protect_button">إعدادات Play Protect</string>
+    <string name="notification_updating">جارٍ تحديث %1$s…</string>
+    <string name="notification_available_title">تتوفر تحديثات للنسخ المطابقة</string>
+    <string name="notification_available_text">تتوفر تحديثات: %1$s. انقر لفتح قائمة النسخ المطابقة.</string>
+
+    <string name="settings_install_method">طريقة التثبيت</string>
+    <string name="method_stock">قياسية</string>
+
+    <string name="shizuku_title">الوصول إلى Shizuku مطلوب</string>
+    <string name="button_grant_shizuku">منح وصول Shizuku</string>
+    <string name="shizuku_granted">مُنح وصول Shizuku</string>
+    <string name="shizuku_denied">رُفض وصول Shizuku</string>
+
+    <string name="shizuku_not_running_title">Shizuku لا يعمل</string>
+    <string name="shizuku_not_running">شغِّل Shizuku وعُد. حتى ذلك الحين تُستخدم الطريقة القياسية.</string>
+    <string name="shizuku_description">يستخدم APK Toolbox خدمة Shizuku لتثبيت النسخ المطابقة وتحديثها بلا تأكيدات. امنح الوصول لتفعيل ذلك؛ حتى ذلك الحين تُستخدم الطريقة القياسية.</string>
+    <string name="shizuku_granted_description">تُثبَّت التحديثات بلا تأكيد.</string>
+    <string name="play_protect_on_title">Play Protect مفعَّل</string>
+    <string name="play_protect_unknown_title">قد يعترض Play Protect الطريق</string>
+    <string name="play_protect_on_description">طالما هو مفعَّل لا تُحدَّث النسخ المطابقة في الخلفية بهذه الطريقة: يصلك إشعار وتحدِّث يدويًا. تطبيقات المصادر لا تتأثر. إيقاف فحص التطبيقات يرفع القيد لكنه يُضعف حماية الجهاز.</string>
+    <string name="play_protect_off_title">Play Protect متوقف</string>
+    <string name="play_protect_off_description">التطبيقات المثبتة عبر APK Toolbox، بما فيها النسخ المطابقة، تُحدَّث بلا تأكيد.</string>
+
+    <string name="settings_check_updates">التحقق من التحديثات</string>
+    <string name="settings_check_updates_description">في الخلفية، وفق جدول. يصلك إشعار بما وُجد.</string>
+    <string name="settings_auto_install">التثبيت تلقائيًا</string>
+    <string name="settings_auto_install_description">تثبيت التحديثات التي وُجدت بلا تأكيد.</string>
+    <string name="notification_failed_title">تعذّر تحديث النسخ المطابقة</string>
+    <string name="notification_failed_text">تعذّر التحديث: %1$s (%2$s). انقر لفتح قائمة النسخ المطابقة.</string>
+
+    <string name="tab_split">AntiSplit</string>
+    <string name="empty_split">لم يُعثر على تطبيقات مقسومة. اختر أدناه حزمة (APKS أو XAPK أو APKM) أو عدة ملفات APK مقسومة.</string>
+    <string name="button_pick_split">اختيار ملفات APK مقسومة</string>
+    <string name="merge_open_with">تثبيت APK أو دمجها</string>
+    <string name="merge_splits_title">الأقسام: %1$d من %2$d</string>
+    <string name="merge_select_all">الكل</string>
+    <string name="merge_select_device">لهذا الجهاز</string>
+    <string name="merge_sign">التوقيع بعد الدمج</string>
+    <string name="merge_force">دمج الأقسام غير المتطابقة رغم ذلك</string>
+    <string name="button_merge">دمج</string>
+    <string name="merge_done">دُمجت في ملف APK واحد</string>
+    <string name="merge_done_unsigned">دُمجت، بلا توقيع. لا يمكن تثبيت APK غير موقَّعة حتى تُوقَّع.</string>
+    <string name="merge_done_pairip">دُمجت وتركت بلا توقيع: هذا التطبيق محمي بـ PairIP ويتحقق من سلامته بنفسه، لذا أي بنية معاد توقيعها ستتعطل عند التشغيل.</string>
+    <string name="merge_mismatch">لهذه الأقسام إصدار أو حزمة تختلف عن APK الأساس: %1$s. أزل اختيارها، أو فعِّل دمج الأقسام غير المتطابقة.</string>
+    <string name="merge_failed">فشل الدمج: %1$s</string>
+    <string name="merge_not_split">هذا لا يشبه APK مقسومة. اختر حزمة (APKS أو XAPK أو APKM أو ZIP) أو ملفي APK على الأقل.</string>
+
+    <string name="tab_install">SAI</string>
+    <string name="button_pick_install">اختيار APKS</string>
+    <string name="install_sign">التوقيع قبل التثبيت</string>
+    <string name="button_export">تصدير كملف APKS</string>
+    <string name="files_received_title">ماذا نفعل بهذه الملفات؟</string>
+    <string name="files_action_install">تثبيت</string>
+    <string name="files_action_merge">الدمج في ملف APK واحد</string>
+
+    <string name="button_check_now">التحقق الآن</string>
+    <string name="check_now_started">التحقق جارٍ؛ ستأتي النتيجة إشعارًا</string>
+    <string name="notification_up_to_date">لا تحديثات</string>
+    <string name="install_copy_obb">نسخ ملفات OBB (%1$d · %2$s)</string>
+
+    <string name="settings_signing_key">مفتاح التوقيع</string>
+    <string name="key_bundled_title">المفتاح المدمج</string>
+    <string name="key_bundled_description">تُوقَّع النسخ المطابقة وملفات APK المدموجة بالمفتاح الذي يأتي مع التطبيق. هو نفسه للجميع ومعلن. أنشئ مفتاحًا خاصًا بك أو استورد واحدًا لتوقَّع الأشياء بما لا تملكه أنت وحدك.</string>
+    <string name="key_custom_title">مفتاحك الخاص</string>
+    <string name="key_custom_description">%1$s\nSHA-256 %2$s…\nصدِّره واحتفظ بالملف: بدونه لا يمكن تحديث النسخ المطابقة الموقَّعة بهذا المفتاح بعد إعادة تثبيت التطبيق.</string>
+    <string name="key_create">إنشاء</string>
+    <string name="key_import">استيراد</string>
+    <string name="key_export">تصدير</string>
+    <string name="key_reset">استخدام المدمج</string>
+    <string name="key_password">كلمة سر مخزن المفاتيح</string>
+    <string name="key_alias">اسم المفتاح المستعار (اختياري)</string>
+    <string name="key_created">أُنشئ مفتاح جديد</string>
+    <string name="key_imported">استُورد المفتاح</string>
+    <string name="key_exported">صُدِّر المفتاح</string>
+    <string name="key_reset_done">عاد إلى المفتاح المدمج</string>
+    <string name="key_failed">فشلت عملية المفتاح: %1$s</string>
+    <string name="key_replace_title">استبدال مفتاحك؟</string>
+    <string name="key_replace_message">النسخ المطابقة الموقَّعة بالمفتاح الحالي ستختفي من القائمة وتتوقف عن التحديث حتى تستورد ذلك المفتاح مجددًا. صدِّره أولًا إن قد تحتاجه.</string>
+    <string name="key_replace_confirm">استبدال</string>
+    <string name="clone_badge">وسم الأيقونة بنقطة</string>
+    <string name="clone_rename_alias">العنونة باسم النسخة المطابقة</string>
+    <string name="merge_too_large">لا يمكن دمج هذا التطبيق على الجهاز: جداول موارده (%1$d ميغابايت) تطلب ذاكرة أكثر مما يمنح Android لتطبيق. قد يساعد إلغاء اختيار الأقسام غير اللازمة؛ وإلا فادمجه على حاسوب.</string>
+    <string name="tab_sources">المصادر</string>
+    <string name="settings_check_sources">تطبيقات المصادر</string>
+    <string name="settings_check_sources_description">إصدارات جديدة لتطبيقات تبويب «المصادر».</string>
+    <string name="settings_sources">إعدادات المصادر</string>
+    <string name="sources_share_label">التتبع في APK Toolbox</string>
+    <string name="sources_empty">لا تطبيقات متتبَّعة بعد.\nأضف واحدًا برابطه أو ابحث عنه.</string>
+    <string name="sources_add">إضافة تطبيق</string>
+    <string name="sources_filter">تصفية</string>
+    <string name="sources_filter_clear">إزالة التصفية</string>
+    <string name="settings_section_updates">التحديثات</string>
+    <string name="settings_section_install">التثبيت التلقائي</string>
+    <string name="settings_section_experimental">تجريبي</string>
+    <string name="settings_check_clones">النسخ المطابقة</string>
+    <string name="settings_check_clones_description">تكون النسخة المطابقة متقادمة إذا حُدِّث أصلها أو صدر في مصدرها إصدار أحدث.</string>
+    <string name="settings_check_on_start">التحقق عند الفتح</string>
+    <string name="settings_check_on_start_description">تُطلب تحديثات تطبيقات المصادر والنسخ المطابقة في كل مرة يُفتح فيها APK Toolbox.</string>
+    <string name="settings_wifi_only">انتظار Wi-Fi</string>
+    <string name="settings_wifi_only_description">ما يُوجد على بيانات الجوال يُثبَّت عند اتصال Wi-Fi.</string>
+    <string name="settings_charging_only">انتظار الشاحن</string>
+    <string name="settings_charging_only_description">ما يُوجد على البطارية يُثبَّت عند توصيل الشاحن.</string>
+    <string name="settings_sources_description">الرموز، الإصدارات المحسوبة، الاستيراد والتصدير.</string>
+    <string name="settings_root">التثبيت بصلاحية root</string>
+    <string name="settings_root_description">مفعَّلًا، يتقدم على طرق التثبيت الأخرى. قد تضطر تثبيتات الخلفية إلى طلب الوصول من مدير root في كل مرة. غير مختبَر.</string>
+    <string name="cloning_installed">المثبتة</string>
+    <string name="cloning_clones">النسخ المطابقة</string>
+    <string name="export_done">صُدِّر كملف APKS</string>
+    <string name="root_not_granted">لم تُمنح صلاحية root</string>
+    <string name="settings_install_method_description">كيف تُثبَّت التحديثات في الخلفية.</string>
+    <string name="hint_tab_install">يثبِّت حزم APKS وXAPK وAPKM ومجموعات ملفات APK المقسومة. يمكن تصدير تطبيق مثبَّت من القائمة كملف APKS.</string>
+    <string name="hint_tab_split">يدمج تطبيقًا مكوَّنًا من عدة ملفات APK مقسومة في ملف APK عادي واحد. لا تُعرض إلا التطبيقات المثبتة كأقسام؛ يمكن اختيار ملف حزمة كذلك.</string>
+    <string name="install_sign_description">يعيد توقيع الملفات بالمفتاح من الإعدادات. يلزم إذا عُدِّلت أو كان توقيعها معطوبًا؛ لن يستطيع مثل هذا التطبيق التحديث فوق الأصل.</string>
+    <string name="merge_sign_description">يوقِّع ملف APK المدموج بالمفتاح من الإعدادات ليصبح قابلًا للتثبيت. بدونه يبقى الملف غير موقَّع.</string>
+    <string name="merge_force_description">يدمج الأقسام حتى لو اختلفت إصداراتها أو حزمها. لا تستخدمه إلا إذا رفض الدمج العادي؛ قد لا يعمل الناتج.</string>
+    <string name="tab_info">عن هذه القائمة</string>
+    <string name="hint_tab_sources">يتتبع تطبيقات GitHub وF-Droid والمتاجر ومواقع أخرى: أضف تطبيقًا برابطه أو باسمه، وتُوجد الإصدارات الجديدة من هنا وتُنزَّل وتُثبَّت.</string>
+    <string name="hint_tab_apps">ينشئ نسخة من تطبيق مثبَّت باسم حزمة آخر: لكل نسخة بياناتها الخاصة. اختر تطبيقًا من القائمة أو ملف APK.</string>
+    <string name="hint_tab_clones">نسخك المطابقة هنا. تتقادم النسخة المطابقة عندما يُحدَّث أصلها أو يظهر إصدار جديد في مصدرها.</string>
+    <string name="settings_language">اللغة</string>
+    <string name="settings_language_description">يتحدث التطبيق لغة النظام ما لم تختر له غيرها.</string>
+    <string name="language_system">مثل النظام</string>
+    <string name="settings_log">السجل</string>
+    <string name="settings_log_description">ما تم التحقق منه وتنزيله واستنساخه ودمجه وتثبيته، وما فشل. يُحفظ 30 يومًا.</string>
+    <string name="button_show_log">عرض السجل</string>
+    <string name="log_empty">لم يُسجَّل شيء بعد.</string>
+    <string name="log_save">حفظ</string>
+    <plurals name="log_show_more">
+        <item quantity="zero">إظهار %d إدخالات أقدم</item>
+        <item quantity="one">إظهار %d إدخالًا أقدم</item>
+        <item quantity="two">إظهار %d إدخالين أقدم</item>
+        <item quantity="few">إظهار %d إدخالات أقدم</item>
+        <item quantity="many">إظهار %d إدخالًا أقدم</item>
+        <item quantity="other">إظهار %d إدخالًا أقدم</item>
+    </plurals>
+    <string name="button_refresh">التحقق من التحديثات</string>
+    <string name="clones_up_to_date">كل النسخ المطابقة محدَّثة</string>
+    <plurals name="log_days">
+        <item quantity="zero">%d يوم</item>
+        <item quantity="one">يوم واحد</item>
+        <item quantity="two">يومان</item>
+        <item quantity="few">%d أيام</item>
+        <item quantity="many">%d يومًا</item>
+        <item quantity="other">%d يوم</item>
+    </plurals>
+    <string name="search_clear">مسح البحث</string>
+    <string name="clone_permissions">الأذونات</string>
+    <string name="clone_permissions_removed">الأذونات: أُزيل %1$d</string>
+    <string name="clone_permissions_hint">كل ما يطلبه الأصل. أوقف ما ينبغي ألا تكون النسخة المطابقة عليه؛ قد يتوقف التطبيق عن العمل بلا إذن يعتمد عليه.</string>
+    <string name="clone_permissions_none">لا يطلب التطبيق أذونات.</string>
+    <string name="clone_patches">التعديلات</string>
+    <string name="clone_patches_on">التعديلات: %1$d من %2$d مفعَّلة</string>
+    <string name="clone_patches_not_applied">لم تستطع آخر بنية تطبيق «%1$s»: تعذّرت قراءة شهادة توقيع الأصل، لذا تعديل الهوية ليس في النسخة المطابقة.</string>
+    <string name="clone_patches_hint">تغييرات في شيفرة النسخة المطابقة. كل تعديل اختياري ولا يُطبَّق إلا على هذه النسخة.</string>
+    <string name="clone_rename_alias_note">يعيد كتابة اسم الحزمة في شيفرة النسخة المطابقة ليجد ملفاته ومكوناته الخاصة. التمويه، على العكس، يُظهر النسخة المطابقة كالأصل أمام الفحوصات.</string>
+    <string name="clone_mimicry">التمويه</string>
+    <string name="clone_mimicry_note">تقدِّم النسخة المطابقة نفسها تمامًا بوصفها الأصل - اسم الحزمة والتوقيع: أمام فحوصاتها وخوادمها وتحليلاتها. يبقى إيجاد مكونات النسخة المطابقة نفسها يعمل عبر مسار احتياطي.</string>
+    <string name="clone_keep_alive">كبت الإنهاء</string>
+    <string name="clone_keep_alive_note">كل استدعاء من شأنه إنهاء التطبيق - System.exit وRuntime.exit وProcess.killProcess وfinish وfinishAffinity وfinishAndRemoveTask - يصير عملية فارغة، فلا يستطيع التطبيق قتل نفسه ولا إخراج المستخدم، مهما كان السبب: فحص توقيع، لا حساب مسجَّل الدخول، فحص فاشل عند التشغيل. بعد الخروج قد يبقى التطبيق في الخلفية بدل أن يغلق.</string>
+    <string name="clone_permission_absent">لا تطلبه هذه النسخة. إن عاد بقي متوقفًا.</string>
+    <string name="clone_permission_new">جديد في هذه النسخة</string>
+    <string name="button_done">تم</string>
+</resources>

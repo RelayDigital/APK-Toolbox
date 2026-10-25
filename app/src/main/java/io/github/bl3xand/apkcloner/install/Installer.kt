@@ -4,6 +4,10 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import io.github.bl3xand.apkcloner.data.ApkSource
+import io.github.bl3xand.apkcloner.install.methods.Root
+import io.github.bl3xand.apkcloner.install.methods.RootInstaller
+import io.github.bl3xand.apkcloner.install.methods.ShizukuInstaller
+import io.github.bl3xand.apkcloner.install.methods.StockInstaller
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.settings.AppSettings
 import io.github.bl3xand.apkcloner.settings.InstallMethod

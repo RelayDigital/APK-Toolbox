@@ -22,8 +22,6 @@ object Downloader {
     private const val PARTIAL_HASH_START = 1024
     private const val PARTIAL_HASH_LOWER_LIMIT = 128
     private const val PARTIAL_HASH_DECREMENT = 256
-    private const val MAX_DOWNLOAD_POLLS = 43
-    private const val DOWNLOAD_POLL_INTERVAL_MS = 7_000L
     private const val PROGRESS_INTERVAL_MS = 500L
     private const val BUFFER_SIZE = 32 * 1024
     private const val PROGRESS_FALLBACK = 30.0
@@ -58,20 +56,6 @@ object Downloader {
                 }
             }
         }
-    }
-
-    /** Waits while another download of the same file is still growing its ".part" file. */
-    private fun waitForConcurrentDownload(tempFile: File, finalFile: File): File? {
-        var currentSize = tempFile.length()
-        var polls = 0
-        while (polls < MAX_DOWNLOAD_POLLS) {
-            polls++
-            Thread.sleep(DOWNLOAD_POLL_INTERVAL_MS)
-            if (!tempFile.exists()) return finalFile.takeIf { it.exists() }
-            val newSize = tempFile.length()
-            if (newSize > currentSize) currentSize = newSize else break
-        }
-        return finalFile.takeIf { it.exists() }
     }
 
     /**
@@ -125,76 +109,112 @@ object Downloader {
         }
 
         val tempFile = File(downloadedFile.path + ".part")
-        if (tempFile.exists() && useExisting) {
-            waitForConcurrentDownload(tempFile, downloadedFile)?.let { return it }
-        }
-
-        var rangeStart = if (useExisting && tempFile.exists()) tempFile.length() else 0L
-        var sentRangeRequest = false
-        if (rangeSupported && fullContentLength != null && rangeStart > 0) {
-            reqHeaders["range"] = "bytes=$rangeStart-${fullContentLength - 1}"
-            sentRangeRequest = true
-        } else if (tempFile.exists()) {
-            deleteFile(tempFile)
-        }
-
-        Http.requestStream("GET", url, reqHeaders, options).use { response ->
-            // The server ignored the range and sent the whole file: appending would corrupt it.
-            var append = sentRangeRequest
-            if (sentRangeRequest && response.statusCode == 200) {
-                append = false
-                rangeStart = 0
-                if (tempFile.exists()) deleteFile(tempFile)
+        // Write ownership of the ".part" is exclusive: a second download of the same file
+        // waits for the live one instead of appending over it. A wait that ends without
+        // ownership (wedged holder, or this download was cancelled) leaves the file alone.
+        val lockPath = tempFile.path
+        val finalExistedBefore = downloadedFile.exists()
+        val finalLengthBefore = downloadedFile.length()
+        var acquired = PartFileLocks.tryAcquire(lockPath)
+        try {
+            if (!acquired) {
+                val outcome = partWait.await(
+                    tryAcquire = { PartFileLocks.tryAcquire(lockPath).also { acquired = it } },
+                    cancelled = { cancellationToken?.isCancelled == true },
+                    partSize = { if (tempFile.exists()) tempFile.length() else null },
+                )
+                when (outcome) {
+                    PartWait.Outcome.ACQUIRED -> {}
+                    PartWait.Outcome.ACQUIRED_AFTER_STALL -> {
+                        // The previous holder went silent mid-write: what it left is suspect
+                        // (an unknown mix of its chunks), so the download restarts from zero
+                        // rather than resuming on top of a possibly-live file.
+                        if (tempFile.exists()) deleteFile(tempFile)
+                    }
+                    PartWait.Outcome.CANCELLED -> throw CancellationSignal()
+                    PartWait.Outcome.TIMED_OUT -> throw SourceError(Tr.get("downloadStalledConflict"))
+                }
+                // The other download may have delivered the file while this one waited: a
+                // file that was not there before, or changed since, is its completed work.
+                // A file that was already there, unchanged, is the stale one this download
+                // came to replace, and must not be returned.
+                if (downloadedFile.exists() && (!finalExistedBefore || downloadedFile.length() != finalLengthBefore)) {
+                    return downloadedFile
+                }
             }
-            if (response.statusCode !in 200..299) {
-                if (tempFile.exists()) deleteFile(tempFile)
-                throw Http.statusError(response, url)
+
+            var rangeStart = if (useExisting && tempFile.exists()) tempFile.length() else 0L
+            var sentRangeRequest = false
+            if (rangeSupported && fullContentLength != null && rangeStart > 0) {
+                reqHeaders["range"] = "bytes=$rangeStart-${fullContentLength - 1}"
+                sentRangeRequest = true
+            } else if (tempFile.exists()) {
+                deleteFile(tempFile)
             }
-            var received = if (rangeStart > 0 && fullContentLength != null) rangeStart else 0L
-            var lastProgress = 0L
-            destDir.mkdirs()
-            try {
-                FileOutputStream(tempFile, append).use { output ->
-                    response.body.use { input ->
-                        val buffer = ByteArray(BUFFER_SIZE)
-                        while (true) {
-                            cancellationToken?.throwIfCancelled()
-                            val read = input.read(buffer)
-                            if (read < 0) break
-                            output.write(buffer, 0, read)
-                            received += read
-                            val now = System.currentTimeMillis()
-                            if (onProgress != null && now - lastProgress >= PROGRESS_INTERVAL_MS) {
-                                val percent = if (fullContentLength != null) {
-                                    (received.toDouble() / fullContentLength * 100).coerceIn(0.0, 100.0)
-                                } else PROGRESS_FALLBACK
-                                onProgress(percent, received, fullContentLength)
-                                lastProgress = now
+
+            Http.requestStream("GET", url, reqHeaders, options).use { response ->
+                // The server ignored the range and sent the whole file: appending would corrupt it.
+                var append = sentRangeRequest
+                if (sentRangeRequest && response.statusCode == 200) {
+                    append = false
+                    rangeStart = 0
+                    if (tempFile.exists()) deleteFile(tempFile)
+                }
+                if (response.statusCode !in 200..299) {
+                    if (tempFile.exists()) deleteFile(tempFile)
+                    throw Http.statusError(response, url)
+                }
+                var received = if (rangeStart > 0 && fullContentLength != null) rangeStart else 0L
+                var lastProgress = 0L
+                destDir.mkdirs()
+                try {
+                    FileOutputStream(tempFile, append).use { output ->
+                        response.body.use { input ->
+                            val buffer = ByteArray(BUFFER_SIZE)
+                            while (true) {
+                                cancellationToken?.throwIfCancelled()
+                                val read = input.read(buffer)
+                                if (read < 0) break
+                                output.write(buffer, 0, read)
+                                received += read
+                                val now = System.currentTimeMillis()
+                                if (onProgress != null && now - lastProgress >= PROGRESS_INTERVAL_MS) {
+                                    val percent = if (fullContentLength != null) {
+                                        (received.toDouble() / fullContentLength * 100).coerceIn(0.0, 100.0)
+                                    } else PROGRESS_FALLBACK
+                                    onProgress(percent, received, fullContentLength)
+                                    lastProgress = now
+                                }
                             }
                         }
                     }
+                } catch (e: Exception) {
+                    // The ".part" file stays so the download can resume later.
+                    if (e is CancellationSignal || cancellationToken?.isCancelled == true) throw CancellationSignal()
+                    throw e
                 }
-            } catch (e: Exception) {
-                // The ".part" file stays so the download can resume later.
-                if (e is CancellationSignal || cancellationToken?.isCancelled == true) throw CancellationSignal()
-                throw e
-            }
-            onProgress?.invoke(null, null, null)
-            // A stream can end early without an error; keep the part for a ranged retry.
-            if (fullContentLength != null && received < fullContentLength && cancellationToken?.isCancelled != true) {
-                throw IOException("Incomplete download: received $received of $fullContentLength bytes")
-            }
-            if (tempFile.exists()) {
-                if (downloadedFile.exists() && !tempFile.renameTo(downloadedFile)) {
-                    downloadedFile.delete()
+                onProgress?.invoke(null, null, null)
+                // A stream can end early without an error; keep the part for a ranged retry.
+                if (fullContentLength != null && received < fullContentLength && cancellationToken?.isCancelled != true) {
+                    throw IOException("Incomplete download: received $received of $fullContentLength bytes")
                 }
-                if (tempFile.exists() && !tempFile.renameTo(downloadedFile) && !downloadedFile.exists()) {
-                    throw IOException("Could not move ${tempFile.name} into place")
+                if (tempFile.exists()) {
+                    if (downloadedFile.exists() && !tempFile.renameTo(downloadedFile)) {
+                        downloadedFile.delete()
+                    }
+                    if (tempFile.exists() && !tempFile.renameTo(downloadedFile) && !downloadedFile.exists()) {
+                        throw IOException("Could not move ${tempFile.name} into place")
+                    }
                 }
+                return downloadedFile
             }
-            return downloadedFile
+        } finally {
+            if (acquired || PartFileLocks.isHeld(lockPath)) PartFileLocks.release(lockPath)
         }
     }
+
+    /** The wait of a second writer for a live first one; a field so tests can shrink it. */
+    private val partWait = PartWait()
 
     fun deleteFile(file: File) {
         if (file.exists() && !file.delete()) {

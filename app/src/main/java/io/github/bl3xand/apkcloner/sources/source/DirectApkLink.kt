@@ -17,6 +17,7 @@ class DirectAPKLink : AppSource("DirectAPKLink") {
     private val html = HTML()
 
     override val name: String get() = Tr.get("directAPKLink")
+    override val shortName: String get() = "APK"
 
     init {
         versionDetectionDisallowed = true

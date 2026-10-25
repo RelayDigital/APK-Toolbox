@@ -1,0 +1,228 @@
+<resources>
+    <string name="access_title">Dosya erişimi gerekiyor</string>
+    <string name="access_description">APK Toolbox\'un paylaşılan depodaki APK\'larla çalışabilmesi için tüm dosyalara erişime izin verin.</string>
+    <string name="install_access_title">Kurulum izni gerekiyor</string>
+    <string name="install_access_description">Klonların buradan kurulup güncellenebilmesi için APK Toolbox\'un uygulama kurmasına izin verin.</string>
+    <string name="button_grant_access">Erişime izin ver</string>
+
+    <string name="tab_apps">Klonlama</string>
+    <string name="tab_clones">Klonlar</string>
+    <string name="search_hint">Uygulama ara</string>
+    <string name="chip_system_apps">Sistem uygulamaları</string>
+    <string name="chip_clones_original">Asıl uygulamadan</string>
+    <string name="chip_clones_source">Bir kaynaktan</string>
+    <string name="chip_update_available">Güncelleme var</string>
+    <string name="chip_no_updates">Güncellemesiz</string>
+    <string name="empty_list">Uygulama bulunamadı</string>
+    <string name="empty_clones">Henüz klon yok. Kurulu klonlar burada görünür.</string>
+    <string name="button_pick_apk">APK seç</string>
+    <string name="error_invalid_apk">Bu dosya geçerli bir APK değil</string>
+
+    <string name="button_update">Güncelle</string>
+    <string name="field_package">Paket adı</string>
+    <string name="field_app_name">Uygulama adı</string>
+    <string name="clone_conflict">Bu paket adında bir uygulama zaten kurulu ve başka bir anahtarla imzalı: klon üstüne kurulamaz. Klona başka bir paket adı verin ya da kurulu uygulamayı kaldırın.</string>
+    <string name="clone_conflict_remove">Kurulu uygulamayı kaldır</string>
+    <string name="error_invalid_package">En az iki noktayla ayrılmış bölüm gerekir: harfler, rakamlar ve alt çizgiler</string>
+    <string name="signature_hint">Klon, asıl uygulamanın değil APK Toolbox\'un anahtarıyla imzalanır: uygulama değiştirildiğinde imza artık uyuşmaz.</string>
+    <string name="button_clone">Klonla</string>
+    <string name="button_install">Kur</string>
+    <string name="button_save">Kaydet</string>
+    <string name="status_done">Klon hazır</string>
+    <string name="status_saved">Kaydedildi</string>
+    <string name="status_failed">Klonlama başarısız: %1$s</string>
+    <string name="save_failed">Kaydedilemedi: %1$s</string>
+
+    <string name="install_success">Kuruldu</string>
+    <string name="install_failed">Kurulum başarısız: %1$s</string>
+    <string name="install_confirm_needed">sistem onay istedi</string>
+    <string name="detail_cloned_from">Şuradan derlendi</string>
+    <string name="detail_updated_from">Şuradan yeniden derleniyor</string>
+    <string name="detail_from_original">Kurulu uygulama</string>
+    <string name="detail_from_nothing">Hiçbir yerden: asıl uygulama kurulu değil</string>
+    <string name="detail_latest_version">En yeni sürüm</string>
+    <string name="clone_from_original">Asıl uygulamadan</string>
+    <string name="clone_from_source">Bir kaynaktan (%1$s)</string>
+    <string name="origin_system">Sistem</string>
+    <string name="origin_file">Dosyadan</string>
+    <string name="clone_no_updates">Asıl uygulama yok</string>
+    <string name="version_no_updates">%1$s (güncellemesiz)</string>
+    <string name="switch_no_updates">Güncellemesiz</string>
+    <string name="clone_show_in_sources">Kaynaklar\'da göster</string>
+    <string name="clone_track">Bir kaynak üzerinden izle</string>
+    <string name="clone_track_message">Bir klon, kurulu asıl uygulamadan yeniden derlenir; bu yüzden asıl uygulama kaldırılınca güncellenmez - üstelik Google Play dosyalarını başkasına vermez. APK Toolbox uygulamayı paket adıyla, aynı derlemeleri taşıyan mağazalarda (APKPure, RuStore, Galaxy Store ve diğerleri, sırayla) arayabilir ve klonu oradan güncel tutabilir, Kaynaklar sekmesinde. Asıl uygulama sonra kaldırılabilir. Asıl uygulamadan başka biri tarafından imzalanmış bir güncelleme reddedilir.</string>
+    <string name="detail_original_version">Asıl sürüm</string>
+    <string name="detail_clone_version">Klon sürümü</string>
+    <string name="detail_removed_permissions">Kaldırılan izinler</string>
+    <string name="detail_reset_permissions">İzinleri sıfırla</string>
+    <string name="detail_not_installed">Kurulu değil</string>
+    <string name="button_delete">Sil</string>
+
+    <string name="settings_title">Ayarlar</string>
+    <string name="settings_check_interval">Güncelleme denetimi: %1$s</string>
+    <string-array name="check_intervals">
+        <item>günde bir</item>
+        <item>3 günde bir</item>
+        <item>haftada bir</item>
+        <item>2 haftada bir</item>
+        <item>ayda bir</item>
+        <item>3 ayda bir</item>
+        <item>6 ayda bir</item>
+        <item>yılda bir</item>
+    </string-array>
+    <string name="channel_updates">Klon güncellemeleri</string>
+    <string name="settings_play_protect_button">Play Protect ayarları</string>
+    <string name="notification_updating">%1$s güncelleniyor…</string>
+    <string name="notification_available_title">Klon güncellemeleri var</string>
+    <string name="notification_available_text">Güncellemeler var: %1$s. Klon listesini açmak için dokunun.</string>
+
+    <string name="settings_install_method">Kurulum yöntemi</string>
+    <string name="method_stock">Standart</string>
+
+    <string name="shizuku_title">Shizuku erişimi gerekiyor</string>
+    <string name="button_grant_shizuku">Shizuku erişimi ver</string>
+    <string name="shizuku_granted">Shizuku erişimi verildi</string>
+    <string name="shizuku_denied">Shizuku erişimi reddedildi</string>
+
+    <string name="shizuku_not_running_title">Shizuku çalışmıyor</string>
+    <string name="shizuku_not_running">Shizuku\'yu başlatıp geri dönün. O zamana kadar standart yöntem kullanılır.</string>
+    <string name="shizuku_description">APK Toolbox, klonları soru sormadan kurup güncellemek için Shizuku kullanır. Etkinleştirmek için erişim verin; o zamana kadar standart yöntem kullanılır.</string>
+    <string name="shizuku_granted_description">Güncellemeler onaysız kurulur.</string>
+    <string name="play_protect_on_title">Play Protect açık</string>
+    <string name="play_protect_unknown_title">Play Protect engel olabilir</string>
+    <string name="play_protect_on_description">Açık olduğu sürece klonlar bu yöntemle arka planda güncellenmez: bir bildirim gelir ve elle güncellenir. Kaynaklardaki uygulamalar etkilenmez. Uygulama taraması kapatılırsa sınır kalkar ama cihazın koruması zayıflar.</string>
+    <string name="play_protect_off_title">Play Protect kapalı</string>
+    <string name="play_protect_off_description">APK Toolbox ile kurulan uygulamalar, klonlar dahil, onaysız güncellenir.</string>
+
+    <string name="settings_check_updates">Güncellemeleri denetle</string>
+    <string name="settings_check_updates_description">Arka planda, bir takvime göre. Bulunanlar hakkında bildirim gelir.</string>
+    <string name="settings_auto_install">Otomatik kur</string>
+    <string name="settings_auto_install_description">Bulunan güncellemeleri onaysız kur.</string>
+    <string name="notification_failed_title">Klonlar güncellenemedi</string>
+    <string name="notification_failed_text">Güncellenemedi: %1$s (%2$s). Klon listesini açmak için dokunun.</string>
+
+    <string name="tab_split">AntiSplit</string>
+    <string name="empty_split">Bölünmüş uygulama bulunamadı. Aşağıdan bir paket (APKS, XAPK, APKM) ya da birkaç bölünmüş APK seçin.</string>
+    <string name="button_pick_split">Bölünmüş APK seç</string>
+    <string name="merge_open_with">APK kur ya da birleştir</string>
+    <string name="merge_splits_title">Bölümler: %2$d üzerinden %1$d</string>
+    <string name="merge_select_all">Tümü</string>
+    <string name="merge_select_device">Bu cihaz için</string>
+    <string name="merge_sign">Birleştirdikten sonra imzala</string>
+    <string name="merge_force">Uyuşmayan bölümleri yine de birleştir</string>
+    <string name="button_merge">Birleştir</string>
+    <string name="merge_done">Tek APK\'ya birleştirildi</string>
+    <string name="merge_done_unsigned">Birleştirildi, imzasız. İmzasız bir APK imzalanmadan kurulamaz.</string>
+    <string name="merge_done_pairip">Birleştirildi, imzasız bırakıldı: bu uygulama PairIP ile korunuyor ve kendi bütünlüğünü denetliyor, bu yüzden yeniden imzalanmış bir derleme açılışta çöker.</string>
+    <string name="merge_mismatch">Bu bölümlerin sürümü ya da paketi temel APK\'dan farklı: %1$s. İşaretlerini kaldırın ya da uyuşmayan bölümleri birleştirmeyi açın.</string>
+    <string name="merge_failed">Birleştirme başarısız: %1$s</string>
+    <string name="merge_not_split">Bu bölünmüş bir APK\'ya benzemiyor. Bir paket (APKS, XAPK, APKM, ZIP) ya da en az iki APK seçin.</string>
+
+    <string name="tab_install">SAI</string>
+    <string name="button_pick_install">APKS seç</string>
+    <string name="install_sign">Kurmadan önce imzala</string>
+    <string name="button_export">APKS olarak dışa aktar</string>
+    <string name="files_received_title">Bu dosyalarla ne yapılsın?</string>
+    <string name="files_action_install">Kur</string>
+    <string name="files_action_merge">Tek APK\'ya birleştir</string>
+
+    <string name="button_check_now">Şimdi denetle</string>
+    <string name="check_now_started">Bir denetim sürüyor; sonuç bildirim olarak gelecek</string>
+    <string name="notification_up_to_date">Güncelleme yok</string>
+    <string name="install_copy_obb">OBB dosyalarını kopyala (%1$d · %2$s)</string>
+
+    <string name="settings_signing_key">İmza anahtarı</string>
+    <string name="key_bundled_title">Yerleşik anahtar</string>
+    <string name="key_bundled_description">Klonlar ve birleştirilen APK\'lar, uygulamayla gelen anahtarla imzalanır. Herkes için aynıdır ve herkese açıktır. Yalnızca sizin olan bir şeyle imzalamak için kendi anahtarınızı oluşturun ya da alın.</string>
+    <string name="key_custom_title">Kendi anahtarınız</string>
+    <string name="key_custom_description">%1$s\nSHA-256 %2$s…\nDışa aktarın ve dosyayı saklayın: onsuz, bu anahtarla imzalanmış klonlar uygulama yeniden kurulduktan sonra güncellenemez.</string>
+    <string name="key_create">Oluştur</string>
+    <string name="key_import">İçe aktar</string>
+    <string name="key_export">Dışa aktar</string>
+    <string name="key_reset">Yerleşiği kullan</string>
+    <string name="key_password">Keystore parolası</string>
+    <string name="key_alias">Anahtar rumuzu (isteğe bağlı)</string>
+    <string name="key_created">Yeni bir anahtar oluşturuldu</string>
+    <string name="key_imported">Anahtar içe aktarıldı</string>
+    <string name="key_exported">Anahtar dışa aktarıldı</string>
+    <string name="key_reset_done">Yerleşik anahtara dönüldü</string>
+    <string name="key_failed">Anahtar işlemi başarısız: %1$s</string>
+    <string name="key_replace_title">Anahtarınız değiştirilsin mi?</string>
+    <string name="key_replace_message">Geçerli anahtarla imzalanmış klonlar, o anahtarı yeniden içe aktarmadıkça listelenmez ve güncellenmez. Gerekirse diye önce dışa aktarın.</string>
+    <string name="key_replace_confirm">Değiştir</string>
+    <string name="clone_badge">Simgeyi noktayla işaretle</string>
+    <string name="clone_rename_alias">Klon adıyla adresleme</string>
+    <string name="merge_too_large">Bu uygulama cihazda birleştirilemez: kaynak tabloları (%1$d MB) Android\'in bir uygulamaya verdiğinden çok bellek ister. Gereksiz bölümlerin işaretini kaldırmak yardımcı olabilir; değilse bilgisayarda birleştirin.</string>
+    <string name="tab_sources">Kaynaklar</string>
+    <string name="settings_check_sources">Kaynaklardaki uygulamalar</string>
+    <string name="settings_check_sources_description">Kaynaklar sekmesindeki uygulamaların yeni sürümleri.</string>
+    <string name="settings_sources">Kaynak ayarları</string>
+    <string name="sources_share_label">APK Toolbox\'ta izle</string>
+    <string name="sources_empty">Henüz izlenen uygulama yok.\nBirini bağlantısıyla ekleyin ya da aramayla bulun.</string>
+    <string name="sources_add">Uygulama ekle</string>
+    <string name="sources_filter">Süzgeç</string>
+    <string name="sources_filter_clear">Süzgeci temizle</string>
+    <string name="settings_section_updates">Güncellemeler</string>
+    <string name="settings_section_install">Otomatik kurulum</string>
+    <string name="settings_section_experimental">Deneysel</string>
+    <string name="settings_check_clones">Klonlar</string>
+    <string name="settings_check_clones_description">Bir klon, aslı güncellendiğinde ya da kaynağında daha yeni bir sürüm çıktığında bayatlar.</string>
+    <string name="settings_check_on_start">Açılışta denetle</string>
+    <string name="settings_check_on_start_description">Kaynaklardaki uygulamaların ve klonların güncellemeleri APK Toolbox her açılışında aranır.</string>
+    <string name="settings_wifi_only">Wi-Fi bekle</string>
+    <string name="settings_wifi_only_description">Mobil veride bulunan güncellemeler Wi-Fi bağlanınca kurulur.</string>
+    <string name="settings_charging_only">Şarj aletini bekle</string>
+    <string name="settings_charging_only_description">Pildeyken bulunan güncellemeler şarj aleti takılınca kurulur.</string>
+    <string name="settings_sources_description">Belirteçler, sayılan sürümler, içe ve dışa aktarma.</string>
+    <string name="settings_root">Root ile kur</string>
+    <string name="settings_root_description">Açıkken diğer kurulum yöntemlerinin önüne geçer. Arka plan kurulumları root yöneticisinden her seferinde erişim isteyebilir. Test edilmedi.</string>
+    <string name="cloning_installed">Kurulular</string>
+    <string name="cloning_clones">Klonlar</string>
+    <string name="export_done">APKS olarak dışa aktarıldı</string>
+    <string name="root_not_granted">Root erişimi verilmedi</string>
+    <string name="settings_install_method_description">Güncellemeler arka planda nasıl kurulur.</string>
+    <string name="hint_tab_install">APKS, XAPK ve APKM paketlerini ile bölünmüş APK takımlarını kurar. Listeden kurulu bir uygulama APKS dosyası olarak dışa aktarılabilir.</string>
+    <string name="hint_tab_split">Birkaç bölünmüş APK\'dan oluşan uygulamayı tek sıradan bir APK\'ya birleştirir. Yalnızca bölünmüş kurulan uygulamalar listelenir; paket dosyası da seçilebilir.</string>
+    <string name="install_sign_description">Dosyaları ayarlardaki anahtarla yeniden imzalar. Değiştirildilerse ya da imzaları bozuksa gerekir; böyle bir uygulama aslının üstünden güncellenemez.</string>
+    <string name="merge_sign_description">Birleştirilmiş APK\'yı ayarlardaki anahtarla imzalar, kurulabilmesi için. Bu olmadan dosya imzasız kalır.</string>
+    <string name="merge_force_description">Bölümleri sürümleri ya da paketleri farklı olsa da birleştirir. Yalnızca normal birleştirme reddederken kullanın; sonuç çalışmayabilir.</string>
+    <string name="tab_info">Bu liste hakkında</string>
+    <string name="hint_tab_sources">GitHub, F-Droid, mağaza ve başka sitelerdeki uygulamaları izler: bir uygulamayı bağlantıyla ya da adla ekleyin; yeni sürümleri buradan bulunur, indirilir ve kurulur.</string>
+    <string name="hint_tab_apps">Kurulu bir uygulamanın kopyasını başka bir paket adıyla çıkartır: her kopyanın kendi verileri olur. Listeden bir uygulama ya da bir APK dosyası seçin.</string>
+    <string name="hint_tab_clones">Yaptığınız klonlar buradadır. Bir klon, aslı güncellendiğinde ya da kaynağında yeni bir sürüm çıktığında bayatlar.</string>
+    <string name="settings_language">Dil</string>
+    <string name="settings_language_description">Başka söylenmedikçe uygulama sistemin dilini konuşur.</string>
+    <string name="language_system">Sistemdeki gibi</string>
+    <string name="settings_log">Günlük</string>
+    <string name="settings_log_description">Neler denetlendi, indirildi, klonlandı, birleştirildi ve kuruldu; neyi başarısız oldu. 30 gün tutulur.</string>
+    <string name="button_show_log">Günlüğü göster</string>
+    <string name="log_empty">Henüz bir şey kaydedilmedi.</string>
+    <string name="log_save">Kaydet</string>
+    <plurals name="log_show_more">
+        <item quantity="one">%d eski kaydı göster</item>
+        <item quantity="other">%d eski kaydı göster</item>
+    </plurals>
+    <string name="button_refresh">Güncellemeleri denetle</string>
+    <string name="clones_up_to_date">Tüm klonlar güncel</string>
+    <plurals name="log_days">
+        <item quantity="one">%d gün</item>
+        <item quantity="other">%d gün</item>
+    </plurals>
+    <string name="search_clear">Aramayı temizle</string>
+    <string name="clone_permissions">İzinler</string>
+    <string name="clone_permissions_removed">İzinler: %1$d kaldırıldı</string>
+    <string name="clone_permissions_hint">Asıl uygulamanın istediği her şey. Klonun olmaması gerekenleri kapatın; bel bağladığı bir izin olmadan uygulama çalışmayı bırakabilir.</string>
+    <string name="clone_permissions_none">Uygulama hiç izin istemiyor.</string>
+    <string name="clone_patches">Yamalar</string>
+    <string name="clone_patches_on">Yamalar: %2$d üzerinden %1$d açık</string>
+    <string name="clone_patches_not_applied">Son derleme «%1$s» uygulayamadı: asıl uygulamanın imza sertifikası okunamadı, bu yüzden kimlik yaması klonda yok.</string>
+    <string name="clone_patches_hint">Klonun kodundaki değişiklikler. Her yama isteğe bağlıdır ve yalnızca bu klona uygulanır.</string>
+    <string name="clone_rename_alias_note">Klonun kendi dosyalarını ve bileşenlerini bulması için koddaki paket adını yeniden yazar. Taklit ise tam tersine, klonu denetimlere asıl uygulama gibi gösterir.</string>
+    <string name="clone_mimicry">Taklit</string>
+    <string name="clone_mimicry_note">Klon kendini tamamen ASIL UYGULAMA olarak tanıtır - paket adı ve imza: kendi denetimlerine, sunucularına ve analizine. Klonun kendi bileşenlerini araması bir yedek yoldan çalışmayı sürdürür.</string>
+    <string name="clone_keep_alive">Çıkışı bastır</string>
+    <string name="clone_keep_alive_note">Uygulamayı bitirecek her çağrı - System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask - boş bir işlem olur; böylece uygulama kendini öldüremez ve kullanıcıyı dışarı atamaz, nedeni her ne olursa olsun: imza denetimi, oturum açılmamış hesap, açılışta başarısız bir denetim. Çıkış yaptıktan sonra uygulama kapanmak yerine arka planda kalabilir.</string>
+    <string name="clone_permission_absent">Bu sürümde istenmiyor. Geri gelirse kapalı kalır.</string>
+    <string name="clone_permission_new">Bu sürümde yeni</string>
+    <string name="button_done">Tamam</string>
+</resources>

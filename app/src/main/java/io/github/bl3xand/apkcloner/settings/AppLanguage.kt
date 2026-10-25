@@ -1,0 +1,48 @@
+package io.github.bl3xand.apkcloner.settings
+
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
+
+/**
+ * The language the app is shown in when it is not the system's. The choice is kept by the
+ * system, as the app's own language, so it is the same one its settings page for the app shows.
+ */
+enum class AppLanguage(val tag: String, val ownName: String) {
+    /** No choice: whatever the system is set to. */
+    SYSTEM("", ""),
+    ENGLISH("en", "English"),
+    RUSSIAN("ru", "Русский"),
+    CHINESE("zh", "中文"),
+    JAPANESE("ja", "日本語"),
+    ARABIC("ar", "العربية"),
+    GERMAN("de", "Deutsch"),
+    FRENCH("fr", "Français"),
+    SPANISH("es", "Español"),
+    PORTUGUESE_BRAZIL("pt-BR", "Português (Brasil)"),
+    TURKISH("tr", "Türkçe"),
+    KOREAN("ko", "한국어"),
+    ITALIAN("it", "Italiano"),
+    POLISH("pl", "Polski"),
+    VIETNAMESE("vi", "Tiếng Việt"),
+    INDONESIAN("id", "Bahasa Indonesia"),
+    UKRAINIAN("uk", "Українська");
+
+    /** Makes this the app's language; the screens on show are built again in it. */
+    fun apply() {
+        AppCompatDelegate.setApplicationLocales(
+            if (this == SYSTEM) LocaleListCompat.getEmptyLocaleList() else LocaleListCompat.forLanguageTags(tag),
+        )
+    }
+
+    companion object {
+        /** What is chosen now. */
+        fun current(): AppLanguage {
+            val chosen = AppCompatDelegate.getApplicationLocales()
+            if (chosen.isEmpty) return SYSTEM
+            val first = chosen[0] ?: return SYSTEM
+            return entries.firstOrNull {
+                it != SYSTEM && it.tag == first.toLanguageTag() || it.tag == first.language
+            } ?: SYSTEM
+        }
+    }
+}

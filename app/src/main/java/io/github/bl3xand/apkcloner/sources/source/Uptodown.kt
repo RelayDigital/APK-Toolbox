@@ -1,5 +1,8 @@
 package io.github.bl3xand.apkcloner.sources.source
 
+import io.github.bl3xand.apkcloner.sources.core.SourceEnv
+import io.github.bl3xand.apkcloner.sources.core.notForDevice
+import io.github.bl3xand.apkcloner.sources.core.androidSdkOf
 import io.github.bl3xand.apkcloner.sources.core.Dates
 import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NoApkError
@@ -37,6 +40,7 @@ class Uptodown : AppSource("Uptodown") {
         showReleaseDateAsVersionToggle = true
         urlsAlwaysHaveExtension = true
         canSearch = true
+        answersForDevice = true
     }
 
     override fun getRequestHeaders(
@@ -105,13 +109,20 @@ class Uptodown : AppSource("Uptodown") {
         val details = getAppDetailsFromPage(standardUrl, additionalSettings)
         val version = details["version"]
         if (version.isNullOrEmpty()) throw NoVersionError()
+        // "Android 8.0 or higher required", in the words of the app's own page; the download
+        // page, which the rest is read from, leaves that out. A page that cannot be read
+        // changes nothing.
+        val needed = runCatching {
+            REQUIREMENT.find(sourceRequest(standardUrl.removeSuffix("/download"), additionalSettings).body)?.groupValues?.get(1)
+        }.getOrNull()?.let(::androidSdkOf)
+        if (needed != null && needed > SourceEnv.platform.sdkInt) throw notForDevice(shortName)
         val fileId = details["fileId"] ?: throw NoApkError()
         val appId = details[SettingKeys.APP_ID] ?: throw NoReleasesError()
         val extension = details["extension"]?.takeIf { it.isNotEmpty() } ?: "apk"
         ApkDetails(
             version,
             listOf(NamedUrl("$appId.$extension", "$standardUrl/$fileId-x")),
-            AppNames(details["author"] ?: name, details["name"] ?: Tr.get("app")),
+            AppNames(details["author"] ?: shortName, details["name"] ?: Tr.get("app")),
             releaseDate = parseDate(details["dateStr"]),
         )
     } catch (e: Throwable) {
@@ -131,6 +142,7 @@ class Uptodown : AppSource("Uptodown") {
         val heading = html.selectFirst("#detail-app-name")
         val appId = button?.attr("data-app-id")?.ifEmpty { null } ?: heading?.attr("data-code")?.ifEmpty { null }
         val fileId = button?.attr("data-file-id")?.ifEmpty { null } ?: heading?.attr("data-file-id")?.ifEmpty { null }
+            ?: html.selectFirst("[data-file-id]")?.attr("data-file-id")?.ifEmpty { null }
         if (appId == null || fileId == null) throw NoApkError()
         return resolveDownload(appId, fileId, additionalSettings)
     }
@@ -158,6 +170,8 @@ class Uptodown : AppSource("Uptodown") {
             "fileId" to (
                 html.selectFirst("#detail-download-button")?.attr("data-file-id")?.ifEmpty { null }
                     ?: appNameElement?.attr("data-file-id")?.ifEmpty { null }
+                    // Some pages carry it on another element than the button.
+                    ?: html.selectFirst("[data-file-id]")?.attr("data-file-id")?.ifEmpty { null }
                 ),
             "extension" to (info["file type"] ?: cells.getOrNull(cells.size - 4))?.lowercase(),
         )
@@ -208,6 +222,7 @@ class Uptodown : AppSource("Uptodown") {
         Dates.tryParseLocalDate(text, "MMM d, yyyy") ?: Dates.tryParseLocalDate(text, "MMMM d, yyyy")
 
     companion object {
+        private val REQUIREMENT = Regex("Android ([0-9][0-9.]*L?) or higher", RegexOption.IGNORE_CASE)
         private const val API_HOST = "www.uptodown.app"
         private const val AUTH_PATH = "/eapi/auth/token"
         private const val SEARCH_URL = "https://en.uptodown.com/android/en/s"

@@ -1,0 +1,226 @@
+<resources>
+    <string name="access_title">Cần quyền truy cập tệp</string>
+    <string name="access_description">Hãy cho phép truy cập tất cả các tệp để APK Toolbox làm việc với các tệp APK trong bộ nhớ dùng chung.</string>
+    <string name="install_access_title">Cần quyền cài đặt</string>
+    <string name="install_access_description">Hãy cho phép APK Toolbox cài đặt ứng dụng để bản sao có thể được cài đặt và cập nhật ngay tại đây.</string>
+    <string name="button_grant_access">Cấp quyền truy cập</string>
+
+    <string name="tab_apps">Sao chép</string>
+    <string name="tab_clones">Bản sao</string>
+    <string name="search_hint">Tìm ứng dụng</string>
+    <string name="chip_system_apps">Ứng dụng hệ thống</string>
+    <string name="chip_clones_original">Từ bản gốc</string>
+    <string name="chip_clones_source">Từ nguồn</string>
+    <string name="chip_update_available">Có bản cập nhật</string>
+    <string name="chip_no_updates">Không cập nhật</string>
+    <string name="empty_list">Không tìm thấy ứng dụng nào</string>
+    <string name="empty_clones">Chưa có bản sao nào. Các bản sao đã cài sẽ hiện ở đây.</string>
+    <string name="button_pick_apk">Chọn APK</string>
+    <string name="error_invalid_apk">Tệp này không phải là tệp APK hợp lệ</string>
+
+    <string name="button_update">Cập nhật</string>
+    <string name="field_package">Tên gói</string>
+    <string name="field_app_name">Tên ứng dụng</string>
+    <string name="clone_conflict">Một ứng dụng có tên gói này đã được cài và được ký bằng khóa khác: bản sao không thể cài đè lên nó. Hãy đặt cho bản sao tên gói khác hoặc gỡ ứng dụng đã cài.</string>
+    <string name="clone_conflict_remove">Gỡ ứng dụng đã cài</string>
+    <string name="error_invalid_package">Cần ít nhất hai phần cách nhau bởi dấu chấm: chữ cái, chữ số và dấu gạch dưới</string>
+    <string name="signature_hint">Bản sao được ký bằng khóa của APK Toolbox, không phải của bản gốc: chữ ký hết khớp ngay khi ứng dụng bị thay đổi.</string>
+    <string name="button_clone">Sao chép</string>
+    <string name="button_install">Cài đặt</string>
+    <string name="button_save">Lưu</string>
+    <string name="status_done">Bản sao đã sẵn sàng</string>
+    <string name="status_saved">Đã lưu</string>
+    <string name="status_failed">Sao chép thất bại: %1$s</string>
+    <string name="save_failed">Không thể lưu: %1$s</string>
+
+    <string name="install_success">Đã cài đặt</string>
+    <string name="install_failed">Cài đặt thất bại: %1$s</string>
+    <string name="install_confirm_needed">hệ thống yêu cầu xác nhận</string>
+    <string name="detail_cloned_from">Được dựng từ</string>
+    <string name="detail_updated_from">Được dựng lại từ</string>
+    <string name="detail_from_original">Ứng dụng đã cài</string>
+    <string name="detail_from_nothing">Không từ đâu: bản gốc chưa được cài</string>
+    <string name="detail_latest_version">Phiên bản mới nhất</string>
+    <string name="clone_from_original">Từ bản gốc</string>
+    <string name="clone_from_source">Từ nguồn (%1$s)</string>
+    <string name="origin_system">Hệ thống</string>
+    <string name="origin_file">Từ tệp</string>
+    <string name="clone_no_updates">Không có bản gốc</string>
+    <string name="version_no_updates">%1$s (không cập nhật)</string>
+    <string name="switch_no_updates">Không cập nhật</string>
+    <string name="clone_show_in_sources">Hiện trong Nguồn</string>
+    <string name="clone_track">Theo dõi qua nguồn</string>
+    <string name="clone_track_message">Bản sao được dựng lại từ bản gốc đã cài, nên khi bản gốc bị gỡ nó ngừng cập nhật — còn Google Play thì không đưa tệp của mình cho ai khác. APK Toolbox có thể tìm ứng dụng theo gói trong các cửa hàng có cùng bản dựng (APKPure, RuStore, Galaxy Store và những cái khác, lần lượt từng cái) và cập nhật bản sao từ đó, trong thẻ Nguồn. Sau đó có thể gỡ bản gốc. Bản cập nhật được ký bởi người khác ngoài bản gốc sẽ bị từ chối.</string>
+    <string name="detail_original_version">Phiên bản bản gốc</string>
+    <string name="detail_clone_version">Phiên bản bản sao</string>
+    <string name="detail_removed_permissions">Quyền đã bỏ</string>
+    <string name="detail_reset_permissions">Quyền đã đặt lại</string>
+    <string name="detail_not_installed">Chưa cài</string>
+    <string name="button_delete">Xóa</string>
+
+    <string name="settings_title">Cài đặt</string>
+    <string name="settings_check_interval">Kiểm tra cập nhật: %1$s</string>
+    <string-array name="check_intervals">
+        <item>mỗi ngày một lần</item>
+        <item>ba ngày một lần</item>
+        <item>mỗi tuần một lần</item>
+        <item>hai tuần một lần</item>
+        <item>mỗi tháng một lần</item>
+        <item>ba tháng một lần</item>
+        <item>sáu tháng một lần</item>
+        <item>mỗi năm một lần</item>
+    </string-array>
+    <string name="channel_updates">Cập nhật bản sao</string>
+    <string name="settings_play_protect_button">Cài đặt Play Protect</string>
+    <string name="notification_updating">Đang cập nhật %1$s…</string>
+    <string name="notification_available_title">Có cập nhật cho bản sao</string>
+    <string name="notification_available_text">Có bản cập nhật: %1$s. Chạm để mở danh sách bản sao.</string>
+
+    <string name="settings_install_method">Cách cài đặt</string>
+    <string name="method_stock">Chuẩn</string>
+
+    <string name="shizuku_title">Cần quyền truy cập Shizuku</string>
+    <string name="button_grant_shizuku">Cấp quyền Shizuku</string>
+    <string name="shizuku_granted">Đã cấp quyền Shizuku</string>
+    <string name="shizuku_denied">Đã từ chối quyền Shizuku</string>
+
+    <string name="shizuku_not_running_title">Shizuku chưa chạy</string>
+    <string name="shizuku_not_running">Hãy khởi động Shizuku rồi quay lại. Trước đó dùng cách chuẩn.</string>
+    <string name="shizuku_description">APK Toolbox dùng Shizuku để cài đặt và cập nhật bản sao mà không cần hỏi. Hãy cấp quyền để bật; trước đó dùng cách chuẩn.</string>
+    <string name="shizuku_granted_description">Cập nhật được cài mà không cần xác nhận.</string>
+    <string name="play_protect_on_title">Play Protect đang bật</string>
+    <string name="play_protect_unknown_title">Play Protect có thể gây phiền</string>
+    <string name="play_protect_on_description">Khi nó bật, bản sao không được cập nhật trong nền theo cách này: bạn nhận thông báo và cập nhật thủ công. Ứng dụng từ nguồn không bị ảnh hưởng. Tắt quét ứng dụng sẽ dỡ bỏ giới hạn, nhưng giảm bảo vệ của thiết bị.</string>
+    <string name="play_protect_off_title">Play Protect đã tắt</string>
+    <string name="play_protect_off_description">Ứng dụng cài qua APK Toolbox, kể cả bản sao, được cập nhật mà không cần xác nhận.</string>
+
+    <string name="settings_check_updates">Kiểm tra cập nhật</string>
+    <string name="settings_check_updates_description">Trong nền, theo lịch. Bạn nhận thông báo về những gì được tìm thấy.</string>
+    <string name="settings_auto_install">Tự động cài đặt</string>
+    <string name="settings_auto_install_description">Cài các bản cập nhật tìm thấy mà không cần xác nhận.</string>
+    <string name="notification_failed_title">Không thể cập nhật bản sao</string>
+    <string name="notification_failed_text">Không thể cập nhật: %1$s (%2$s). Chạm để mở danh sách bản sao.</string>
+
+    <string name="tab_split">AntiSplit</string>
+    <string name="empty_split">Không tìm thấy ứng dụng tách. Hãy chọn bên dưới gói (APKS, XAPK, APKM) hoặc vài tệp APK tách.</string>
+    <string name="button_pick_split">Chọn các APK tách</string>
+    <string name="merge_open_with">Cài hoặc gộp APK</string>
+    <string name="merge_splits_title">Tệp tách: %1$d trên %2$d</string>
+    <string name="merge_select_all">Tất cả</string>
+    <string name="merge_select_device">Cho thiết bị này</string>
+    <string name="merge_sign">Ký sau khi gộp</string>
+    <string name="merge_force">Gộp các tệp tách lệch nhau luôn</string>
+    <string name="button_merge">Gộp</string>
+    <string name="merge_done">Đã gộp thành một tệp APK</string>
+    <string name="merge_done_unsigned">Đã gộp, chưa ký. Tệp APK chưa ký không thể cài cho đến khi được ký.</string>
+    <string name="merge_done_pairip">Đã gộp, để không ký: ứng dụng này được PairIP bảo vệ và tự kiểm tra tính nguyên vẹn, nên bản dựng ký lại sẽ chết ngay khi khởi động.</string>
+    <string name="merge_mismatch">Các tệp tách này khác phiên bản hoặc gói so với tệp gốc: %1$s. Bỏ chọn chúng, hoặc bật gộp các tệp tách lệch nhau.</string>
+    <string name="merge_failed">Gộp thất bại: %1$s</string>
+    <string name="merge_not_split">Đây không giống tệp APK tách. Hãy chọn gói (APKS, XAPK, APKM, ZIP) hoặc ít nhất hai tệp APK.</string>
+
+    <string name="tab_install">SAI</string>
+    <string name="button_pick_install">Chọn APKS</string>
+    <string name="install_sign">Ký trước khi cài</string>
+    <string name="button_export">Xuất thành APKS</string>
+    <string name="files_received_title">Làm gì với những tệp này?</string>
+    <string name="files_action_install">Cài đặt</string>
+    <string name="files_action_merge">Gộp thành một tệp APK</string>
+
+    <string name="button_check_now">Kiểm tra ngay</string>
+    <string name="check_now_started">Đang kiểm tra; kết quả sẽ đến bằng thông báo</string>
+    <string name="notification_up_to_date">Không có cập nhật</string>
+    <string name="install_copy_obb">Chép các tệp OBB (%1$d · %2$s)</string>
+
+    <string name="settings_signing_key">Khóa ký</string>
+    <string name="key_bundled_title">Khóa dựng sẵn</string>
+    <string name="key_bundled_description">Bản sao và các tệp APK đã gộp được ký bằng khóa đi kèm ứng dụng. Nó giống nhau cho mọi người và công khai. Hãy tạo hoặc nhập khóa riêng để ký bằng thứ chỉ mình bạn có.</string>
+    <string name="key_custom_title">Khóa của bạn</string>
+    <string name="key_custom_description">%1$s\nSHA-256 %2$s…\nHãy xuất khóa và giữ tệp: không có nó, các bản sao ký bằng khóa này không thể cập nhật sau khi cài lại ứng dụng.</string>
+    <string name="key_create">Tạo</string>
+    <string name="key_import">Nhập</string>
+    <string name="key_export">Xuất</string>
+    <string name="key_reset">Dùng khóa dựng sẵn</string>
+    <string name="key_password">Mật khẩu keystore</string>
+    <string name="key_alias">Bí danh khóa (không bắt buộc)</string>
+    <string name="key_created">Đã tạo khóa mới</string>
+    <string name="key_imported">Đã nhập khóa</string>
+    <string name="key_exported">Đã xuất khóa</string>
+    <string name="key_reset_done">Đã quay về khóa dựng sẵn</string>
+    <string name="key_failed">Thao tác khóa thất bại: %1$s</string>
+    <string name="key_replace_title">Thay khóa của bạn?</string>
+    <string name="key_replace_message">Các bản sao ký bằng khóa hiện tại sẽ không còn được liệt kê và cập nhật, trừ khi bạn nhập lại khóa đó. Hãy xuất nó trước nếu có thể cần.</string>
+    <string name="key_replace_confirm">Thay thế</string>
+    <string name="clone_badge">Đánh dấu biểu tượng bằng dấu chấm</string>
+    <string name="clone_rename_alias">Địa chỉ hóa theo tên bản sao</string>
+    <string name="merge_too_large">Ứng dụng này không thể gộp trên thiết bị: bảng tài nguyên của nó (%1$d MB) cần nhiều bộ nhớ hơn mức Android cấp cho một ứng dụng. Bỏ chọn các tệp tách không cần có thể giúp; không thì hãy gộp trên máy tính.</string>
+    <string name="tab_sources">Nguồn</string>
+    <string name="settings_check_sources">Ứng dụng từ nguồn</string>
+    <string name="settings_check_sources_description">Phiên bản mới của các ứng dụng từ thẻ Nguồn.</string>
+    <string name="settings_sources">Cài đặt nguồn</string>
+    <string name="sources_share_label">Theo dõi trong APK Toolbox</string>
+    <string name="sources_empty">Chưa có ứng dụng theo dõi nào.\nHãy thêm theo liên kết hoặc tìm qua tìm kiếm.</string>
+    <string name="sources_add">Thêm ứng dụng</string>
+    <string name="sources_filter">Bộ lọc</string>
+    <string name="sources_filter_clear">Xóa bộ lọc</string>
+    <string name="settings_section_updates">Cập nhật</string>
+    <string name="settings_section_install">Cài đặt tự động</string>
+    <string name="settings_section_experimental">Thử nghiệm</string>
+    <string name="settings_check_clones">Bản sao</string>
+    <string name="settings_check_clones_description">Bản sao lỗi thời khi bản gốc của nó được cập nhật hoặc nguồn của nó có phiên bản mới hơn.</string>
+    <string name="settings_check_on_start">Kiểm tra khi mở ứng dụng</string>
+    <string name="settings_check_on_start_description">Cập nhật của ứng dụng từ nguồn và của bản sao được tìm mỗi lần APK Toolbox được mở.</string>
+    <string name="settings_wifi_only">Chờ Wi-Fi</string>
+    <string name="settings_wifi_only_description">Bản cập nhật tìm thấy trên dữ liệu di động được cài khi kết nối Wi-Fi.</string>
+    <string name="settings_charging_only">Chờ sạc</string>
+    <string name="settings_charging_only_description">Bản cập nhật tìm thấy khi dùng pin được cài khi cắm sạc.</string>
+    <string name="settings_sources_description">Token, bản phát hành được tính, nhập và xuất.</string>
+    <string name="settings_root">Cài qua root</string>
+    <string name="settings_root_description">Khi bật, được ưu tiên hơn các cách cài đặt khác. Cài trong nền có thể phải xin quyền trình quản lý root mỗi lần. Chưa thử nghiệm.</string>
+    <string name="cloning_installed">Đã cài</string>
+    <string name="cloning_clones">Bản sao</string>
+    <string name="export_done">Đã xuất thành APKS</string>
+    <string name="root_not_granted">Quyền root chưa được cấp</string>
+    <string name="settings_install_method_description">Cách cập nhật được cài trong nền.</string>
+    <string name="hint_tab_install">Cài các gói APKS, XAPK, APKM và bộ tệp APK tách. Ứng dụng đã cài trong danh sách có thể xuất thành tệp APKS.</string>
+    <string name="hint_tab_split">Gộp ứng dụng gồm nhiều tệp APK tách thành một tệp APK thường. Chỉ ứng dụng cài dạng tách mới có trong danh sách; cũng có thể chọn tệp gói.</string>
+    <string name="install_sign_description">Ký lại tệp bằng khóa trong cài đặt. Cần khi chúng đã bị thay đổi hoặc chữ ký hỏng; ứng dụng như vậy không cập nhật đè lên bản gốc được.</string>
+    <string name="merge_sign_description">Ký tệp APK đã gộp bằng khóa trong cài đặt để có thể cài. Không có thì tệp để không ký.</string>
+    <string name="merge_force_description">Gộp các tệp tách ngay cả khi phiên bản hoặc gói khác nhau. Chỉ dùng khi gộp thường từ chối; kết quả có thể không chạy.</string>
+    <string name="tab_info">Về danh sách này</string>
+    <string name="hint_tab_sources">Theo dõi ứng dụng từ GitHub, F-Droid, cửa hàng và trang khác: thêm ứng dụng theo liên kết hoặc tên, và phiên bản mới được tìm, tải và cài từ đây.</string>
+    <string name="hint_tab_apps">Tạo bản sao của ứng dụng đã cài dưới tên gói khác: mỗi bản có dữ liệu riêng. Chọn ứng dụng từ danh sách hoặc tệp APK.</string>
+    <string name="hint_tab_clones">Các bản sao bạn đã tạo nằm ở đây. Bản sao lỗi thời khi bản gốc của nó được cập nhật hoặc nguồn của nó có phiên bản mới.</string>
+    <string name="settings_language">Ngôn ngữ</string>
+    <string name="settings_language_description">Ứng dụng dùng ngôn ngữ của hệ thống trừ khi được chỉ định khác.</string>
+    <string name="language_system">Theo hệ thống</string>
+    <string name="settings_log">Nhật ký</string>
+    <string name="settings_log_description">Những gì đã kiểm tra, tải, sao chép, gộp và cài, và những gì thất bại. Giữ 30 ngày.</string>
+    <string name="button_show_log">Xem nhật ký</string>
+    <string name="log_empty">Nhật ký còn trống.</string>
+    <string name="log_save">Lưu</string>
+    <plurals name="log_show_more">
+        <item quantity="other">Hiện thêm %d mục cũ hơn</item>
+    </plurals>
+    <string name="button_refresh">Kiểm tra cập nhật</string>
+    <string name="clones_up_to_date">Mọi bản sao đều mới</string>
+    <plurals name="log_days">
+        <item quantity="other">%d ngày</item>
+    </plurals>
+    <string name="search_clear">Xóa tìm kiếm</string>
+    <string name="clone_permissions">Quyền</string>
+    <string name="clone_permissions_removed">Quyền: đã bỏ %1$d</string>
+    <string name="clone_permissions_hint">Mọi thứ bản gốc yêu cầu. Tắt những gì bản sao không nên có; thiếu quyền mà ứng dụng dựa vào thì nó có thể ngừng chạy.</string>
+    <string name="clone_permissions_none">Ứng dụng không yêu cầu quyền nào.</string>
+    <string name="clone_patches">Bản vá</string>
+    <string name="clone_patches_on">Bản vá: %1$d trên %2$d đang bật</string>
+    <string name="clone_patches_not_applied">Bản dựng sau cùng không áp dụng được «%1$s»: không đọc được chứng chỉ ký của bản gốc, nên bản vá danh tính không có trong bản sao.</string>
+    <string name="clone_patches_hint">Các thay đổi mã của bản sao. Mỗi bản vá không bắt buộc và chỉ áp dụng cho bản sao này.</string>
+    <string name="clone_rename_alias_note">Viết lại tên gói trong mã bản sao để nó tìm thấy tệp và thành phần của mình. Ngụy trang ngược lại trình bày bản sao là bản gốc đối với các kiểm tra.</string>
+    <string name="clone_mimicry">Ngụy trang</string>
+    <string name="clone_mimicry_note">Bản sao tự trình bày hoàn toàn là BẢN GỐC — tên gói và chữ ký: đối với kiểm tra của chính nó, máy chủ và phân tích. Việc tra các thành phần riêng của bản sao vẫn chạy qua đường dự phòng.</string>
+    <string name="clone_keep_alive">Chặn thoát</string>
+    <string name="clone_keep_alive_note">Mọi lệnh gọi kết thúc ứng dụng — System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask — trở thành lệnh rỗng, nên ứng dụng không thể tự kết thúc hay đá người dùng ra, vì bất kỳ lý do gì: kiểm tra chữ ký, chưa đăng nhập tài khoản, kiểm tra khởi động thất bại. Sau khi đăng xuất, ứng dụng có thể ở lại nền thay vì đóng.</string>
+    <string name="clone_permission_absent">Không yêu cầu ở phiên bản này. Nếu quay lại thì vẫn để tắt.</string>
+    <string name="clone_permission_new">Mới ở phiên bản này</string>
+    <string name="button_done">Xong</string>
+</resources>

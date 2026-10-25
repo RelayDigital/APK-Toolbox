@@ -12,7 +12,7 @@
 
 # MainViewModel is constructed reflectively by androidx.lifecycle's ViewModelProvider (matched by
 # constructor signature), not a `new` call R8 can trace back to this class.
--keep class io.github.bl3xand.apkcloner.ui.MainViewModel {
+-keep class io.github.bl3xand.apkcloner.ui.main.MainViewModel {
     <init>(android.app.Application);
 }
 
@@ -46,3 +46,26 @@
 
 # TDLib's native code finds the Java classes of its API, their fields and constructors by name.
 -keep class org.drinkless.tdlib.** { *; }
+
+# dexlib2 walks its own class hierarchy by name (Opcodes lookup, immutable instruction
+# factories, DexPool writers) and guava's immutables underneath it. R8 renaming any of it
+# makes every dex patch (SignatureSpoof, KeepAlive, SignatureBypass, CoreRenameAlias) throw
+# at run time into its fail-safe catch, silently producing an unpatched clone.
+-keep class org.jf.dexlib2.** { *; }
+-keep class com.google.common.collect.** { *; }
+-dontwarn org.jf.dexlib2.**
+
+# The dex patchers are structurally identical (same patchDex scaffold), and R8 merges them into
+# one method switch - which broke the per-patch dispatch: clones came out with some patches
+# silently missing. Keeping them apart keeps each patch's rewrite honest.
+-keep class io.github.bl3xand.apkcloner.clone.dex.SignatureBypass { *; }
+-keep class io.github.bl3xand.apkcloner.clone.dex.SignatureBypass$* { *; }
+-keep class io.github.bl3xand.apkcloner.clone.dex.KeepAlive { *; }
+-keep class io.github.bl3xand.apkcloner.clone.dex.KeepAlive$* { *; }
+-keep class io.github.bl3xand.apkcloner.clone.dex.CoreRenameAlias { *; }
+-keep class io.github.bl3xand.apkcloner.clone.dex.CoreRenameAlias$* { *; }
+-keep class io.github.bl3xand.apkcloner.clone.dex.SignatureSpoof { *; }
+-keep class io.github.bl3xand.apkcloner.clone.dex.SignatureSpoof$* { *; }
+
+# The patch chain holder (see its doc): kept so R8 cannot merge or reshuffle its captures.
+-keep class io.github.bl3xand.apkcloner.clone.build.DexPatchChain { *; }

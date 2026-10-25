@@ -1,0 +1,226 @@
+<resources>
+    <string name="access_title">파일 접근 권한 필요</string>
+    <string name="access_description">APK Toolbox가 공유 저장소의 APK를 다룰 수 있도록 모든 파일에 대한 접근을 허용하세요.</string>
+    <string name="install_access_title">설치 권한 필요</string>
+    <string name="install_access_description">클론을 여기서 바로 설치하고 업데이트할 수 있도록 APK Toolbox의 앱 설치를 허용하세요.</string>
+    <string name="button_grant_access">접근 허용</string>
+
+    <string name="tab_apps">복제</string>
+    <string name="tab_clones">클론</string>
+    <string name="search_hint">앱 검색</string>
+    <string name="chip_system_apps">시스템 앱</string>
+    <string name="chip_clones_original">원본에서</string>
+    <string name="chip_clones_source">소스에서</string>
+    <string name="chip_update_available">업데이트 있음</string>
+    <string name="chip_no_updates">업데이트 안 함</string>
+    <string name="empty_list">앱을 찾지 못했습니다</string>
+    <string name="empty_clones">아직 클론이 없습니다. 설치된 클론이 여기 나타납니다.</string>
+    <string name="button_pick_apk">APK 선택</string>
+    <string name="error_invalid_apk">이 파일은 올바른 APK가 아닙니다</string>
+
+    <string name="button_update">업데이트</string>
+    <string name="field_package">패키지 이름</string>
+    <string name="field_app_name">앱 이름</string>
+    <string name="clone_conflict">이 패키지 이름의 앱이 이미 설치되어 있고 다른 키로 서명되었습니다: 클론을 그 위에 설치할 수 없습니다. 클론에 다른 패키지 이름을 주거나 설치된 앱을 제거하세요.</string>
+    <string name="clone_conflict_remove">설치된 앱 제거</string>
+    <string name="error_invalid_package">점으로 구분된 부분이 두 개 이상 필요합니다: letters, digits, underscores</string>
+    <string name="signature_hint">클론은 원본이 아니라 APK Toolbox의 키로 서명됩니다: 앱이 수정되면 서명이 더 이상 일치하지 않습니다.</string>
+    <string name="button_clone">복제</string>
+    <string name="button_install">설치</string>
+    <string name="button_save">저장</string>
+    <string name="status_done">클론이 준비되었습니다</string>
+    <string name="status_saved">저장됨</string>
+    <string name="status_failed">복제 실패: %1$s</string>
+    <string name="save_failed">저장할 수 없습니다: %1$s</string>
+
+    <string name="install_success">설치됨</string>
+    <string name="install_failed">설치 실패: %1$s</string>
+    <string name="install_confirm_needed">시스템이 확인을 요청했습니다</string>
+    <string name="detail_cloned_from">빌드됨</string>
+    <string name="detail_updated_from">다시 빌드됨</string>
+    <string name="detail_from_original">설치된 앱</string>
+    <string name="detail_from_nothing">없음: 원본이 설치되어 있지 않습니다</string>
+    <string name="detail_latest_version">최신 버전</string>
+    <string name="clone_from_original">원본에서</string>
+    <string name="clone_from_source">소스에서 (%1$s)</string>
+    <string name="origin_system">시스템</string>
+    <string name="origin_file">파일에서</string>
+    <string name="clone_no_updates">원본 없음</string>
+    <string name="version_no_updates">%1$s (업데이트 안 함)</string>
+    <string name="switch_no_updates">업데이트 안 함</string>
+    <string name="clone_show_in_sources">소스 탭에 표시</string>
+    <string name="clone_track">소스를 통해 추적</string>
+    <string name="clone_track_message">클론은 설치된 원본에서 다시 빌드되므로, 원본이 제거되면 업데이트되지 않습니다 - 그리고 Google Play는 자신의 파일을 다른 누구에게도 주지 않습니다. APK Toolbox가 같은 빌드를 다루는 스토어(APKPure, RuStore, Galaxy Store 등, 차례로)에서 패키지 이름으로 앱을 찾아 소스 탭에서 클론을 최신으로 유지할 수 있습니다. 그 뒤에는 원본을 제거해도 됩니다. 원본이 아닌 다른 이가 서명한 업데이트는 거부됩니다.</string>
+    <string name="detail_original_version">원본 버전</string>
+    <string name="detail_clone_version">클론 버전</string>
+    <string name="detail_removed_permissions">제거된 권한</string>
+    <string name="detail_reset_permissions">권한 초기화</string>
+    <string name="detail_not_installed">설치되지 않음</string>
+    <string name="button_delete">삭제</string>
+
+    <string name="settings_title">설정</string>
+    <string name="settings_check_interval">업데이트 확인: %1$s</string>
+    <string-array name="check_intervals">
+        <item>매일</item>
+        <item>3일마다</item>
+        <item>매주</item>
+        <item>2주마다</item>
+        <item>매월</item>
+        <item>3개월마다</item>
+        <item>6개월마다</item>
+        <item>매년</item>
+    </string-array>
+    <string name="channel_updates">클론 업데이트</string>
+    <string name="settings_play_protect_button">Play 프로텍트 설정</string>
+    <string name="notification_updating">%1$s 업데이트 중…</string>
+    <string name="notification_available_title">클론 업데이트 있음</string>
+    <string name="notification_available_text">업데이트 있음: %1$s. 탭하여 클론 목록을 엽니다.</string>
+
+    <string name="settings_install_method">설치 방식</string>
+    <string name="method_stock">표준</string>
+
+    <string name="shizuku_title">Shizuku 접근 필요</string>
+    <string name="button_grant_shizuku">Shizuku 접근 허용</string>
+    <string name="shizuku_granted">Shizuku 접근 허용됨</string>
+    <string name="shizuku_denied">Shizuku 접근 거부됨</string>
+
+    <string name="shizuku_not_running_title">Shizuku가 실행 중이 아닙니다</string>
+    <string name="shizuku_not_running">Shizuku를 시작하고 돌아오세요. 그 전까지는 표준 방식이 쓰입니다.</string>
+    <string name="shizuku_description">APK Toolbox는 Shizuku를 통해 확인 없이 클론을 설치하고 업데이트합니다. 켜려면 접근을 허용하세요; 그 전까지는 표준 방식이 쓰입니다.</string>
+    <string name="shizuku_granted_description">업데이트는 확인 없이 설치됩니다.</string>
+    <string name="play_protect_on_title">Play 프로텍트 켜짐</string>
+    <string name="play_protect_unknown_title">Play 프로텍트가 방해할 수 있음</string>
+    <string name="play_protect_on_description">켜져 있는 동안에는 이 방식으로 클론이 백그라운드에서 업데이트되지 않습니다: 알림이 오고 손으로 업데이트합니다. 소스의 앱에는 영향이 없습니다. 앱 검사를 끄면 제한이 풀리지만 기기의 보호가 약해집니다.</string>
+    <string name="play_protect_off_title">Play 프로텍트 꺼짐</string>
+    <string name="play_protect_off_description">APK Toolbox로 설치한 앱, 클론 포함, 확인 없이 업데이트됩니다.</string>
+
+    <string name="settings_check_updates">업데이트 확인</string>
+    <string name="settings_check_updates_description">백그라운드에서, 일정에 따라. 발견된 것에 대해 알림을 받습니다.</string>
+    <string name="settings_auto_install">자동 설치</string>
+    <string name="settings_auto_install_description">찾은 업데이트를 확인 없이 설치합니다.</string>
+    <string name="notification_failed_title">클론을 업데이트할 수 없습니다</string>
+    <string name="notification_failed_text">업데이트할 수 없습니다: %1$s (%2$s). 탭하여 클론 목록을 엽니다.</string>
+
+    <string name="tab_split">AntiSplit</string>
+    <string name="empty_split">분할 앱이 없습니다. 아래에서 번들(APKS, XAPK, APKM) 또는 분할 APK 여러 개를 선택하세요.</string>
+    <string name="button_pick_split">분할 APK 선택</string>
+    <string name="merge_open_with">APK 설치 또는 병합</string>
+    <string name="merge_splits_title">분할: %2$d개 중 %1$d</string>
+    <string name="merge_select_all">모두</string>
+    <string name="merge_select_device">이 기기용</string>
+    <string name="merge_sign">병합 후 서명</string>
+    <string name="merge_force">일치하지 않는 분할도 병합</string>
+    <string name="button_merge">병합</string>
+    <string name="merge_done">하나의 APK로 병합됨</string>
+    <string name="merge_done_unsigned">병합됨, 서명 없음. 서명되지 않은 APK는 서명되기 전까지 설치할 수 없습니다.</string>
+    <string name="merge_done_pairip">병합됨, 서명하지 않음: 이 앱은 PairIP로 보호되어 자신의 무결성을 검사하므로, 다시 서명한 빌드는 시작 시 충돌합니다.</string>
+    <string name="merge_mismatch">이 분할들의 버전이나 패키지가 기본 APK와 다릅니다: %1$s. 선택을 해제하거나, 일치하지 않는 분할 병합을 켜세요.</string>
+    <string name="merge_failed">병합 실패: %1$s</string>
+    <string name="merge_not_split">분할 APK로 보이지 않습니다. 번들(APKS, XAPK, APKM, ZIP) 또는 최소 두 개의 APK를 선택하세요.</string>
+
+    <string name="tab_install">SAI</string>
+    <string name="button_pick_install">APKS 선택</string>
+    <string name="install_sign">설치 전에 서명</string>
+    <string name="button_export">APKS로 내보내기</string>
+    <string name="files_received_title">이 파일들로 무엇을 할까요?</string>
+    <string name="files_action_install">설치</string>
+    <string name="files_action_merge">하나의 APK로 병합</string>
+
+    <string name="button_check_now">지금 확인</string>
+    <string name="check_now_started">확인이 진행 중입니다; 결과는 알림으로 옵니다</string>
+    <string name="notification_up_to_date">업데이트 없음</string>
+    <string name="install_copy_obb">OBB 파일 복사 (%1$d · %2$s)</string>
+
+    <string name="settings_signing_key">서명 키</string>
+    <string name="key_bundled_title">내장 키</string>
+    <string name="key_bundled_description">클론과 병합된 APK는 앱과 함께 오는 키로 서명됩니다. 모두에게 같고 공개되어 있습니다. 당신만 있는 것으로 서명하려면 자신의 키를 만들거나 가져오세요.</string>
+    <string name="key_custom_title">자신의 키</string>
+    <string name="key_custom_description">%1$s\nSHA-256 %2$s…\n내보내서 파일을 보관하세요: 없으면 이 키로 서명된 클론은 앱을 다시 설치한 뒤 업데이트할 수 없습니다.</string>
+    <string name="key_create">만들기</string>
+    <string name="key_import">가져오기</string>
+    <string name="key_export">내보내기</string>
+    <string name="key_reset">내장 키 사용</string>
+    <string name="key_password">Keystore 암호</string>
+    <string name="key_alias">키 별칭 (선택)</string>
+    <string name="key_created">새 키가 만들어졌습니다</string>
+    <string name="key_imported">키를 가져왔습니다</string>
+    <string name="key_exported">키를 내보냈습니다</string>
+    <string name="key_reset_done">내장 키로 돌아갔습니다</string>
+    <string name="key_failed">키 작업 실패: %1$s</string>
+    <string name="key_replace_title">키를 바꿀까요?</string>
+    <string name="key_replace_message">현재 키로 서명된 클론은 이 키를 다시 가져오기 전까지 목록에 나타나지 않고 업데이트되지 않습니다. 필요할 수 있다면 먼저 내보내세요.</string>
+    <string name="key_replace_confirm">바꾸기</string>
+    <string name="clone_badge">아이콘에 점 표시</string>
+    <string name="clone_rename_alias">클론 이름으로 주소 지정</string>
+    <string name="merge_too_large">이 앱은 기기에서 병합할 수 없습니다: 리소스 테이블(%1$d MB)이 Android가 앱에 주는 것보다 많은 메모리를 요구합니다. 필요 없는 분할의 선택을 해제하면 도움이 될 수 있습니다; 아니면 컴퓨터에서 병합하세요.</string>
+    <string name="tab_sources">소스</string>
+    <string name="settings_check_sources">소스의 앱</string>
+    <string name="settings_check_sources_description">소스 탭 앱들의 새 버전.</string>
+    <string name="settings_sources">소스 설정</string>
+    <string name="sources_share_label">APK Toolbox에서 추적</string>
+    <string name="sources_empty">아직 추적 중인 앱이 없습니다.\n링크로 추가하거나 검색으로 찾으세요.</string>
+    <string name="sources_add">앱 추가</string>
+    <string name="sources_filter">필터</string>
+    <string name="sources_filter_clear">필터 지우기</string>
+    <string name="settings_section_updates">업데이트</string>
+    <string name="settings_section_install">자동 설치</string>
+    <string name="settings_section_experimental">실험적</string>
+    <string name="settings_check_clones">클론</string>
+    <string name="settings_check_clones_description">클론은 원본이 업데이트되었거나 소스에 더 새 버전이 있으면 오래됩니다.</string>
+    <string name="settings_check_on_start">열 때 확인</string>
+    <string name="settings_check_on_start_description">소스 앱과 클론의 업데이트는 APK Toolbox를 열 때마다 찾습니다.</string>
+    <string name="settings_wifi_only">Wi-Fi 기다리기</string>
+    <string name="settings_wifi_only_description">모바일 데이터에서 찾은 업데이트는 Wi-Fi가 연결되면 설치됩니다.</string>
+    <string name="settings_charging_only">충전기 기다리기</string>
+    <string name="settings_charging_only_description">배터리로 찾은 업데이트는 충전기가 연결되면 설치됩니다.</string>
+    <string name="settings_sources_description">토큰, 세는 릴리스, 가져오기와 내보내기.</string>
+    <string name="settings_root">root로 설치</string>
+    <string name="settings_root_description">켜면 다른 설치 방식보다 우선합니다. 백그라운드 설치는 매번 root 관리자에게 접근을 요청할 수 있습니다. 테스트되지 않았습니다.</string>
+    <string name="cloning_installed">설치됨</string>
+    <string name="cloning_clones">클론</string>
+    <string name="export_done">APKS로 내보냈습니다</string>
+    <string name="root_not_granted">root 접근이 허용되지 않았습니다</string>
+    <string name="settings_install_method_description">백그라운드에서 업데이트가 어떻게 설치되는지.</string>
+    <string name="hint_tab_install">APKS, XAPK, APKM 번들과 분할 APK 묶음을 설치합니다. 목록의 설치된 앱을 APKS 파일로 내보낼 수 있습니다.</string>
+    <string name="hint_tab_split">여러 분할 APK로 된 앱을 하나의 일반 APK로 병합합니다. 분할로 설치된 앱만 목록에 나타납니다; 번들 파일도 선택할 수 있습니다.</string>
+    <string name="install_sign_description">설정의 키로 파일을 다시 서명합니다. 수정되었거나 서명이 깨진 경우 필요합니다; 그런 앱은 원본 위로 업데이트할 수 없습니다.</string>
+    <string name="merge_sign_description">병합된 APK를 설정의 키로 서명해 설치할 수 있게 합니다. 그러지 않으면 파일은 서명 없이 남습니다.</string>
+    <string name="merge_force_description">버전이나 패키지가 달라도 분할을 병합합니다. 일반 병합이 거절할 때만 쓰세요; 결과가 동작하지 않을 수 있습니다.</string>
+    <string name="tab_info">이 목록 정보</string>
+    <string name="hint_tab_sources">GitHub, F-Droid, 스토어와 다른 사이트의 앱을 추적합니다: 링크나 이름으로 앱을 추가하면, 새 버전을 여기서 찾아 내려받고 설치합니다.</string>
+    <string name="hint_tab_apps">설치된 앱을 다른 패키지 이름으로 복사합니다: 각 복제본은 자기만의 데이터를 가집니다. 목록에서 앱을 고르거나 APK 파일을 고르세요.</string>
+    <string name="hint_tab_clones">당신이 만든 클론이 여기 있습니다. 클론은 원본이 업데이트되거나 소스에 새 버전이 나타나면 오래됩니다.</string>
+    <string name="settings_language">언어</string>
+    <string name="settings_language_description">다른 말을 해주지 않는 한 앱은 시스템의 언어를 씁니다.</string>
+    <string name="language_system">시스템과 같이</string>
+    <string name="settings_log">로그</string>
+    <string name="settings_log_description">무엇을 확인했고, 내려받았고, 복제했고, 병합했고, 설치했는지, 그리고 무엇이 실패했는지. 30일 보관.</string>
+    <string name="button_show_log">로그 보기</string>
+    <string name="log_empty">아직 기록된 것이 없습니다.</string>
+    <string name="log_save">저장</string>
+    <plurals name="log_show_more">
+        <item quantity="other">이전 항목 %d개 더 보기</item>
+    </plurals>
+    <string name="button_refresh">업데이트 확인</string>
+    <string name="clones_up_to_date">모든 클론이 최신입니다</string>
+    <plurals name="log_days">
+        <item quantity="other">%d일</item>
+    </plurals>
+    <string name="search_clear">검색 지우기</string>
+    <string name="clone_permissions">권한</string>
+    <string name="clone_permissions_removed">권한: %1$d개 제거됨</string>
+    <string name="clone_permissions_hint">원본이 요구하는 모든 것. 클론이 가지면 안 되는 것을 끄세요; 앱이 의존하는 권한이 없으면 작동을 멈출 수 있습니다.</string>
+    <string name="clone_permissions_none">이 앱은 권한을 요구하지 않습니다.</string>
+    <string name="clone_patches">패치</string>
+    <string name="clone_patches_on">패치: %2$d개 중 %1$d 켜짐</string>
+    <string name="clone_patches_not_applied">마지막 빌드가 «%1$s»을(를) 적용하지 못했습니다: 원본의 서명 인증서를 읽을 수 없어 신원 패치가 클론에 없습니다.</string>
+    <string name="clone_patches_hint">클론 코드의 변경. 각 패치는 선택 사항이며 이 클론에만 적용됩니다.</string>
+    <string name="clone_rename_alias_note">클론이 자기 파일과 구성 요소를 찾도록 코드의 패키지 이름을 다시 씁니다. 반대로 의태는 클론을 검사에 원본으로 보이게 합니다.</string>
+    <string name="clone_mimicry">의태</string>
+    <string name="clone_mimicry_note">클론은 자신을 완전히 원본으로 내세웁니다 - 패키지 이름과 서명: 자기 검사, 서버, 분석에 대해. 클론 자신의 구성 요소 찾기는 대체 경로로 계속 동작합니다.</string>
+    <string name="clone_keep_alive">종료 억제</string>
+    <string name="clone_keep_alive_note">앱을 끝낼 모든 호출 - System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask - 이 아무 일도 하지 않게 되어, 어떤 이유에서든 - 서명 검사, 로그인된 계정 없음, 시작 검사 실패 - 앱이 스스로를 죽이거나 사용자를 내보낼 수 없습니다. 로그아웃 후에는 앱이 닫히는 대신 백그라운드에 남을 수 있습니다.</string>
+    <string name="clone_permission_absent">이 버전에서는 요구하지 않습니다. 돌아오면 꺼진 채로 있습니다.</string>
+    <string name="clone_permission_new">이 버전에서 새로 생김</string>
+    <string name="button_done">완료</string>
+</resources>

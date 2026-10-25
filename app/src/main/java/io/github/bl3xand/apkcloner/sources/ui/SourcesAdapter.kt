@@ -69,11 +69,17 @@ class SourcesAdapter(
                 MaterialCardView(context, null, MaterialR.attr.materialCardViewFilledStyle).apply {
                     layoutParams = RecyclerView.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ).apply { setMargins(context.dp(16), context.dp(4), context.dp(16), context.dp(8)) }
+                    ).apply {
+                        marginStart = context.dp(16)
+                        marginEnd = context.dp(16)
+                        topMargin = context.dp(4)
+                        bottomMargin = context.dp(8)
+                    }
                     setCardBackgroundColor(context.themeColor(MaterialR.attr.colorPrimaryContainer))
                     val row = LinearLayout(context).apply {
                         gravity = Gravity.CENTER_VERTICAL
-                        setPadding(context.dp(16), context.dp(12), context.dp(12), context.dp(12))
+                        // The end padding is smaller: the button at the end keeps its own margin.
+                        setPaddingRelative(context.dp(16), context.dp(12), context.dp(12), context.dp(12))
                     }
                     row.addView(
                         context.label("", MaterialR.attr.textAppearanceTitleMedium,
@@ -91,7 +97,11 @@ class SourcesAdapter(
         when (val row = getItem(position)) {
             is ListRow.App -> bindApp(holder as AppHolder, row)
             is ListRow.Group -> (holder.itemView as TextView).apply {
-                text = "${if (row.collapsed) "▸" else "▾"}  ${capitalizeFirst(row.title)}  ·  ${row.count}"
+                // The wedge points at the list it toggles: to the start side, which in a
+                // right-to-left locale is the other way round.
+                val wedge = if (row.collapsed) "▸" else "▾"
+                val rtl = resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
+                text = "${if (rtl) mirror(wedge) else wedge}  ${capitalizeFirst(row.title)}  ·  ${row.count}"
                 setOnClickListener { listener.onGroupClick(row) }
             }
             is ListRow.Banner -> {
@@ -113,15 +123,27 @@ class SourcesAdapter(
         binding.textName.typeface = if (app.pinned) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
         // The package is not known until an APK has been seen; until then the id is a made-up one.
         binding.textAuthor.text =
-            listOfNotNull(row.entry.author.takeIf { it.isNotBlank() }, app.id.takeIf { !app.hasTempId }).joinToString(" · ")
+            listOfNotNull(row.entry.author.takeIf { it.isNotBlank() }, app.devicePackage.takeIf { !app.hasTempId }).joinToString(" · ")
         // What stands in the way of the app, most pressing first. A repository that moved is a
         // thing to know; the rest are things that are wrong, and are said in the colour of an error.
-        val trouble = row.signInNote ?: row.checkError?.let { Tr.get("srcCheckFailedShort") }
+        val trouble = row.signInNote
+            ?: if (app.releaseBranchGone) Tr.get("releaseBranchGone") else null
+            ?: row.checkError?.let { Tr.get("srcCheckFailedShort") }
+        // Otherwise the fourth line says where the app comes from and what it is installed as:
+        // itself, or a clone of itself.
+        val asClone = app.clonePackage != null || (app.cloneTarget != null && row.entry.installedInfo == null)
+        val origin = Tr.get(if (asClone) "rowClone" else "rowOriginal", row.entry.sourceName())
         val note = if (app.hasPendingRepoRename) Tr.get("repoRenamed") else trouble
-        binding.textNote.isVisible = note != null
-        binding.textNote.text = note
+        binding.textNote.isVisible = true
+        binding.textNote.text = note ?: origin
         binding.textNote.setTextColor(
-            context.themeColor(if (app.hasPendingRepoRename) AppCompatR.attr.colorPrimary else AppCompatR.attr.colorError),
+            context.themeColor(
+                when {
+                    app.hasPendingRepoRename -> AppCompatR.attr.colorPrimary
+                    note != null -> AppCompatR.attr.colorError
+                    else -> MaterialR.attr.colorOnSurfaceVariant
+                },
+            ),
         )
 
         // Selected, pinned, or neither.
@@ -149,7 +171,10 @@ class SourcesAdapter(
             // What is on the device is another build under the same package, not this app: it
             // is neither installed nor behind.
             row.conflict -> "${Tr.get("notInstalled")} · ${Tr.get("detSignerConflictMark")}"
-            differs -> "$installed → ${app.latestVersion}"
+            // Kept where it is: the newer version is not what the line is about.
+            installed != null && app.updatesOff -> context.getString(R.string.version_no_updates, installed)
+            // Only a version that is on offer: a release older than what is installed is not one.
+            differs && row.updatable -> ltr("$installed → ${app.latestVersion}")
             else -> installed ?: Tr.get("notInstalled")
         }
         binding.textVersion.setTypeface(null, if (app.isVersionPseudo) Typeface.ITALIC else Typeface.NORMAL)
@@ -192,6 +217,16 @@ class SourcesAdapter(
             null
         }
     }
+
+    /** The wedge of a collapsed group, pointing the other way in a right-to-left locale. */
+    private fun mirror(wedge: String) = when (wedge) {
+        "▸" -> "◂"
+        "▾" -> "▴"
+        else -> wedge
+    }
+
+    /** A version line stays left-to-right in a right-to-left locale, arrow and all. */
+    private fun ltr(text: String) = "‪$text‬"
 
     private object Diff : DiffUtil.ItemCallback<ListRow>() {
         override fun areItemsTheSame(old: ListRow, new: ListRow): Boolean = when {

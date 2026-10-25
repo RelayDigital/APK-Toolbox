@@ -14,6 +14,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.R as AppCompatR
 import androidx.core.widget.NestedScrollView
+import com.google.android.material.bottomsheet.BottomSheetDragHandleView
 import com.google.android.material.R as MaterialR
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -143,6 +144,46 @@ fun Context.filterChip(text: CharSequence, checked: Boolean, onChange: (Boolean)
 }
 
 /**
+ * Chips to pick any of [options] by, after one - [all] - that stands for every one of them. It
+ * is on by itself while nothing narrows the list: choosing an option switches it off, and
+ * choosing it switches the options off. [chosen] and what [onChange] gets are null while [all]
+ * is on; a set of options otherwise - an empty one when everything, [all] included, was switched
+ * off, which leaves nothing to show. The chips wrap, so that all of a filter is in sight at once.
+ */
+fun <T> Context.anyOfChips(all: CharSequence, options: List<Pair<T, CharSequence>>, chosen: Set<T>?, onChange: (Set<T>?) -> Unit): ChipGroup {
+    var everything = chosen == null
+    val current = chosen.orEmpty().toMutableSet()
+    val group = ChipGroup(this)
+    // Set while chips are switched from here, so that they do not answer each other.
+    var syncing = false
+    fun report() = onChange(if (everything) null else current.toSet())
+    lateinit var allChip: Chip
+    val chips = options.map { (value, label) ->
+        filterChip(label, value in current) { on ->
+            if (syncing) return@filterChip
+            if (on) current.add(value) else current.remove(value)
+            everything = false
+            syncing = true
+            allChip.isChecked = false
+            syncing = false
+            report()
+        }
+    }
+    allChip = filterChip(all, everything) { on ->
+        if (syncing) return@filterChip
+        everything = on
+        current.clear()
+        syncing = true
+        chips.forEach { it.isChecked = false }
+        syncing = false
+        report()
+    }
+    group.addView(allChip)
+    chips.forEach(group::addView)
+    return group
+}
+
+/**
  * Puts the chips in one line that scrolls sideways when they do not all fit. Left to itself a
  * group wraps into a second line, which pushes everything under it down by a row.
  */
@@ -198,6 +239,12 @@ fun Context.outlinedButton(text: CharSequence, onClick: () -> Unit): MaterialBut
     }
 
 fun View.scrollable(): NestedScrollView = NestedScrollView(context).also { it.addView(this) }
+
+/** The view of a sheet: it scrolls, and the handle above it stays where it is. */
+fun View.scrollableUnderHandle(): LinearLayout = context.column().also {
+    it.addView(BottomSheetDragHandleView(context))
+    it.addView(scrollable(), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+}
 
 fun Context.openUrl(url: String) {
     try {

@@ -2,6 +2,7 @@ package io.github.bl3xand.apkcloner.sources.work
 
 import android.content.Context
 import android.net.ConnectivityManager
+import android.net.Network
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import androidx.work.Constraints
@@ -17,15 +18,24 @@ import io.github.bl3xand.apkcloner.sources.install.SourcesInstaller
 import io.github.bl3xand.apkcloner.sources.model.CheckUpdatesException
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
+import io.github.bl3xand.apkcloner.testing.TestHooks
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
+
+/**
+ * Collects one error per app and groups the apps that failed in the same way. [failureCount] is
+ * how many apps it holds, for one line that sums up a whole pass.
+ */
+fun MultiAppMultiError.failureCount(): Int = idsByErrorString.values.sumOf { it.size }
 
 /** The background pass over tracked apps: check, notify, and install what can go in silently. */
 object SourcesBackground {
     private const val MAX_ATTEMPTS = 4
     private const val MAX_RETRY_WAIT_SECONDS = 30
     private const val TRANSPORT_RETRY_WAIT_SECONDS = 15 * 60
+    /** How long a background run waits for a network that is still coming up. */
+    private const val NETWORK_WAIT_MILLIS = 30_000L
     const val KEY_IDS = "toCheckIds"
     const val KEY_ATTEMPTS = "toCheckAttempts"
 
@@ -35,24 +45,94 @@ object SourcesBackground {
     }
 
     /**
+     * The network the app's HTTP client would use right now: some network has to be active
+     * and claim the internet capability, and while a network is still coming up that can
+     * take a moment. A run that starts in that window waits here for it; the capabilities
+     * seen usable are returned, or null if none arrived.
+     */
+    private suspend fun waitForNetwork(context: Context): NetworkCapabilities? {
+        var usable: NetworkCapabilities? = null
+        val manager = context.getSystemService(ConnectivityManager::class.java)
+        val waiter = NetworkWaiter(
+            isUsable = {
+                val capabilities = network(context)
+                val good = capabilities != null &&
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                if (good) usable = capabilities
+                good
+            },
+            observe = { onChange -> watchForNetworkChange(manager, onChange) },
+        )
+        return if (waiter.awaitUsable(NETWORK_WAIT_MILLIS)) usable else null
+    }
+
+    /** Reports changes of the network the app would use to [onChange] until the returned function is called. */
+    private fun watchForNetworkChange(manager: ConnectivityManager, onChange: () -> Unit): () -> Unit {
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) = onChange()
+
+            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) = onChange()
+
+            override fun onLost(network: Network) = onChange()
+        }
+        // Watching the network the app would use asks for no more than the ACCESS_NETWORK_STATE
+        // the app already has. It reports every change of that network - another one becoming
+        // it (a validating network does once it is ready), its capabilities changing, or it
+        // being lost for another to take over - and each report is re-checked.
+        manager.registerDefaultNetworkCallback(callback)
+        return { manager.unregisterNetworkCallback(callback) }
+    }
+
+    /**
      * [retry] carries the apps of a retry run with their attempt counts; a retry only checks,
      * the regular run also installs. [forceAll] - a check asked for by hand - ignores the per-app
      * schedule and reports every update that is waiting, not only those found just now.
-     * Returns whether there was anything to report or install.
+     * With [only], nothing but those apps is looked at. Returns whether there was anything to
+     * report or install.
      */
-    suspend fun run(context: Context, retry: List<Pair<String, Int>>? = null, forceAll: Boolean = false): Boolean {
+    suspend fun run(
+        context: Context,
+        retry: List<Pair<String, Int>>? = null,
+        forceAll: Boolean = false,
+        only: Set<String>? = null,
+    ): Boolean {
+        // What a whole run took, said to the test hooks (empty unless the instrumentation
+        // enabled them) as a started/finished pair, retries included.
+        TestHooks.backgroundCheckStarted()
+        try {
+            return runInside(context, retry, forceAll, only)
+        } finally {
+            TestHooks.backgroundCheckFinished()
+        }
+    }
+
+    private suspend fun runInside(
+        context: Context,
+        retry: List<Pair<String, Int>>?,
+        forceAll: Boolean,
+        only: Set<String>?,
+    ): Boolean {
         val repo = SourcesRepository.get(context)
         val installer = SourcesInstaller.get(context)
         val settings = repo.settings
         repo.loadApps()
-        val capabilities = network(context)
+        // WorkManager can start the run while a network is still validating, before it
+        // claims the internet capability; give it a moment before calling this no network.
+        var capabilities = network(context)
         if (capabilities == null || !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
-            AppLog.info("BG update task: No network.")
-            return false
+            capabilities = waitForNetwork(context)
+            if (capabilities == null) {
+                AppLog.info("BG update task: No network.")
+                return false
+            }
         }
         val toCheck = retry ?: repo.updates.getAppsSortedByUpdateCheckTime(
             settings.onlyCheckInstalledOrTrackOnlyApps, forceAll,
-        ).map { it to 0 }
+        ).filter { only == null || it in only }.map { it to 0 }
+
+        // What the pass says about branches is the change of it: an app whose followed branch
+        // is already known to be gone is told so once, not on every run.
+        val goneBefore = repo.all().filter { it.app.releaseBranchGone }.map { it.app.id }.toSet()
 
         val networkRestricted = settings.bgUpdatesOnWiFiOnly &&
             !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
@@ -96,12 +176,23 @@ object SourcesBackground {
             }
             if (toRetry.isNotEmpty()) scheduleRetry(context, toRetry, retryAfterSeconds)
 
+            // The pass is summed up in one line: how much was looked at, what it found, what
+            // could not be checked. Retries are counted as failures of this pass, not of the
+            // apps - a later pass tells how they came out.
+            val failedChecks = toRetry.size + (errors?.failureCount() ?: 0)
+            AppLog.info(
+                "BG update task: checked ${toCheck.size - failedChecks}, ${updates.size} update(s) found, $failedChecks failed",
+            )
+
             val notify = ArrayList<TrackedApp>()
             val notifyTrackOnly = ArrayList<TrackedApp>()
             // Asked by hand, the answer covers what was already known to be waiting as well.
             val waiting = if (!forceAll) emptyList() else repo.findAppIdsWithPendingUpdates(installedOnly = true)
-                .filter { id -> updates.none { it.id == id } }.mapNotNull { repo.entry(it)?.app }
+                .filter { id -> (only == null || id in only) && updates.none { it.id == id } }.mapNotNull { repo.entry(it)?.app }
             for (update in updates + waiting) {
+                // The branch-gone notification already told this app's story; an update it
+                // cannot take is not a thing to nag about on top of that.
+                if (update.releaseBranchGone) continue
                 if (canInstall && installer.canInstallSilentlyInBackground(update)) {
                     silentlyInstallable.add(update.id)
                 } else if (!update.settings.getBool(SettingKeys.SKIP_UPDATE_NOTIFICATIONS)) {
@@ -111,6 +202,14 @@ object SourcesBackground {
             reported = notify.isNotEmpty() || notifyTrackOnly.isNotEmpty()
             if (notify.isNotEmpty()) SourcesNotifications.updatesAvailable(context, notify)
             if (notifyTrackOnly.isNotEmpty()) SourcesNotifications.updatesAvailable(context, notifyTrackOnly, trackOnly = true)
+            // Apps whose followed branch went missing in this very pass, one grouped note: a
+            // decision is needed, and it is not a check that failed. Before the retry early
+            // return, so a pass that ends in retries tells this as well.
+            val newlyGone = repo.all().map { it.app }.filter { it.releaseBranchGone && it.id !in goneBefore }
+            if (newlyGone.isNotEmpty()) {
+                SourcesNotifications.branchGone(context, newlyGone)
+                reported = true
+            }
             if (toReport.rawErrors.isNotEmpty() && errors != null) {
                 for ((text, ids) in toReport.idsByErrorString) {
                     SourcesNotifications.checkError(context, errors.errorsAppsString(text, ids), 100 + abs(text.hashCode() % 10_000))
@@ -124,7 +223,7 @@ object SourcesBackground {
         if (canInstall && settings.enableBackgroundUpdates) {
             // Updates found earlier and still waiting are picked up as well.
             for (id in repo.findAppIdsWithPendingUpdates(installedOnly = true)) {
-                if (id in silentlyInstallable) continue
+                if (id in silentlyInstallable || (only != null && id !in only)) continue
                 val app = repo.entry(id)?.app ?: continue
                 if (installer.canInstallSilentlyInBackground(app)) silentlyInstallable.add(id)
             }
@@ -133,10 +232,16 @@ object SourcesBackground {
         AppLog.info("BG install task: Installing ${silentlyInstallable.size} apps silently.")
         try {
             installer.downloadAndInstallLatestApps(silentlyInstallable, prompts = null, forceSerialDownloads = true)
+            // No exception: every app of the batch went through, the one line says it whole.
+            AppLog.info("BG install task: installed ${silentlyInstallable.size} of ${silentlyInstallable.size}")
         } catch (e: MultiAppMultiError) {
             for ((text, ids) in e.idsByErrorString) {
                 SourcesNotifications.checkError(context, e.errorsAppsString(text, ids), 200 + abs(text.hashCode() % 10_000))
             }
+            // A track-only app is only marked as up to date, and a download stopped by hand is
+            // neither installed nor failed; the rest is what this pass could not install.
+            val failed = silentlyInstallable.size - e.idsByErrorString.values.sumOf { it.size }
+            AppLog.info("BG install task: installed ${silentlyInstallable.size - failed} of ${silentlyInstallable.size}")
         }
         return true
     }

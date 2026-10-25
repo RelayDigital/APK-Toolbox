@@ -81,7 +81,7 @@ class SourceForge : AppSource("SourceForge") {
             return ApkDetails(
                 version,
                 ApkFilter.apkUrlsFromUrls(releases.filter { it.second == version }.map { it.first }),
-                AppNames(name, segments[segments.indexOf("files") - 1]),
+                AppNames(shortName, segments[segments.indexOf("files") - 1]),
             )
         } catch (e: Throwable) {
             rethrowOrWrap(e)

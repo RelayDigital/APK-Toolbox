@@ -12,8 +12,9 @@ import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.formatDownloadSize
 import io.github.bl3xand.apkcloner.sources.install.SourcesInstaller
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
-import io.github.bl3xand.apkcloner.ui.MainActivity
-import io.github.bl3xand.apkcloner.ui.MainTabs
+import io.github.bl3xand.apkcloner.testing.TestHooks
+import io.github.bl3xand.apkcloner.ui.main.MainActivity
+import io.github.bl3xand.apkcloner.ui.main.MainTabs
 import kotlin.math.abs
 
 /** Everything the Sources tab reports through notifications. */
@@ -28,6 +29,8 @@ object SourcesNotifications {
     const val ID_APPS_REMOVED = BASE + 6
     const val ID_TRACK_ONLY_UPDATES = BASE + 7
     const val ID_POSSIBLY_UPDATED = BASE + 8
+    const val ID_BRANCH_GONE = BASE + 9
+    const val ID_TELEGRAM_SESSION_ENDED = BASE + 10
     private const val DOWNLOAD_BASE = 100_000
     private const val DOWNLOAD_RANGE = 1_000_000_000
 
@@ -35,6 +38,13 @@ object SourcesNotifications {
     const val EXTRA_MESSAGE = "sourcesMessage"
 
     private fun manager(context: Context) = context.getSystemService(NotificationManager::class.java)
+
+    /** What every posting of a sources notification goes through: the system, and the test
+     *  hooks, which stay empty unless the instrumentation enabled them. */
+    private fun post(context: Context, id: Int, notification: android.app.Notification, channel: String, title: String) {
+        TestHooks.notificationPosted(channel, id, title)
+        manager(context).notify(id, notification)
+    }
 
     private fun builder(
         context: Context,
@@ -93,7 +103,7 @@ object SourcesNotifications {
             .setContentIntent(openIntent(context, id, appId, dialogMessage))
             .setAutoCancel(true)
             .build()
-        manager(context).notify(id, notification)
+        post(context, id, notification, channel, title)
     }
 
     fun updatesAvailable(context: Context, updates: List<TrackedApp>, trackOnly: Boolean = false) = show(
@@ -136,6 +146,21 @@ object SourcesNotifications {
         namedReasons.joinToString("\n") { Tr.get("xWasRemovedDueToErrorY", it.first, it.second) },
     )
 
+    /** The Telegram session was ended from outside; channel-tracked apps need a new sign-in. */
+    fun telegramSessionEnded(context: Context) = show(
+        context, ID_TELEGRAM_SESSION_ENDED, "TELEGRAM_SESSION_ENDED", Tr.get("telegramSessionEndedNotifChannel"),
+        NotificationManager.IMPORTANCE_HIGH,
+        Tr.get("telegramSessionEnded"), Tr.get("telegramSessionEndedText"),
+    )
+
+    /** A decision is needed, so it is said loudly - once per incident, however many apps. */
+    fun branchGone(context: Context, apps: List<TrackedApp>) = show(
+        context, ID_BRANCH_GONE, "BRANCH_GONE", Tr.get("branchGoneNotifChannel"), NotificationManager.IMPORTANCE_HIGH,
+        Tr.get("releaseBranchGoneTitle"),
+        apps.joinToString("\n") { Tr.get("xReleaseBranchGoneNotif", it.finalName) },
+        appId = apps.singleOrNull()?.id,
+    )
+
     fun completeInstallation(context: Context) = show(
         context, ID_COMPLETE_INSTALL, "COMPLETE_INSTALL", Tr.get("completeAppInstallationNotifChannel"),
         NotificationManager.IMPORTANCE_HIGH, Tr.get("completeAppInstallation"), Tr.get("obtainiumMustBeOpenToInstallApps"),
@@ -146,7 +171,7 @@ object SourcesNotifications {
             context, "BG_UPDATE_CHECK", Tr.get("checkingForUpdatesNotifChannel"), NotificationManager.IMPORTANCE_MIN,
         ).setContentTitle(Tr.get("checkingForUpdates")).setContentText(Tr.plural("apps", count))
             .setProgress(0, 0, true).setOngoing(true).build()
-        manager(context).notify(ID_CHECKING, notification)
+        post(context, ID_CHECKING, notification, "BG_UPDATE_CHECK", Tr.get("checkingForUpdates"))
     }
 
     /** [percent] below zero shows an indeterminate bar. [appId] adds a Cancel action. */
@@ -177,7 +202,7 @@ object SourcesNotifications {
                 ),
             )
         }
-        manager(context).notify(id, builder.build())
+        post(context, id, builder.build(), "APP_DOWNLOADING", Tr.get("downloadingX", name))
     }
 
     fun downloaded(context: Context, fileName: String, url: String) = show(

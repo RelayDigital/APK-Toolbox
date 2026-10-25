@@ -1,11 +1,17 @@
 package io.github.bl3xand.apkcloner.sources.data
 
+import io.github.bl3xand.apkcloner.compat.packageInfoOrNull
+import io.github.bl3xand.apkcloner.compat.SIGNERS_FLAG
+import io.github.bl3xand.apkcloner.compat.versionCodeLong
 import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Color
+import io.github.bl3xand.apkcloner.clone.build.ApkCloner
+import io.github.bl3xand.apkcloner.install.InstallCoordinator
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.Tr
+import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.doStringsMatchUnderRegEx
 import io.github.bl3xand.apkcloner.sources.core.errorText
 import io.github.bl3xand.apkcloner.sources.core.isUpdateable
@@ -15,6 +21,7 @@ import io.github.bl3xand.apkcloner.sources.model.JsonValues
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.sources.model.appFromStoredJson
+import io.github.bl3xand.apkcloner.sources.model.preserveUserFields
 import io.github.bl3xand.apkcloner.sources.source.AppSource
 import io.github.bl3xand.apkcloner.sources.source.SourceRegistry
 import java.io.File
@@ -62,6 +69,13 @@ class SourcesRepository private constructor(private val context: Context) {
 
     private val saveCounter = AtomicInteger()
 
+    /**
+     * Counts writes and removals of the app files. Two uses: the temp names a save writes
+     * never collide, and loadApps can tell whether anything was stored while it was reading
+     * the files.
+     */
+    private val storageMutations = AtomicInteger()
+
     /** Checking the sources for new versions. */
     val updates = UpdateChecker(context, this)
 
@@ -72,6 +86,16 @@ class SourcesRepository private constructor(private val context: Context) {
 
     fun all(): List<AppEntry> = synchronized(lock) { entries.values.toList() }
 
+    /**
+     * The tracked apps that are installed as clones of themselves, by the clone's package. Such a
+     * clone is kept up to date from the app's source, not from an installed original.
+     */
+    fun installedAsClones(): Map<String, AppEntry> {
+        // Asked from outside the tab too, where nothing may have been read yet.
+        if (!loadedOnce) runCatching { loadApps() }
+        return all().mapNotNull { entry -> entry.app.clonePackage?.let { it to entry } }.toMap()
+    }
+
     private fun publish() {
         _apps.value = all()
     }
@@ -80,16 +104,33 @@ class SourcesRepository private constructor(private val context: Context) {
         _downloads.value = _downloads.value.toMutableMap().also { if (state == null) it.remove(id) else it[id] = state }
     }
 
-    fun areDownloadsRunning(): Boolean = _downloads.value.isNotEmpty()
+    /**
+     * Whether anything is being downloaded or installed: by this tab, or by a background
+     * worker through the shared install coordinator. What the "already busy" guards check.
+     */
+    fun areDownloadsRunning(): Boolean = _downloads.value.isNotEmpty() || InstallCoordinator.isInstalling
 
     fun installedInfo(packageName: String?): PackageInfo? {
         if (packageName == null) return null
-        return try {
-            packageManager.getPackageInfo(
-                packageName, PackageManager.PackageInfoFlags.of(PackageManager.GET_SIGNING_CERTIFICATES.toLong()),
+        return packageManager.packageInfoOrNull(packageName, SIGNERS_FLAG)
+    }
+
+    /**
+     * Brings "installed as a clone" in line with the device. A clone that is set up and is there
+     * is what the app is installed as; one that is not there (never installed, or removed since)
+     * is not, and the app is again what is installed under its own package, if anything.
+     */
+    private fun settleClone(app: TrackedApp): TrackedApp {
+        val target = app.cloneTarget ?: return app
+        val info = installedInfo(target)
+        val isClone = info != null && (
+            app.clonePackage != null ||
+                info.applicationInfo?.sourceDir?.let(ApkCloner::readMetadata)?.originalPackage == app.id
             )
-        } catch (e: Exception) {
-            null
+        return when {
+            isClone == (app.clonePackage != null) -> app
+            isClone -> app.withSetting(SettingKeys.CLONE_ACTIVE, true)
+            else -> app.withSetting(SettingKeys.CLONE_ACTIVE, false).withSetting(SettingKeys.CLONE_SOURCE_SIGNER, "")
         }
     }
 
@@ -124,8 +165,15 @@ class SourcesRepository private constructor(private val context: Context) {
      * last recorded for this app's source, so it clears itself once the clashing app is gone or a
      * matching one is installed. What is installed then is not this app, whatever its version says.
      */
-    fun hasSignerConflict(entry: AppEntry): Boolean =
-        entry.installedInfo != null && signersClash(entry.installedInfo, storedApkCertHashes(entry.app.id))
+    fun hasSignerConflict(entry: AppEntry): Boolean {
+        if (entry.installedInfo == null) return false
+        val offered = storedApkCertHashes(entry.app.id)
+        if (entry.app.clonePackage == null) return signersClash(entry.installedInfo, offered)
+        // A clone is signed with this app's key, so the system has nothing to compare. What is
+        // compared instead is the signer of the APK the clone was built from.
+        val builtFrom = entry.app.cloneSourceSigner
+        return settings.verifySigningCertHashes && offered.isNotEmpty() && builtFrom.isNotEmpty() && !builtFrom.containsAll(offered)
+    }
 
     private fun isNaiveDetection(app: TrackedApp, source: AppSource = sourceOf(app)): Boolean =
         app.settings.getBool("naiveStandardVersionDetection") || source.naiveStandardVersionDetection
@@ -158,7 +206,7 @@ class SourcesRepository private constructor(private val context: Context) {
         } else if (real != null && app.installedVersion == null) {
             // Found on the device without having been installed from here. A source whose
             // versions are not the app's own can still say whether it is the latest release.
-            val isLatest = runCatching { sourceOf(app).isLatestBuildInstalled(app, info?.versionName, info?.longVersionCode ?: 0) }.getOrNull()
+            val isLatest = runCatching { sourceOf(app).isLatestBuildInstalled(app, info?.versionName, info?.versionCodeLong ?: 0) }.getOrNull()
             app = app.copy(installedVersion = if (isLatest == true) app.latestVersion else real)
             modified = true
         }
@@ -182,13 +230,20 @@ class SourcesRepository private constructor(private val context: Context) {
         return if (modified) app else null
     }
 
+    @Volatile
+    private var loadedOnce = false
+
     fun loadApps() {
         _loading.value = true
+        loadedOnce = true
         try {
             val removedIds = ArrayList<String>()
             val corrected = ArrayList<TrackedApp>()
             val invalid = ArrayList<Triple<String, String, String>>()
             val loaded = LinkedHashMap<String, AppEntry>()
+            // Read before the files: whether anything is stored while they are being read is
+            // what the swap below decides on.
+            val mutationsBefore = storageMutations.get()
             val files = appsDir.listFiles { file -> file.name.lowercase().endsWith(".json") }
                 ?.sortedBy { it.lastModified() } ?: emptyList()
             for (file in files) {
@@ -205,7 +260,11 @@ class SourcesRepository private constructor(private val context: Context) {
                 }
                 try {
                     val sourceType = sourceOf(app).sourceIdentifier
-                    val info = installedInfo(app.id)
+                    settleClone(app).takeIf { it != app }?.let {
+                        app = it
+                        corrected.add(it)
+                    }
+                    val info = installedInfo(app.devicePackage)
                     reconcileInstallStatus(app, info)?.let {
                         app = it
                         corrected.add(it)
@@ -216,9 +275,27 @@ class SourcesRepository private constructor(private val context: Context) {
                     invalid.add(Triple(app.id, app.finalName, errorText(e)))
                 }
             }
+            // The swap runs under the same lock as saveApps and removeApps, and on whether anything was
+            // stored while the files were being read. Nothing was: the loaded snapshot replaces
+            // the memory. Something was: the memory holds the fresher records for that change,
+            // so the snapshot is laid over it without the clear() - the saved and removed apps
+            // keep what their writers put there, and an app the snapshot no longer has a file
+            // for goes. What used to happen - clear() and putAll() wiping a save that landed
+            // between the snapshot and the swap - cannot anymore.
             synchronized(lock) {
-                entries.clear()
-                entries.putAll(loaded)
+                if (mutationsBefore == storageMutations.get()) {
+                    entries.clear()
+                    entries.putAll(loaded)
+                } else {
+                    // The ids on disk now - the files could have been removed while they were
+                    // being read, and a removed app must go from the memory too, not only from
+                    // the snapshot's put: an id kept only by the stale snapshot is a ghost row
+                    // pointing at no file.
+                    val onDisk = appsDir.listFiles { file -> file.name.lowercase().endsWith(".json") }
+                        ?.mapTo(HashSet()) { it.name.removeSuffix(".json") } ?: emptySet()
+                    for ((id, entry) in loaded) entries[id] = entry
+                    entries.keys.retainAll { it in onDisk }
+                }
             }
             if (invalid.isNotEmpty()) {
                 invalid.forEach { AppLog.error("Removing app ${it.first} (${it.second}) due to load error: ${it.third}") }
@@ -250,43 +327,105 @@ class SourcesRepository private constructor(private val context: Context) {
     }
 
     /**
+     * Builds the record to store for [appIn], given the state of the list at the moment it is
+     * saved: the app and what the system knows about its installed copy. Null when the app is
+     * not to be stored at all.
+     */
+    private fun prepareForSave(
+        appIn: TrackedApp,
+        existing: AppEntry?,
+        attemptToCorrectInstallStatus: Boolean,
+        onlyIfExists: Boolean,
+        reuseInstalledInfo: Boolean,
+    ): Pair<TrackedApp, PackageInfo?>? {
+        var app = settleClone(appIn)
+        // Not when the app has just been told to live under another package.
+        val canReuse = reuseInstalledInfo && existing != null && existing.app.devicePackage == app.devicePackage
+        val info = if (canReuse) existing!!.installedInfo else installedInfo(app.devicePackage)
+        if (!canReuse && info != null) {
+            // The name the system shows wins over the one the source reports.
+            info.applicationInfo?.loadLabel(packageManager)?.toString()?.let { app = app.copy(name = it) }
+        }
+        if (attemptToCorrectInstallStatus) app = reconcileInstallStatus(app, info) ?: app
+        return if (onlyIfExists && existing == null) null else app to info
+    }
+
+    /**
+     * The part of saving that runs under the entries lock, so that the record a save builds from
+     * the state of the list is stored against that same state. The lock spans the whole
+     * read-modify-write: read the entry, build the record, write the file, put it in the map.
+     * Nothing in it runs for long - the file write is the rename of a temp file written just
+     * before it - and nothing it calls takes the lock again (publish and the auto-export are
+     * outside).
+     */
+    private fun saveAppsLocked(
+        apps: List<TrackedApp>,
+        attemptToCorrectInstallStatus: Boolean,
+        onlyIfExists: Boolean,
+        reuseInstalledInfo: Boolean,
+        preserveUserFields: Boolean,
+    ) = synchronized(lock) {
+        for (input in apps) {
+            val existing = entries[input.id]
+            // A fetch saved over a record the user has touched since the fetch started must
+            // not overwrite those touches: only what a fetch owns is taken from it.
+            val app = if (preserveUserFields && existing != null) {
+                val source = runCatching { sourceOf(input) }.getOrNull()
+                preserveUserFields(
+                    existing.app, input,
+                    branchKeyOf = source?.let { src -> { file: NamedUrl -> src.releaseBranchKeyOf(file) } },
+                )
+            } else {
+                input
+            }
+            val (prepared, info) = prepareForSave(app, existing, attemptToCorrectInstallStatus, onlyIfExists, reuseInstalledInfo)
+                ?: continue
+            writeAppJson(prepared)
+            storageMutations.incrementAndGet()
+            val sourceType = existing?.sourceType ?: runCatching { sourceOf(prepared).sourceIdentifier }.getOrNull()
+            entries[app.id] = AppEntry(prepared, info, sourceType)
+        }
+    }
+
+    /**
      * Stores apps and refreshes their in-memory state. With [onlyIfExists] an app that is not
-     * tracked (any more) is not written.
+     * tracked (any more) is not written. With [preserveUserFields] the saved record gives way,
+     * field by field, to what the list already holds for the user's own words - settings, the
+     * choice of a release file, the installed version once one is set - so that a fetch built
+     * before a user edit does not overwrite it. Meant for records a check fetched; a record the
+     * user edited is the user's whole word and is stored as it is (the default).
      */
     fun saveApps(
         apps: List<TrackedApp>,
         attemptToCorrectInstallStatus: Boolean = true,
         onlyIfExists: Boolean = true,
         reuseInstalledInfo: Boolean = false,
+        preserveUserFields: Boolean = false,
     ) {
-        for (input in apps) {
-            var app = input
-            val existing = entry(app.id)
-            val canReuse = reuseInstalledInfo && existing != null
-            val info = if (canReuse) existing!!.installedInfo else installedInfo(app.id)
-            if (!canReuse && info != null) {
-                // The name the system shows wins over the one the source reports.
-                info.applicationInfo?.loadLabel(packageManager)?.toString()?.let { app = app.copy(name = it) }
-            }
-            if (attemptToCorrectInstallStatus) app = reconcileInstallStatus(app, info) ?: app
-            if (!onlyIfExists || existing != null) {
-                writeAppJson(app)
-                val sourceType = existing?.sourceType ?: runCatching { sourceOf(app).sourceIdentifier }.getOrNull()
-                synchronized(lock) { entries[app.id] = AppEntry(app, info, sourceType) }
-            }
-        }
+        saveAppsLocked(apps, attemptToCorrectInstallStatus, onlyIfExists, reuseInstalledInfo, preserveUserFields)
         publish()
         backup.scheduleAutoExport()
     }
 
     fun removeApps(ids: List<String>) {
+        // Whatever drops an app from the list leaves a line: an app that is gone without one
+        // was never stored.
+        if (ids.isNotEmpty()) AppLog.info("No longer tracked: ${ids.joinToString()}")
         val downloads = apkDir.listFiles() ?: emptyArray()
-        for (id in ids) {
-            File(appsDir, "$id.json").delete()
-            forgetApkCertHashes(id)
-            setCheckError(id, null)
-            downloads.filter { it.name.startsWith("$id-") }.forEach { it.deleteRecursively() }
-            synchronized(lock) { entries.remove(id) }
+        // The lock spans the file deletion and the entry removal, so no save of an app being
+        // removed can land its file and entry back after them (a save running concurrently on
+        // another thread sees the entry gone and, with onlyIfExists, stores nothing). The
+        // counter moves too: a load that read the files before the removal must see it as a
+        // mutation and not resurrect the app from its stale snapshot.
+        synchronized(lock) {
+            for (id in ids) {
+                File(appsDir, "$id.json").delete()
+                forgetApkCertHashes(id)
+                setCheckError(id, null)
+                downloads.filter { it.name.startsWith("$id-") }.forEach { it.deleteRecursively() }
+                entries.remove(id)
+                storageMutations.incrementAndGet()
+            }
         }
         if (ids.isNotEmpty()) {
             publish()
@@ -300,7 +439,7 @@ class SourcesRepository private constructor(private val context: Context) {
      * whose version is read from a file name or was set by hand: there "older" means nothing.
      */
     fun isAppUpdateable(app: TrackedApp): Boolean =
-        isUpdateable(app.installedVersion, app.latestVersion, settings.hideDowngrades && !app.isVersionPseudo)
+        !(app.updatesOff && app.installedVersion != null) && isUpdateable(app.installedVersion, app.latestVersion, settings.hideDowngrades && !app.isVersionPseudo)
 
     /**
      * Apps that are not installed, or whose installed version is behind the latest one. An app

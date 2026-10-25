@@ -5,6 +5,7 @@ import io.github.bl3xand.apkcloner.sources.core.InvalidUrlError
 import io.github.bl3xand.apkcloner.sources.core.NoReleasesError
 import io.github.bl3xand.apkcloner.sources.core.NoVersionError
 import io.github.bl3xand.apkcloner.sources.core.SourceEnv
+import io.github.bl3xand.apkcloner.sources.core.TimeBoxedRegex
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.Url
 import io.github.bl3xand.apkcloner.sources.core.effectiveMinUpdateAgeDays
@@ -60,7 +61,7 @@ class APKMirror : AppSource("APKMirror") {
 
     override fun tryInferringAppId(standardUrl: String, additionalSettings: Map<String, Any?>): String? = try {
         val res = sourceRequest(standardUrl, additionalSettings)
-        if (res.statusCode != 200) {
+        val fromPage = if (res.statusCode != 200) {
             null
         } else {
             val doc = Jsoup.parse(res.body)
@@ -68,6 +69,11 @@ class APKMirror : AppSource("APKMirror") {
                 doc.selectFirst("meta[property=og:image]")?.attr("content")?.ifEmpty { null }
                     ?: doc.selectFirst("meta[name=twitter:image]")?.attr("content"),
             )
+        }
+        // The page is often kept behind a check for browsers; the feed of releases is not, and
+        // its pictures are named after the package as well.
+        fromPage ?: sourceRequest("$standardUrl/feed/", additionalSettings).takeIf { it.statusCode == 200 }?.let { feed ->
+            ICON_URL.findAll(feed.body).firstNotNullOfOrNull { apkMirrorPackageFromIconUrl(it.value) }
         }
     } catch (e: Exception) {
         null
@@ -112,7 +118,7 @@ class APKMirror : AppSource("APKMirror") {
             for (i in items.indices) {
                 if (!fallbackToOlderReleases && i > releaseSkipped) break
                 val title = items[i].selectFirst("title")?.html()
-                if (regexFilter != null && title != null && !Regex(regexFilter).containsMatchIn(title.trim())) continue
+                if (regexFilter != null && title != null && !TimeBoxedRegex.containsMatchIn(Regex(regexFilter), title.trim(), TimeBoxedRegex.SHORT_INPUT_BUDGET_MS)) continue
                 if (isReleaseTooYoung(releaseDateFor(items[i]), minAgeDays)) {
                     if (tooYoungIndex == null) tooYoungIndex = i
                     releaseSkipped++
@@ -158,6 +164,7 @@ class APKMirror : AppSource("APKMirror") {
     }
 
     companion object {
+        private val ICON_URL = Regex("https://[^\"'<>\\s]+\\.(png|webp|jpg)")
         private const val ALLOWLISTED_USER_AGENT_TOKEN = "APKUpdater-v3.5.9"
     }
 }
@@ -197,7 +204,8 @@ fun apkMirrorPackageFromIconUrl(iconUrl: String?): String? {
     if (iconUrl.isNullOrBlank()) return null
     val fileName = Url.tryParse(iconUrl.trim())?.pathSegments?.lastOrNull() ?: return null
     val dotIndex = fileName.lastIndexOf('.')
-    val stem = if (dotIndex > 0) fileName.substring(0, dotIndex) else fileName
+    // A picture cut to a size says so at the end of its name: "..._com.example.app-384x384.png".
+    val stem = (if (dotIndex > 0) fileName.substring(0, dotIndex) else fileName).replace(Regex("-\\d+x\\d+$"), "")
     val packagePattern = Regex("^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$")
     return stem.split('_').reversed().firstOrNull {
         packagePattern.matches(it) && !it.lowercase().contains("apkmirror")

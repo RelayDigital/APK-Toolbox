@@ -1,5 +1,8 @@
 package io.github.bl3xand.apkcloner.sources.ui
 
+import io.github.bl3xand.apkcloner.sources.core.androidVersionName
+import io.github.bl3xand.apkcloner.sources.core.SourceEnv
+import io.github.bl3xand.apkcloner.compat.versionCodeLong
 import android.os.Bundle
 import android.text.InputType
 import android.view.LayoutInflater
@@ -16,7 +19,6 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.R as MaterialR
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.google.android.material.bottomsheet.BottomSheetDragHandleView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.progressindicator.LinearProgressIndicator
@@ -25,6 +27,7 @@ import com.google.android.material.textfield.TextInputLayout
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.CancellationSignal
+import io.github.bl3xand.apkcloner.sources.core.SearchMatch
 import io.github.bl3xand.apkcloner.sources.core.SourceError
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.Url
@@ -41,6 +44,7 @@ import io.github.bl3xand.apkcloner.sources.source.SourceRegistry
 import io.github.bl3xand.apkcloner.ui.Spacing
 import io.github.bl3xand.apkcloner.ui.actionButton
 import io.github.bl3xand.apkcloner.ui.add
+import io.github.bl3xand.apkcloner.ui.anyOfChips
 import io.github.bl3xand.apkcloner.ui.addDivider
 import io.github.bl3xand.apkcloner.ui.addHeading
 import io.github.bl3xand.apkcloner.ui.column
@@ -51,13 +55,19 @@ import io.github.bl3xand.apkcloner.ui.filterChip
 import io.github.bl3xand.apkcloner.ui.label
 import io.github.bl3xand.apkcloner.ui.openUrl
 import io.github.bl3xand.apkcloner.ui.scrollable
+import io.github.bl3xand.apkcloner.ui.scrollableUnderHandle
 import io.github.bl3xand.apkcloner.ui.show
 import io.github.bl3xand.apkcloner.ui.showError
 import io.github.bl3xand.apkcloner.ui.switchRow
 import io.github.bl3xand.apkcloner.ui.themeColor
 import io.github.bl3xand.apkcloner.ui.toast
+import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -72,6 +82,9 @@ class AddAppSheet : BottomSheetDialogFragment() {
 
     private var userInput = ""
     private var overrideSource: String? = null
+
+    /** What the search called each app it found, for a source that knows only the package name. */
+    private val foundNames = HashMap<String, String>()
     private var pickedSource: AppSource? = null
     private var additionalSettings: MutableMap<String, Any?> = LinkedHashMap()
     private var settingsValid = true
@@ -85,10 +98,17 @@ class AddAppSheet : BottomSheetDialogFragment() {
     private lateinit var urlEdit: TextInputEditText
     private lateinit var urlNote: TextView
     private lateinit var addButton: MaterialButton
+    private lateinit var findButton: MaterialButton
+    private var searchText = ""
     private lateinit var optionsToggle: MaterialButton
     private lateinit var optionsContainer: LinearLayout
     private lateinit var searchContainer: LinearLayout
     private lateinit var progress: LinearProgressIndicator
+    private lateinit var searchProgress: LinearProgressIndicator
+
+    /** Searches run here, so that one a source never answers does not keep the sheet waiting. */
+    private val searches = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var searching = false
     private lateinit var noteLabel: TextView
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -96,7 +116,6 @@ class AddAppSheet : BottomSheetDialogFragment() {
         dialogs = SourcesDialogs(context)
         val settings = viewModel.repo.settings
         val root = context.column(Spacing.SHEET)
-        root.add(BottomSheetDragHandleView(context))
         root.add(context.label(Tr.get("addApp"), MaterialR.attr.textAppearanceHeadlineSmall))
 
         // ---- by link ----
@@ -154,19 +173,61 @@ class AddAppSheet : BottomSheetDialogFragment() {
         searchLayout.addView(searchEdit)
         searchLayout.setStartIconOnClickListener { runSearch(searchEdit.text?.toString() ?: "") }
         searchContainer.add(searchLayout, topMargin = Spacing.UNDER_HEADING - 4)
+        // The search shows that it runs where it was started, not up at the link.
+        searchProgress = LinearProgressIndicator(context).apply {
+            isIndeterminate = true
+            isVisible = false
+        }
+        searchContainer.add(searchProgress, topMargin = Spacing.UNDER_LABEL)
+        // A name that was pasted has no key of the keyboard to send it off with.
+        findButton = MaterialButton(context).apply {
+            text = Tr.get("addFindNow")
+            setIconResource(R.drawable.ic_search)
+            iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
+            minimumHeight = context.dp(Spacing.ROW)
+            isEnabled = false
+            setOnClickListener { runSearch(searchEdit.text?.toString() ?: "") }
+        }
+        searchEdit.doAfterTextChanged {
+            searchText = it?.toString().orEmpty()
+            render()
+        }
+        searchContainer.add(findButton, topMargin = Spacing.UNDER_LABEL - Spacing.BUTTON_INSET)
         searchContainer.add(
             context.label(Tr.get("addWhere"), colorAttr = MaterialR.attr.colorOnSurfaceVariant), topMargin = Spacing.UNDER_HEADING,
         )
-        val where = ChipGroup(context)
-        for (source in SourceRegistry.sources.filter { it.canSearch }) {
-            where.addView(
-                context.filterChip(source.name, source.name !in settings.searchDeselected) { checked ->
-                    settings.searchDeselected =
-                        if (checked) settings.searchDeselected - source.name else (settings.searchDeselected + source.name).distinct()
-                },
-            )
+        // "Everywhere" by default; picking sources one by one narrows the search to them.
+        val searchable = SourceRegistry.sources.filter { it.canSearch }
+        val where = context.anyOfChips(
+            Tr.get("addEverywhere"), searchable.map { it.name to it.shortName },
+            if (settings.searchEverywhere) null else searchable.map { it.name }.filter { it !in settings.searchDeselected }.toSet(),
+        ) { picked ->
+            settings.searchEverywhere = picked == null
+            if (picked != null) settings.searchDeselected = searchable.map { it.name }.filter { it !in picked }
         }
         searchContainer.add(where, topMargin = Spacing.UNDER_LABEL)
+        // For this device only: the stores that answer for a device are asked, and what they
+        // find is kept when it has a version this device can run. Which sources to ask is then
+        // not a choice, so the chips are out of reach.
+        val forDeviceSources = searchable.filter { it.answersForDevice }
+        fun lockSources(locked: Boolean) {
+            for (i in 0 until where.childCount) where.getChildAt(i).isEnabled = !locked
+            where.alpha = if (locked) LOCKED_ALPHA else 1f
+        }
+        searchContainer.add(
+            context.switchRow(
+                Tr.get("addForDevice"), settings.searchForDevice,
+                Tr.get(
+                    "addForDeviceNote", androidVersionName(SourceEnv.platform.sdkInt),
+                    SourceEnv.platform.supportedAbis.firstOrNull().orEmpty(), forDeviceSources.joinToString { it.shortName },
+                ),
+            ) { on ->
+                settings.searchForDevice = on
+                lockSources(on)
+            },
+            topMargin = Spacing.UNDER_LABEL,
+        )
+        lockSources(settings.searchForDevice)
         searchContainer.addDivider()
         searchContainer.add(
             context.actionButton(Tr.get("addSupported"), R.drawable.ic_info_outline) { showSupportedSources() },
@@ -186,7 +247,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
 
         arguments?.getString(ARG_URL)?.takeIf { it.isNotEmpty() }?.let { urlEdit.setText(it) }
         render()
-        return root.scrollable()
+        return root.scrollableUnderHandle()
     }
 
     override fun onStart() {
@@ -238,7 +299,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
         val failed = userInput.isNotEmpty() && source == null && error != null
         urlNote.text = when {
             failed -> error
-            source != null -> Tr.get("addDetected", source.name)
+            source != null -> Tr.get("addDetected", source.shortName)
             else -> Tr.get("addLinkHint")
         }
         urlNote.setTextColor(
@@ -315,7 +376,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
         optionsContainer.addHeading(Tr.get("grpInstance"))
         val overrideChoices = listOf("" to Tr.get("none")) + SourceRegistry.sources
             .filter { it.allowOverride || it.sourceIdentifier == source.sourceIdentifier }
-            .map { it.sourceIdentifier to it.name }
+            .map { it.sourceIdentifier to it.shortName }
         optionsContainer.add(
             FormView(
                 context,
@@ -364,16 +425,28 @@ class AddAppSheet : BottomSheetDialogFragment() {
         val valid = (source != null) && settingsValid && requiredFilled(source)
         // While a file is coming down, the button is the way to stop it.
         val downloading = busy && download != null
-        addButton.isEnabled = downloading || (valid && !busy)
+        addButton.isEnabled = downloading || (valid && !busy && !searching)
         addButton.text = Tr.get(if (downloading) "cancel" else "add")
         addButton.setIconResource(if (downloading) R.drawable.ic_close else R.drawable.ic_add)
         progress.show(busy, download?.second?.progress)
         progress.isVisible = busy
+        searchProgress.isVisible = searching
+        findButton.isEnabled = searchText.isNotBlank() && !searching && !busy
         searchContainer.isVisible = source == null && userInput.isEmpty()
         // Options that must be filled in cannot stay hidden.
         val mustShow = source != null && (!settingsValid || !requiredFilled(source))
         optionsToggle.isVisible = source != null && !mustShow
         optionsContainer.isVisible = source != null && (optionsExpanded || mustShow)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        searches.cancel()
+    }
+
+    private fun setSearching(value: Boolean) {
+        searching = value
+        if (view != null) render()
     }
 
     private fun setBusy(value: Boolean) {
@@ -443,13 +516,23 @@ class AddAppSheet : BottomSheetDialogFragment() {
                         )
                     }
                 }
+                if (app.name.isBlank() || app.name == app.id) {
+                    (foundNames[userInput.trim()] ?: foundNames[app.url])?.let { app = app.copy(name = it) }
+                }
                 if (app.hasTempId && !app.settings.getBool(SettingKeys.TRACK_ONLY)) {
                     // The package name is still unknown: the APK itself has to tell. Any file of
                     // the release says it, so nothing is asked here - which file to install is
                     // asked when the app is installed.
                     val picked = installer.confirmAppFileUrl(app, prompts = null, pickAnyAsset = false)
                         ?: throw SourceError(Tr.get("cancelled"))
-                    app = app.copy(preferredApkIndex = app.apkUrls.indexOfFirst { it.url == picked.url })
+                    // The branch of the file that told the package name is remembered from the
+                    // start, so the first check judges by it and not by the place in the list.
+                    val pickedIndex = app.apkUrls.indexOfFirst { it.url == picked.url }
+                    app = app.copy(
+                        preferredApkIndex = pickedIndex,
+                        preferredBranchKey = pickedIndex.takeIf { it >= 0 }?.let { source.releaseBranchKeyOf(app.apkUrls[it]) },
+                        releaseBranchGone = false,
+                    )
                     // Some sources can tell from a small part of the file; the others have it downloaded.
                     val peek = withContext(Dispatchers.IO) {
                         runCatching { source.peekAsset(picked.url, app.additionalSettings) }.getOrNull()
@@ -474,7 +557,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     // Without a way to tell, what is on the device is taken for the latest. A
                     // source that can tell is asked: an older build then gets its update offered.
                     val onDevice = withContext(Dispatchers.IO) { repo.installedInfo(app.id) }
-                    val isLatest = onDevice?.let { source.isLatestBuildInstalled(app, it.versionName, it.longVersionCode) }
+                    val isLatest = onDevice?.let { source.isLatestBuildInstalled(app, it.versionName, it.versionCodeLong) }
                     app = app.copy(installedVersion = if (isLatest == false) onDevice.versionName else app.latestVersion)
                 }
                 app = app.copy(categories = categories.toList())
@@ -527,11 +610,21 @@ class AddAppSheet : BottomSheetDialogFragment() {
     private fun runSearch(query: String) {
         val context = requireContext()
         val settings = viewModel.repo.settings
-        if (query.isBlank()) return
+        if (query.isBlank() || searching) return
         lookup = viewLifecycleOwner.lifecycleScope.launch {
-            setBusy(true)
+            setSearching(true)
             try {
-                val picked = SourceRegistry.sources.filter { it.canSearch && it.name !in settings.searchDeselected }
+                val forDevice = settings.searchForDevice
+                val everywhere = settings.searchEverywhere
+                // Everywhere means every source that can simply be asked: one that wants an
+                // address or a token first is searched when it is picked by name.
+                val picked = SourceRegistry.sources.filter {
+                    it.canSearch && when {
+                        forDevice -> it.answersForDevice
+                        everywhere -> !it.includeAdditionalOptsInMainSearch
+                        else -> it.name !in settings.searchDeselected
+                    }
+                }
                 if (picked.isEmpty()) throw SourceError(Tr.get("selectX", Tr.plural("source", 2).lowercase()))
 
                 // Sources with options of their own (an instance URL, a token) ask for them first.
@@ -548,56 +641,106 @@ class AddAppSheet : BottomSheetDialogFragment() {
                         context, source.searchQuerySettingItemsForUrl(host).map { listOf(it) } + listOf(listOf<SettingItem>(urlItem)),
                     )
                     val view = context.column(Spacing.SHEET).apply { add(form) }
-                    if (!context.confirm(Tr.get("searchX", source.name), view = view.scrollable())) continue
+                    if (!context.confirm(Tr.get("searchX", source.shortName), view = view.scrollable())) continue
                     querySettings[source.sourceIdentifier] = LinkedHashMap(form.values)
                 }
 
                 val failed = ArrayList<String>()
-                val results = withContext(Dispatchers.IO) {
-                    coroutineScope {
-                        picked.filter { !it.includeAdditionalOptsInMainSearch || querySettings.containsKey(it.sourceIdentifier) }
-                            .map { source ->
-                                async {
-                                    try {
-                                        source to source.search(query, querySettings[source.sourceIdentifier] ?: emptyMap())
-                                    } catch (e: Exception) {
-                                        synchronized(failed) { failed.add(source.name) }
-                                        null
-                                    }
-                                }
-                            }.awaitAll().filterNotNull()
+                val slow = ArrayList<String>()
+                val unreachable = ArrayList<String>()
+                // Each source is asked on its own and the answers are gathered until the time is
+                // up: one that hangs - a store that is far away or blocked - is left behind
+                // instead of holding back what the others have found.
+                val asked = picked.filter { !it.includeAdditionalOptsInMainSearch || querySettings.containsKey(it.sourceIdentifier) }
+                val pending = asked.map { source ->
+                    source to searches.async {
+                        val started = System.currentTimeMillis()
+                        runCatching {
+                            val found = source.search(query, querySettings[source.sourceIdentifier] ?: emptyMap())
+                            if (forDevice) forThisDevice(source, found) else found
+                        }.also { answer ->
+                            // Kept for a source that is late as well: its answer comes after the search is over.
+                            val took = System.currentTimeMillis() - started
+                            AppLog.info(
+                                "Search \"$query\" in ${source.shortName}: " +
+                                    (answer.fold({ "${it.size} found" }, { "failed, ${it.javaClass.simpleName}: ${it.message}" })) + " in $took ms",
+                            )
+                        }
                     }
                 }
-                // One result from each source in turn, so no source crowds out the others.
-                val merged = LinkedHashMap<String, PickItem>()
-                val sourceOf = HashMap<String, String>()
-                var index = 0
-                while (results.any { it.second.size > index }) {
-                    for ((source, found) in results) {
-                        val hit = found.entries.elementAtOrNull(index) ?: continue
-                        if (merged.containsKey(hit.key)) continue
+                // Everywhere, nobody waits for the slowest source. Sources picked by hand are
+                // the ones wanted, so they get the time a far-away store may need.
+                val deadline = System.currentTimeMillis() + if (forDevice || !everywhere) DEVICE_SEARCH_LIMIT_MS else SEARCH_LIMIT_MS
+                val results = pending.mapNotNull { (source, answer) ->
+                    val found = withTimeoutOrNull((deadline - System.currentTimeMillis()).coerceAtLeast(1)) { answer.await() }
+                    when {
+                        found == null -> null.also { slow.add(source.shortName) }
+                        // A site that cannot be reached is the network's doing, not the source's.
+                        found.isFailure -> null.also {
+                            val offline = generateSequence(found.exceptionOrNull()) { it.cause }.any { it is IOException }
+                            (if (offline) unreachable else failed).add(source.shortName)
+                        }
+                        else -> source to found.getOrThrow()
+                    }
+                }
+                // The closest match first, whichever source it is from; among equals one result
+                // from each source in turn, so that no source crowds out the others.
+                val hits = ArrayList<SearchHit>()
+                for ((order, result) in results.withIndex()) {
+                    val (source, found) = result
+                    for ((index, hit) in found.entries.withIndex()) {
                         val title = hit.value.getOrNull(0)?.takeIf { it.isNotBlank() } ?: hit.key
                         val description = hit.value.getOrNull(1)?.takeIf { it.isNotBlank() && it != title } ?: hit.key
-                        merged[hit.key] = PickItem(hit.key, title, description, source.name)
-                        sourceOf[hit.key] = source.sourceIdentifier
+                        hits += SearchHit(hit.key, title, description, source, SearchMatch.rank(query, title, description), index, order)
                     }
-                    index++
+                }
+                val merged = LinkedHashMap<String, PickItem>()
+                val sourceOf = HashMap<String, String>()
+                for (hit in hits.sortedWith(compareBy({ it.rank }, { it.index }, { it.order }))) {
+                    if (merged.containsKey(hit.url)) continue
+                    merged[hit.url] = PickItem(hit.url, hit.title, hit.description, hit.source.shortName)
+                    sourceOf[hit.url] = hit.source.sourceIdentifier
+                    foundNames[hit.url] = hit.title
                 }
                 if (merged.isEmpty()) {
-                    throw SourceError(Tr.get("noResults") + if (failed.isEmpty()) "" else "\n\n${Tr.get("error")}: ${failed.joinToString()}")
+                    throw SourceError(
+                        listOfNotNull(
+                            Tr.get("noResults"),
+                            "${Tr.get("error")}: ${failed.joinToString()}".takeIf { failed.isNotEmpty() },
+                            Tr.get("addSearchUnreachable", unreachable.joinToString()).takeIf { unreachable.isNotEmpty() },
+                            Tr.get("addSearchSlow", slow.joinToString()).takeIf { slow.isNotEmpty() },
+                        ).joinToString("\n\n"),
+                    )
                 }
-                if (failed.isNotEmpty()) context.toast("${Tr.get("error")}: ${failed.joinToString()}")
+                val notes = listOfNotNull(
+                    "${Tr.get("error")}: ${failed.joinToString()}".takeIf { failed.isNotEmpty() },
+                    Tr.get("addSearchUnreachable", unreachable.joinToString()).takeIf { unreachable.isNotEmpty() },
+                    Tr.get("addSearchSlow", slow.joinToString()).takeIf { slow.isNotEmpty() },
+                )
+                if (notes.isNotEmpty()) context.toast(notes.joinToString("\n"))
                 val chosen = dialogs.pickFromList("${Tr.get("search")}: $query", merged.values.toList())?.firstOrNull() ?: return@launch
-                overrideSource = sourceOf[chosen]
+                overrideSource = SourceRegistry.overrideFor(chosen, sourceOf[chosen])
                 urlEdit.setText(chosen)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 context.showError(e)
             } finally {
-                setBusy(false)
+                setSearching(false)
             }
         }
+    }
+
+    /**
+     * Of what a search [found], the apps [source] has a version of for this device. The only way
+     * to know is to ask for each, so only the first few are asked about, side by side.
+     */
+    private suspend fun forThisDevice(source: AppSource, found: Map<String, List<String>>): Map<String, List<String>> = coroutineScope {
+        found.entries.take(DEVICE_SEARCH_RESULTS).map { hit ->
+            hit to async(Dispatchers.IO) {
+                runCatching { SourceRegistry.getApp(source, hit.key, defaultValuesOf(source.combinedAppSpecificSettingFormItems)) }.isSuccess
+            }
+        }.filter { it.second.await() }.associate { it.first.key to it.first.value }
     }
 
     /** What can be added: every source with what it is good for; a tap opens its site. */
@@ -610,7 +753,7 @@ class AddAppSheet : BottomSheetDialogFragment() {
                     Tr.get("traitSearch").takeIf { source.canSearch },
                 ).joinToString(" · ")
                 val site = listOfNotNull(source.hosts.firstOrNull() ?: Tr.get("addAnyHost"), source.supportedNote).joinToString(" · ")
-                PickItem(source.sourceIdentifier, source.name, site, traits)
+                PickItem(source.sourceIdentifier, source.shortName, site, traits)
             }
             val chosen = dialogs.pickFromList(Tr.get("addSupported"), items, filterable = false)?.firstOrNull() ?: return@launch
             SourceRegistry.sources.first { it.sourceIdentifier == chosen }.hosts.firstOrNull()?.let { context.openUrl("https://$it") }
@@ -618,9 +761,30 @@ class AddAppSheet : BottomSheetDialogFragment() {
     }
 
     companion object {
+        /** How long a search waits for its sources. */
+        private const val SEARCH_LIMIT_MS = 8000L
+
+        // Looking for apps for this device asks about every result, which takes longer.
+        private const val DEVICE_SEARCH_LIMIT_MS = 20000L
+        private const val DEVICE_SEARCH_RESULTS = 10
+        private const val LOCKED_ALPHA = 0.4f
+
         const val TAG = "AddAppSheet"
         private const val ARG_URL = "url"
 
         fun newInstance(url: String? = null) = AddAppSheet().apply { arguments = Bundle().apply { putString(ARG_URL, url) } }
     }
 }
+
+/** One result of a search by name, with what it takes to put it in its place among the others. */
+private class SearchHit(
+    val url: String,
+    val title: String,
+    val description: String,
+    val source: AppSource,
+    val rank: Int,
+    /** Its place in what its source returned. */
+    val index: Int,
+    /** The place of its source among those asked. */
+    val order: Int,
+)

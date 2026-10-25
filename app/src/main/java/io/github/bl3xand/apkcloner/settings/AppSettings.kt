@@ -2,6 +2,8 @@ package io.github.bl3xand.apkcloner.settings
 
 import android.content.Context
 import io.github.bl3xand.apkcloner.log.AppLog
+import org.json.JSONArray
+import org.json.JSONObject
 
 class AppSettings(context: Context) {
 
@@ -58,6 +60,31 @@ class AppSettings(context: Context) {
     var cloneBadge: Boolean
         get() = prefs.getBoolean(SettingsKeys.CLONE_BADGE, true)
         set(value) = put(SettingsKeys.CLONE_BADGE, value)
+
+    /** Clones, by package, that are kept at the version they have. */
+    var frozenClones: Set<String>
+        get() = prefs.getStringSet(SettingsKeys.FROZEN_CLONES, emptySet()).orEmpty().toSet()
+        set(value) {
+            prefs.edit().putStringSet(SettingsKeys.FROZEN_CLONES, value).apply()
+            AppLog.info("Setting ${SettingsKeys.FROZEN_CLONES} = ${value.sorted().joinToString()}")
+        }
+
+    /**
+     * The categories of clones, by package. The categories themselves are the ones the tracked
+     * apps have; a clone that a source keeps current has its categories there.
+     */
+    var cloneCategories: Map<String, Set<String>>
+        get() = runCatching {
+            val json = JSONObject(prefs.getString(SettingsKeys.CLONE_CATEGORIES, null) ?: "{}")
+            json.keys().asSequence().associateWith { key ->
+                json.getJSONArray(key).let { names -> (0 until names.length()).map(names::getString).toSet() }
+            }
+        }.getOrDefault(emptyMap())
+        set(value) {
+            val json = JSONObject()
+            value.filterValues { it.isNotEmpty() }.forEach { (key, names) -> json.put(key, JSONArray(names.sorted())) }
+            prefs.edit().putString(SettingsKeys.CLONE_CATEGORIES, json.toString()).apply()
+        }
 
     var installSign: Boolean
         get() = prefs.getBoolean(SettingsKeys.INSTALL_SIGN, false)

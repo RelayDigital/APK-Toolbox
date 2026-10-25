@@ -29,39 +29,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp" />
 
-        <!-- Only shown when the repository of the app has moved. -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardNotice"
-            style="?attr/materialCardViewFilledStyle"
+        <!-- Shown when something stands in the way: a clash of signers, a sign-in that is due,
+             a repository that has moved. -->
+        <include
+            android:id="@+id/notice"
+            layout="@layout/view_notice"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:visibility="gone"
-            app:cardBackgroundColor="?attr/colorSecondaryContainer"
-            app:cardElevation="0dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:id="@+id/textNotice"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textColor="?attr/colorOnSecondaryContainer" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/buttonNotice"
-                    style="@style/Widget.Material3Expressive.Button.TonalButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp" />
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            android:layout_marginTop="16dp" />
 
         <com.google.android.material.card.MaterialCardView
             style="?attr/materialCardViewFilledStyle"
@@ -79,6 +54,62 @@
                 android:paddingVertical="4dp" />
 
         </com.google.android.material.card.MaterialCardView>
+
+        <!-- Installing the app as a clone of itself: the same controls a clone is made with, and
+             the same ones an installed clone is changed with. -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchClone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="-8dp"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:visibility="gone" />
+
+        <!-- A switch is 8dp taller on each side than it looks; its margins take that back, so
+             that it stands 16dp from what is above and below it, as everything else does. The
+             fields bring the margin they have under a card, which is more than is needed here. -->
+        <include
+            android:id="@+id/cloneOptions"
+            layout="@layout/view_clone_options"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="-6dp"
+            android:visibility="gone" />
+
+        <!-- What the clone is made with is set on its own page, in the Clones tab; from here
+             there is only the way to it. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonCloneSettings"
+            style="@style/Widget.ApkCloner.Button.Action"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:visibility="gone"
+            app:icon="@drawable/ic_tune" />
+
+        <!-- For an app that is installed already, going over to a clone - or back - is a
+             reinstall, and is asked for by a button that says so. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonCloneMode"
+            style="@style/Widget.ApkCloner.Button.Action"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:visibility="gone"
+            app:icon="@drawable/ic_copy" />
+
+        <!-- Keeps the app at the version it has. The switch brings 8dp of its own on each side;
+             the bottom margin takes it back, as far as it goes without cutting into the switch. -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchNoUpdates"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="-8dp"
+            android:text="@string/switch_no_updates"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:visibility="gone" />
 
         <!-- What the latest release brings. A tap shows all of it. -->
         <com.google.android.material.card.MaterialCardView
@@ -122,6 +153,7 @@
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

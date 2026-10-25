@@ -16,6 +16,14 @@ interface TelegramGateway {
     val isSignedIn: Boolean
 
     /**
+     * Whether a session that held was ended - from outside, or because it cannot be opened -
+     * and no new sign-in has been made since. As cheap as [hasAccount]: a flag, not a question
+     * to Telegram. What the background check consults before it decides an app of a channel
+     * can be checked at all.
+     */
+    val isSessionEnded: Boolean
+
+    /**
      * The files of the public channel [username], newest first and [limit] at most. With a
      * [query] only the messages Telegram's own search finds for it are looked at, however far
      * back they are.
