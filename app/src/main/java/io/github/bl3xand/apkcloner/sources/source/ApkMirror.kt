@@ -5,6 +5,7 @@ import io.github.bl3xand.apkcloner.sources.core.InvalidUrlError
 import io.github.bl3xand.apkcloner.sources.core.NoReleasesError
 import io.github.bl3xand.apkcloner.sources.core.NoVersionError
 import io.github.bl3xand.apkcloner.sources.core.SourceEnv
+import io.github.bl3xand.apkcloner.sources.core.TimeBoxedRegex
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.Url
 import io.github.bl3xand.apkcloner.sources.core.effectiveMinUpdateAgeDays
@@ -117,7 +118,7 @@ class APKMirror : AppSource("APKMirror") {
             for (i in items.indices) {
                 if (!fallbackToOlderReleases && i > releaseSkipped) break
                 val title = items[i].selectFirst("title")?.html()
-                if (regexFilter != null && title != null && !Regex(regexFilter).containsMatchIn(title.trim())) continue
+                if (regexFilter != null && title != null && !TimeBoxedRegex.containsMatchIn(Regex(regexFilter), title.trim(), TimeBoxedRegex.SHORT_INPUT_BUDGET_MS)) continue
                 if (isReleaseTooYoung(releaseDateFor(items[i]), minAgeDays)) {
                     if (tooYoungIndex == null) tooYoungIndex = i
                     releaseSkipped++

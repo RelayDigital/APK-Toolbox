@@ -1,6 +1,7 @@
 package io.github.bl3xand.apkcloner.sources.source
 
 import io.github.bl3xand.apkcloner.sources.core.SourceEnv
+import io.github.bl3xand.apkcloner.sources.core.TimeBoxedRegex
 import io.github.bl3xand.apkcloner.sources.core.notForDevice
 import io.github.bl3xand.apkcloner.sources.core.androidSdkOf
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
@@ -215,8 +216,10 @@ class FDroid : AppSource("FDroid") {
         if (filterVersionsByRegEx != null) {
             val versionFilter = Regex(filterVersionsByRegEx)
             choices = emptyList()
-            version = releases.firstOrNull { versionFilter.containsMatchIn((it["versionName"] as? String) ?: "") }
-                ?.get("versionName") as? String
+            // A version name is short, but the pattern is user-supplied: budgeted like the rest.
+            version = releases.firstOrNull {
+                TimeBoxedRegex.containsMatchIn(versionFilter, (it["versionName"] as? String) ?: "", TimeBoxedRegex.SHORT_INPUT_BUDGET_MS)
+            }?.get("versionName") as? String
             if (version.isNullOrEmpty()) throw NoVersionError()
         }
         // Default to the newest version.

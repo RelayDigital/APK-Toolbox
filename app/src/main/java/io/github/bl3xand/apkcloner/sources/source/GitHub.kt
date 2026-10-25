@@ -9,6 +9,7 @@ import io.github.bl3xand.apkcloner.sources.core.NoVersionError
 import io.github.bl3xand.apkcloner.sources.core.RateLimitError
 import io.github.bl3xand.apkcloner.sources.core.RepositoryRenamedError
 import io.github.bl3xand.apkcloner.sources.core.SourceError
+import io.github.bl3xand.apkcloner.sources.core.TimeBoxedRegex
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.Url
 import io.github.bl3xand.apkcloner.sources.core.compareAlphaNumeric
@@ -338,8 +339,8 @@ class GitHub(hostChanged: Boolean = false) : AppSource("GitHub") {
             }
             var nameToFilter = release["name"] as? String
             if (nameToFilter.isNullOrBlank()) nameToFilter = release["tag_name"]?.toString() ?: ""
-            if (titleRegex != null && !titleRegex.containsMatchIn(nameToFilter.trim())) continue
-            if (notesRegex != null && !notesRegex.containsMatchIn(((release["body"] as? String) ?: "").trim())) {
+            if (titleRegex != null && !TimeBoxedRegex.containsMatchIn(titleRegex, nameToFilter.trim(), TimeBoxedRegex.SHORT_INPUT_BUDGET_MS)) continue
+            if (notesRegex != null && !TimeBoxedRegex.containsMatchIn(notesRegex, ((release["body"] as? String) ?: "").trim(), TimeBoxedRegex.PAGE_INPUT_BUDGET_MS)) {
                 continue
             }
             if (isReleaseTooYoung(releaseDate(release, useAssetDate), minAgeDays)) {

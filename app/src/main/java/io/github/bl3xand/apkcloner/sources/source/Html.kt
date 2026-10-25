@@ -5,6 +5,7 @@ import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.NoReleasesError
 import io.github.bl3xand.apkcloner.sources.core.NoVersionError
 import io.github.bl3xand.apkcloner.sources.core.SourceEnv
+import io.github.bl3xand.apkcloner.sources.core.TimeBoxedRegex
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.Url
 import io.github.bl3xand.apkcloner.sources.core.compareAlphaNumeric
@@ -111,7 +112,11 @@ fun grabLinksCommon(rawBody: String, reqUrl: Url, additionalSettings: Map<String
     val customFilter = (additionalSettings["customLinkFilterRegex"] as? String)?.takeIf { it.isNotEmpty() }
     var links = if (customFilter != null) {
         val regex = Regex(customFilter)
-        allLinks.filter { regex.containsMatchIn(if (filterByLinkText) it.text else decodedOrSame(it.url)) }
+        allLinks.filter {
+            TimeBoxedRegex.containsMatchIn(
+                regex, if (filterByLinkText) it.text else decodedOrSame(it.url), TimeBoxedRegex.SHORT_INPUT_BUDGET_MS,
+            )
+        }
     } else {
         allLinks.filter {
             ApkFilter.isApkOrContainerFile(Url.parse((if (filterByLinkText) it.text else decodedOrSame(it.url)).trim()).path)
@@ -256,7 +261,9 @@ class HTML : AppSource("HTML") {
                 if (filter != null) {
                     val regex = Regex(filter)
                     val invert = additionalSettings["invertAPKFilter"] == true
-                    links = links.filter { regex.containsMatchIn(it.url) != invert }
+                    links = links.filter {
+                        TimeBoxedRegex.containsMatchIn(regex, it.url, TimeBoxedRegex.SHORT_INPUT_BUDGET_MS) != invert
+                    }
                 }
                 if (links.isEmpty()) throw NoReleasesError(note = currentUrl)
             } else {

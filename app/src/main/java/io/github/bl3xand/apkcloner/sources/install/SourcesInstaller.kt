@@ -30,6 +30,7 @@ import io.github.bl3xand.apkcloner.sources.core.NoApkError
 import io.github.bl3xand.apkcloner.sources.core.RemoteApk
 import io.github.bl3xand.apkcloner.sources.core.SigningCertMismatchError
 import io.github.bl3xand.apkcloner.sources.core.SourceError
+import io.github.bl3xand.apkcloner.sources.core.TimeBoxedRegex
 import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.Url
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
@@ -346,7 +347,11 @@ class SourcesInstaller private constructor(private val context: Context) {
                 app.settings.getStringOrNull(filterKey)?.let { pattern ->
                     val regex = Regex(pattern)
                     apks.removeAll { apk ->
-                        val unwanted = !regex.containsMatchIn(apk.path.substring(dir.path.length + 1))
+                        // User pattern over source-provided entry names: budgeted for the same
+                        // reason as the other filters (a hang would block this install thread).
+                        val unwanted = !TimeBoxedRegex.containsMatchIn(
+                            regex, apk.path.substring(dir.path.length + 1), TimeBoxedRegex.SHORT_INPUT_BUDGET_MS,
+                        )
                         if (unwanted) apk.delete()
                         unwanted
                     }

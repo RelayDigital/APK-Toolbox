@@ -31,6 +31,7 @@ fun localizeErrorCode(code: String, data: Map<String, Any?>): String = when (cod
     "MIN_UPDATE_AGE" -> Tr.get("releaseTooYoungForMinAge", "${data["minAgeDays"] ?: ""}")
     "RUSTORE_AGGREGATED_APP" -> Tr.get("rustoreAggregatedAppNoApk")
     "NO_VERSION" -> Tr.get("noVersionFound")
+    "REGEX_TIMEOUT" -> Tr.get("regexTimedOut", data["pattern"]?.toString() ?: "")
     "UNSUPPORTED_URL" -> Tr.get("urlMatchesNoSource")
     "DOWNGRADE" -> "${Tr.get("cantInstallOlderVersion")} (versionCode " +
         "${data["currentVersionCode"] ?: "?"} → ${data["newVersionCode"] ?: "?"})"

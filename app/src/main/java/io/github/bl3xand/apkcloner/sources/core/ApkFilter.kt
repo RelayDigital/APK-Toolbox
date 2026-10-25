@@ -43,7 +43,9 @@ object ApkFilter {
         if (apkFilterRegEx.isNullOrEmpty()) return apkUrls
         val regex = Regex(apkFilterRegEx)
         return apkUrls.filter {
-            val hasMatch = regex.containsMatchIn(it.name)
+            // The pattern is user-supplied and the names source-provided: run with a budget,
+            // so a catastrophic pattern fails this one app instead of hanging every check.
+            val hasMatch = TimeBoxedRegex.containsMatchIn(regex, it.name, TimeBoxedRegex.SHORT_INPUT_BUDGET_MS)
             if (invert == true) !hasMatch else hasMatch
         }
     }
