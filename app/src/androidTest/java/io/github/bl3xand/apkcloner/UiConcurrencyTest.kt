@@ -50,7 +50,11 @@ class UiConcurrencyTest : BaseUiTest() {
             io.github.bl3xand.apkcloner.sources.data.SourcesRepository.get(context).apkDir.listFiles()
                 ?.filter { it.name.startsWith("$packageName-") }
                 ?.forEach { it.delete() }
-            server.bytesPerSecond = 120_000
+            // Slow enough that the download cannot finish inside the walk, whatever the
+            // emulator's mood: 40 MB at 12 KB/s is close to an hour. A finished download
+            // installs the app itself over the test process (killDueToPackageUpdate) - the
+            // throttle is what keeps the test alive, not the cancel at the end.
+            server.bytesPerSecond = 12_000
 
             // The download is started from the row's own Update button - the way a user does.
             val install = device.wait(Until.findObject(By.desc(sourceString("update"))), 10_000)
