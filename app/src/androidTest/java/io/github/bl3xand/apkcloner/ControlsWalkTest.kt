@@ -13,7 +13,7 @@ import org.junit.Test
  * sheet's chips, the per-app settings sheet's switches, the list's search, filters and
  * pull-to-refresh, selection mode and the long-press menu.
  *
- * The phone (28091JEGR07919) walked the same paths by hand on 25.10; this class is the
+ * The physical phone walked the same paths by hand on 25.10; this class is the
  * repeatable half of that evidence. What the walk asserts after every group: the window
  * still answers, no dialog leaked, and the app did not crash (the process is the test's
  * own - a crash fails the run by itself).
@@ -95,9 +95,11 @@ class ControlsWalkTest : BaseUiTest() {
 
         // ---- the language picker: open, pick English, the open sheet must relabel ----
         scrollSheetToBottom()
-        val language = scrollSheetUntil(string("settings_language"), maxSwipes = 10)
+        val languageLabel = scrollSheetUntil(string("settings_language"), maxSwipes = 10)
             ?: error("No language row. Screen:\n${dumpVisibleTexts()}")
-        language.click()
+        // The clickable is the whole row, not the label: tap its parent's centre.
+        (languageLabel.parent ?: languageLabel).click()
+        device.waitForIdle(800)
         val english = device.wait(Until.findObject(By.text("English")), 5_000)
             ?: error("No English in the language picker. Screen:\n${dumpVisibleTexts()}")
         english.click()
