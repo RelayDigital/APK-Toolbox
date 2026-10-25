@@ -1,6 +1,5 @@
-package io.github.bl3xand.apkcloner.ui
+package io.github.bl3xand.apkcloner.ui.clone
 
-import io.github.bl3xand.apkcloner.compat.versionCodeLong
 import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -17,9 +16,16 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.clone.CloneRequest
+import io.github.bl3xand.apkcloner.compat.versionCodeLong
 import io.github.bl3xand.apkcloner.data.ApkSource
 import io.github.bl3xand.apkcloner.databinding.SheetCloneBinding
 import io.github.bl3xand.apkcloner.settings.AppSettings
+import io.github.bl3xand.apkcloner.ui.apps.CloneState
+import io.github.bl3xand.apkcloner.ui.apps.bind
+import io.github.bl3xand.apkcloner.ui.expandFully
+import io.github.bl3xand.apkcloner.ui.look
+import io.github.bl3xand.apkcloner.ui.main.MainEvent
+import io.github.bl3xand.apkcloner.ui.main.MainViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 

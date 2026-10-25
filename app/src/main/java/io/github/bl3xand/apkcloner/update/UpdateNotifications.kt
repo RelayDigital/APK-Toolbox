@@ -9,8 +9,8 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.testing.TestHooks
-import io.github.bl3xand.apkcloner.ui.MainActivity
-import io.github.bl3xand.apkcloner.ui.MainTabs
+import io.github.bl3xand.apkcloner.ui.main.MainActivity
+import io.github.bl3xand.apkcloner.ui.main.MainTabs
 import kotlin.math.abs
 
 /** Everything the background update shows. Dropped by the system if notifications are not allowed. */

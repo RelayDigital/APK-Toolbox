@@ -1,9 +1,15 @@
-package io.github.bl3xand.apkcloner.ui
+package io.github.bl3xand.apkcloner.ui.clone
 
 import android.content.Context
 import android.content.pm.PackageManager
 import com.google.android.material.R as MaterialR
 import io.github.bl3xand.apkcloner.R
+import io.github.bl3xand.apkcloner.ui.Spacing
+import io.github.bl3xand.apkcloner.ui.add
+import io.github.bl3xand.apkcloner.ui.column
+import io.github.bl3xand.apkcloner.ui.label
+import io.github.bl3xand.apkcloner.ui.showSheet
+import io.github.bl3xand.apkcloner.ui.switchRow
 
 /** Every permission the APK at [apkPath] asks for. */
 fun Context.requestedPermissionsOf(apkPath: String): List<String> = runCatching {

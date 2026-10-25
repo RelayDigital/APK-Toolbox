@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.ui
+package io.github.bl3xand.apkcloner.ui.clone
 
 import android.view.LayoutInflater
 import android.view.View
@@ -14,6 +14,9 @@ import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.data.CloneInfo
 import io.github.bl3xand.apkcloner.databinding.ItemAppBinding
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
+import io.github.bl3xand.apkcloner.ui.IconLoader
+import io.github.bl3xand.apkcloner.ui.dp
+import io.github.bl3xand.apkcloner.ui.themeColor
 import kotlinx.coroutines.Job
 
 class CloneAdapter(

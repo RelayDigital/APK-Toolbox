@@ -1,11 +1,11 @@
-package io.github.bl3xand.apkcloner.ui
+package io.github.bl3xand.apkcloner.ui.main
 
-import android.os.Build
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.LayoutInflater
@@ -30,14 +30,17 @@ import io.github.bl3xand.apkcloner.install.Root
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.settings.AppLanguage
 import io.github.bl3xand.apkcloner.settings.AppSettings
-import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import io.github.bl3xand.apkcloner.settings.InstallMethod
 import io.github.bl3xand.apkcloner.shizuku.ShizukuBridge
 import io.github.bl3xand.apkcloner.shizuku.ShizukuState
+import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import io.github.bl3xand.apkcloner.sources.ui.PickItem
 import io.github.bl3xand.apkcloner.sources.ui.SourcesDialogs
 import io.github.bl3xand.apkcloner.sources.ui.SourcesSettingsSheet
 import io.github.bl3xand.apkcloner.sources.ui.showLogSheet
+import io.github.bl3xand.apkcloner.ui.Messages
+import io.github.bl3xand.apkcloner.ui.expandFully
+import io.github.bl3xand.apkcloner.ui.showSheet
 import io.github.bl3xand.apkcloner.update.AutoUpdateWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

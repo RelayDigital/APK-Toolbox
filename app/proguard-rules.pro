@@ -12,7 +12,7 @@
 
 # MainViewModel is constructed reflectively by androidx.lifecycle's ViewModelProvider (matched by
 # constructor signature), not a `new` call R8 can trace back to this class.
--keep class io.github.bl3xand.apkcloner.ui.MainViewModel {
+-keep class io.github.bl3xand.apkcloner.ui.main.MainViewModel {
     <init>(android.app.Application);
 }
 

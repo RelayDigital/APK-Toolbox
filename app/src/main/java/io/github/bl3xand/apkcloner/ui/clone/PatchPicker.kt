@@ -1,9 +1,15 @@
-package io.github.bl3xand.apkcloner.ui
+package io.github.bl3xand.apkcloner.ui.clone
 
 import android.content.Context
 import com.google.android.material.R as MaterialR
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.clone.PatchIds
+import io.github.bl3xand.apkcloner.ui.Spacing
+import io.github.bl3xand.apkcloner.ui.add
+import io.github.bl3xand.apkcloner.ui.column
+import io.github.bl3xand.apkcloner.ui.label
+import io.github.bl3xand.apkcloner.ui.showSheet
+import io.github.bl3xand.apkcloner.ui.switchRow
 
 /** The patches a clone can be built with: a stable [id] for the metadata, and UI text. */
 data class ClonePatch(

@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.ui
+package io.github.bl3xand.apkcloner.ui.split
 
 import io.github.bl3xand.apkcloner.merge.MergeResult
 import io.github.bl3xand.apkcloner.merge.SplitStep

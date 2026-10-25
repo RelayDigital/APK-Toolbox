@@ -13,8 +13,8 @@ import io.github.bl3xand.apkcloner.sources.core.formatDownloadSize
 import io.github.bl3xand.apkcloner.sources.install.SourcesInstaller
 import io.github.bl3xand.apkcloner.sources.model.TrackedApp
 import io.github.bl3xand.apkcloner.testing.TestHooks
-import io.github.bl3xand.apkcloner.ui.MainActivity
-import io.github.bl3xand.apkcloner.ui.MainTabs
+import io.github.bl3xand.apkcloner.ui.main.MainActivity
+import io.github.bl3xand.apkcloner.ui.main.MainTabs
 import kotlin.math.abs
 
 /** Everything the Sources tab reports through notifications. */

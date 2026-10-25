@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.ui
+package io.github.bl3xand.apkcloner.ui.apps
 
 import android.view.LayoutInflater
 import android.view.View
@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import io.github.bl3xand.apkcloner.data.ApkSource
 import io.github.bl3xand.apkcloner.databinding.ItemAppBinding
+import io.github.bl3xand.apkcloner.ui.IconLoader
 import kotlinx.coroutines.Job
 
 class AppAdapter(

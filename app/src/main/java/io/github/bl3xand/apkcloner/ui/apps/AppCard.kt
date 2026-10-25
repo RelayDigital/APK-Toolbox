@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.ui
+package io.github.bl3xand.apkcloner.ui.apps
 
 import android.content.Intent
 import android.graphics.drawable.Drawable
@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.Settings
 import io.github.bl3xand.apkcloner.data.ApkSource
 import io.github.bl3xand.apkcloner.databinding.ViewAppCardBinding
+import io.github.bl3xand.apkcloner.ui.AppIcons
 
 /**
  * Fills the outlined "which app is this" card shared by the clone and clone-detail sheets.

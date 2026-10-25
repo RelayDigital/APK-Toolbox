@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.ui
+package io.github.bl3xand.apkcloner.ui.apps
 
 import android.app.Application
 import android.net.Uri
@@ -7,6 +7,7 @@ import io.github.bl3xand.apkcloner.install.InstallOutcome
 import io.github.bl3xand.apkcloner.install.InstallReceiver
 import io.github.bl3xand.apkcloner.install.Installer
 import io.github.bl3xand.apkcloner.log.AppLog
+import io.github.bl3xand.apkcloner.ui.main.MainEvent
 import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream

@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.ui
+package io.github.bl3xand.apkcloner.ui.apps
 
 import io.github.bl3xand.apkcloner.data.CloneInfo
 

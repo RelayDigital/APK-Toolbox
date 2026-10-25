@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.ui
+package io.github.bl3xand.apkcloner.ui.split
 
 import android.app.Application
 import android.net.Uri
@@ -15,6 +15,8 @@ import io.github.bl3xand.apkcloner.merge.SplitMismatchException
 import io.github.bl3xand.apkcloner.merge.SplitSource
 import io.github.bl3xand.apkcloner.merge.SplitStep
 import io.github.bl3xand.apkcloner.merge.TablesTooLargeException
+import io.github.bl3xand.apkcloner.ui.apps.ApkOutput
+import io.github.bl3xand.apkcloner.ui.main.MainEvent
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

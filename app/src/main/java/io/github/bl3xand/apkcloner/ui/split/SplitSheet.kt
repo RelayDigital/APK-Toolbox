@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.ui
+package io.github.bl3xand.apkcloner.ui.split
 
 import android.content.DialogInterface
 import android.os.Bundle
@@ -20,6 +20,11 @@ import io.github.bl3xand.apkcloner.databinding.SheetSplitBinding
 import io.github.bl3xand.apkcloner.merge.SplitSelection
 import io.github.bl3xand.apkcloner.merge.SplitSource
 import io.github.bl3xand.apkcloner.settings.AppSettings
+import io.github.bl3xand.apkcloner.ui.AppIcons
+import io.github.bl3xand.apkcloner.ui.apps.bind
+import io.github.bl3xand.apkcloner.ui.expandFully
+import io.github.bl3xand.apkcloner.ui.main.MainEvent
+import io.github.bl3xand.apkcloner.ui.main.MainViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 

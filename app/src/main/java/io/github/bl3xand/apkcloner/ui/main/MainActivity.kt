@@ -1,12 +1,10 @@
-package io.github.bl3xand.apkcloner.ui
+package io.github.bl3xand.apkcloner.ui.main
 
-import io.github.bl3xand.apkcloner.compat.parcelableList
-import io.github.bl3xand.apkcloner.compat.parcelable
-import android.os.Build
-import android.content.pm.PackageManager
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
@@ -26,11 +24,26 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.tabs.TabLayout
 import io.github.bl3xand.apkcloner.R
+import io.github.bl3xand.apkcloner.compat.parcelable
+import io.github.bl3xand.apkcloner.compat.parcelableList
 import io.github.bl3xand.apkcloner.databinding.ActivityMainBinding
 import io.github.bl3xand.apkcloner.sources.ui.SheetAction
 import io.github.bl3xand.apkcloner.sources.ui.SourcesDialogs
 import io.github.bl3xand.apkcloner.sources.ui.SourcesTab
 import io.github.bl3xand.apkcloner.sources.ui.SourcesViewModel
+import io.github.bl3xand.apkcloner.ui.IconLoader
+import io.github.bl3xand.apkcloner.ui.Messages
+import io.github.bl3xand.apkcloner.ui.apps.AppAdapter
+import io.github.bl3xand.apkcloner.ui.apps.ClonesFilter
+import io.github.bl3xand.apkcloner.ui.apps.askCloneCategories
+import io.github.bl3xand.apkcloner.ui.apps.askClonesFilter
+import io.github.bl3xand.apkcloner.ui.clone.CloneAdapter
+import io.github.bl3xand.apkcloner.ui.clone.CloneDetailSheet
+import io.github.bl3xand.apkcloner.ui.clone.CloneSheet
+import io.github.bl3xand.apkcloner.ui.setSwipeColors
+import io.github.bl3xand.apkcloner.ui.showSheet
+import io.github.bl3xand.apkcloner.ui.split.SplitMode
+import io.github.bl3xand.apkcloner.ui.split.SplitSheet
 import io.github.bl3xand.apkcloner.update.UpdateNotifications
 import kotlinx.coroutines.launch
 

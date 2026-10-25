@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.ui
+package io.github.bl3xand.apkcloner.ui.main
 
 /** The screens of the main window. Both sides of Cloning count as tabs of their own. */
 object MainTabs {

@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.ui
+package io.github.bl3xand.apkcloner.ui.clone
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -17,6 +17,10 @@ import io.github.bl3xand.apkcloner.data.CloneInfo
 import io.github.bl3xand.apkcloner.databinding.SheetCloneDetailBinding
 import io.github.bl3xand.apkcloner.sources.model.SettingKeys
 import io.github.bl3xand.apkcloner.sources.ui.SourcesViewModel
+import io.github.bl3xand.apkcloner.ui.apps.bind
+import io.github.bl3xand.apkcloner.ui.confirm
+import io.github.bl3xand.apkcloner.ui.main.MainActivity
+import io.github.bl3xand.apkcloner.ui.main.MainViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 

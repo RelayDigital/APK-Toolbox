@@ -7,7 +7,7 @@ import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.databinding.ViewAppCardBinding
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
 import io.github.bl3xand.apkcloner.ui.AppIcons
-import io.github.bl3xand.apkcloner.ui.bind
+import io.github.bl3xand.apkcloner.ui.apps.bind
 
 /** The framed card of a tracked app, as every screen shows an app. */
 fun Context.appCard(entry: AppEntry): View =

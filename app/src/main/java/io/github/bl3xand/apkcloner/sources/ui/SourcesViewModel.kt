@@ -14,7 +14,7 @@ import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
 import io.github.bl3xand.apkcloner.clone.ApkCloner
 import io.github.bl3xand.apkcloner.data.AppRepository
 import io.github.bl3xand.apkcloner.sources.data.certHashesOf
-import io.github.bl3xand.apkcloner.ui.requestedPermissionsOf
+import io.github.bl3xand.apkcloner.ui.clone.requestedPermissionsOf
 import io.github.bl3xand.apkcloner.sources.install.InstallPrompts
 import io.github.bl3xand.apkcloner.sources.install.SourcesInstaller
 import io.github.bl3xand.apkcloner.sources.model.CheckUpdatesException
