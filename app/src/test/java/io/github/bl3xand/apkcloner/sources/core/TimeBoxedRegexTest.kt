@@ -92,4 +92,46 @@ class TimeBoxedRegexTest {
     fun regExValidatorKeepsRejectingBadSyntax() {
         assertEquals(Tr.get("invalidRegEx"), regExValidator("(unclosed"))
     }
+
+    // ---- the watchdog: engines that never re-read the wrapped input --------------------------
+    // On ART, java.util.regex is ICU-backed and consumes the input into a native buffer, so the
+    // char-read deadline never fires mid-match and only the abandoning wait ends the spin. The
+    // watchdog is what these tests pin down, with a clock that behaves like such an engine.
+
+    @Test
+    fun theWatchdogFiresWhenTheMatchExceedsItsBudget() {
+        // The wrapper's deadline is made to never fire (a frozen clock stands in for an engine
+        // that never re-reads the input), so only the abandoning wait can end a match that
+        // does not come back - a pattern that backtracks for far longer than the budget.
+        val savedClock = TimeBoxedRegex.clock.get()
+        TimeBoxedRegex.clock.set { 0L }
+        try {
+            val started = System.currentTimeMillis()
+            val error = assertThrows(RegExTimeoutError::class.java) {
+                TimeBoxedRegex.containsMatchIn(Regex("(a+){10}b"), "a".repeat(40) + "c", 300L)
+            }
+            // The wait ends at the budget, not at the pattern's own running time.
+            assertTrue("took ${System.currentTimeMillis() - started} ms", System.currentTimeMillis() - started < 2_000)
+            assertEquals(300L, error.budgetMs)
+        } finally {
+            TimeBoxedRegex.clock.set(savedClock)
+        }
+    }
+
+    @Test
+    fun theWatchdogReturnsTheMatchWhenItComesBackInBudget() {
+        // A normal match over the watchdog: the thread comes back well inside the budget and
+        // its result is handed through untouched.
+        assertTrue(TimeBoxedRegex.containsMatchIn(Regex("app-[0-9.]+\\.apk"), "My app-1.2.3.apk file", 2_000L))
+        assertEquals(null, TimeBoxedRegex.lastMatch(Regex("zzz"), "abc", 2_000L))
+    }
+
+    @Test
+    fun aMatcherFailureIsPropagatedAsItself() {
+        // The matcher thread dying (not spinning) must reach the caller as itself, not as a
+        // timeout: the result slot keeps the exception and hands it over.
+        assertThrows(IllegalStateException::class.java) {
+            TimeBoxedRegex.withWatchdog(2_000L) { throw IllegalStateException("boom") }
+        }
+    }
 }
