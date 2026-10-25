@@ -155,6 +155,17 @@ class UiBaselineCaptureTest : BaseUiTest() {
             ?: error("No 'Show the log' button in the settings sheet. Screen:\n${dumpVisibleTexts()}")
         showLog.click()
         device.wait(Until.findObject(By.text(string("settings_log"))), 10_000)
+        // The settings sheet is dismissed as the log sheet opens, and its fade-out leaves a
+        // half-dimmed backdrop if captured mid-flight - a difference between runs of the
+        // same build. The dismiss is waited out: with the log sheet up, only its own window
+        // and the activity's remain.
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        val deadline = System.currentTimeMillis() + 5_000
+        while (System.currentTimeMillis() < deadline) {
+            val ours = automation.windows.orEmpty().count { it.root?.packageName == packageName }
+            if (ours <= 2) break
+            SystemClock.sleep(200)
+        }
         settle()
     }
 
@@ -229,8 +240,12 @@ class UiBaselineCaptureTest : BaseUiTest() {
      */
     private fun capture(name: String) {
         settle()
-        val screenshot = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
-            ?: error("Could not take a screenshot of $name")
+        // An animation the settle cannot see (a sheet's dim layer fading in behind another
+        // sheet) would split one capture from the next. The frame is taken only once two
+        // consecutive screenshots agree, row by row in mean colour - the same reading the
+        // comparator uses, so what is stable to it is stable here.
+        var screenshot = stableScreenshot()
+            ?: error("The screen never settled while capturing $name")
         val png = File(outDir, "$name.png")
         FileOutputStream(png).use { screenshot.compress(Bitmap.CompressFormat.PNG, 100, it) }
         screenshot.recycle()
@@ -245,6 +260,49 @@ class UiBaselineCaptureTest : BaseUiTest() {
         staging.delete()
 
         assert(xml.length() > 0) { "Empty hierarchy dump for $name" }
+    }
+
+    /**
+     * A screenshot taken once the screen stops changing: two frames 400ms apart whose rows
+     * all agree in mean colour within the comparator's threshold. Null if it never does.
+     */
+    private fun stableScreenshot(): Bitmap? {
+        var previous: Bitmap? = null
+        repeat(8) {
+            val shot = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+            if (shot == null) return null
+            val before = previous
+            if (before != null && rowMeansAgree(before, shot)) {
+                before.recycle()
+                return shot
+            }
+            before?.recycle()
+            previous = shot
+            SystemClock.sleep(400)
+        }
+        val last = previous
+        previous = null
+        return last
+    }
+
+    /** Whether two screenshots of the same size agree row by row in mean colour. */
+    private fun rowMeansAgree(a: Bitmap, b: Bitmap): Boolean {
+        if (a.width != b.width || a.height != b.height) return false
+        val step = 8
+        for (y in 0 until a.height step step) {
+            var ra = 0L; var ga = 0L; var ba = 0L
+            var rb = 0L; var gb = 0L; var bb = 0L
+            var n = 0
+            for (x in 0 until a.width step step) {
+                val pa = a.getPixel(x, y); val pb = b.getPixel(x, y)
+                ra += (pa shr 16) and 0xff; ga += (pa shr 8) and 0xff; ba += pa and 0xff
+                rb += (pb shr 16) and 0xff; gb += (pb shr 8) and 0xff; bb += pb and 0xff
+                n++
+            }
+            val dist = Math.sqrt(((ra - rb) * (ra - rb) + (ga - gb) * (ga - gb) + (ba - bb) * (ba - bb)).toDouble()) / n
+            if (dist > 6.0) return false
+        }
+        return true
     }
 
     /** Waits until nothing on screen changes any more, so animations cannot split a capture. */
