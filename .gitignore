@@ -18,3 +18,4 @@ keystore.properties
 # Telegram API credentials; see telegram.properties.example
 telegram.properties
 docs/sources-port-plan.md
+docs/phone-log-*.txt
