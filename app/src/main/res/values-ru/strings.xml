@@ -220,6 +220,7 @@
     <string name="clone_permissions_none">Приложение не запрашивает разрешений.</string>
     <string name="clone_patches">Патчи</string>
     <string name="clone_patches_on">Патчи: включено %1$d из %2$d</string>
+    <string name="clone_patches_not_applied">Последняя сборка не смогла применить «%1$s»: не удалось прочитать подпись оригинала, поэтому патч подмены имени пакета в клон не попал.</string>
     <string name="clone_patches_hint">Изменения кода клона. Каждый патч необязателен и применяется только к этому клону.</string>
     <string name="clone_rename_alias_note">Переписывает имя пакета в коде клона, чтобы он находил свои файлы и компоненты. Мимикрия, наоборот, представляет клон оригиналом для проверок.</string>
     <string name="clone_mimicry">Мимикрия</string>

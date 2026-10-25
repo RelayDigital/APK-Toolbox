@@ -51,7 +51,6 @@ class ApkCloner(private val context: Context) {
                 }
 
                 val patcher = ManifestPatcher(request.newPackage, request.newLabel.takeIf { index == 0 }, request.removedPermissions, isSplitApk = index > 0)
-                val metadata = { METADATA_ENTRY to metadataOf(patcher.oldPackage, iconFiles.isNotEmpty(), request.removedPermissions, request.patches) }
                 // originalPackage (A) is what the dex still names; clonePackage (B) is what it must look
                 // up. oldPackage is only known once the manifest is patched inside rebuild(), so the
                 // chain reads it lazily, like the metadata entry below.
@@ -71,6 +70,12 @@ class ApkCloner(private val context: Context) {
                 if (originalCertificate == null && request.mimicry) {
                     AppLog.warn("$name: mimicry cannot run - no certificate could be read from ${apk.name}; the patch is left out")
                 }
+                // What the build could really apply: without the original's certificate the
+                // identity patches are left out of the dex, whatever the picked set says, and
+                // the metadata says so instead of letting the page count dead patches as on.
+                val applied = if (originalCertificate != null) request.patches
+                else request.patches - setOf(PatchIds.SPOOF_SIGNATURE, PatchIds.MIMICRY)
+                val metadata = { METADATA_ENTRY to metadataOf(patcher.oldPackage, iconFiles.isNotEmpty(), request.removedPermissions, request.patches, applied) }
                 // Chain the dex patches; all of them emit no-ops/rewrites that compose in any order.
                 val dexPatcher: ((String, ByteArray) -> ByteArray)? = when {
                     request.bypassSignatureCheck || request.renameAlias || request.keepAlive || originalCertificate != null || request.mimicry ->
@@ -102,7 +107,10 @@ class ApkCloner(private val context: Context) {
         try {
             val badged = readMetadata(installedBase.path)?.badged ?: false
             val patcher = ManifestPatcher(request.newPackage, request.newLabel, request.removedPermissions)
-            val metadata = { METADATA_ENTRY to metadataOf(patcher.oldPackage, badged, request.removedPermissions, request.patches) }
+            // The dex is the clone's own, reused as it is - whatever it carries is what the last
+            // real build could apply, and that is what the new metadata says too.
+            val applied = readMetadata(installedBase.path)?.patchesApplied ?: request.patches
+            val metadata = { METADATA_ENTRY to metadataOf(patcher.oldPackage, badged, request.removedPermissions, request.patches, applied) }
             ApkRebuilder.rebuild(installedBase, unsigned, patcher, emptyMap(), metadata, originalManifest)
             sign(unsigned, output, request.key ?: keys.active)
             return output
@@ -131,11 +139,21 @@ class ApkCloner(private val context: Context) {
         private const val METADATA_BADGE = "badge"
         private const val METADATA_REMOVED_PERMISSIONS = "removedPermissions"
         private const val METADATA_PATCHES = "patches"
+        private const val METADATA_PATCHES_APPLIED = "patchesApplied"
 
-        private fun metadataOf(original: String, badged: Boolean, removedPermissions: Set<String>, patches: Set<String>): ByteArray = (
+        private fun metadataOf(
+            original: String,
+            badged: Boolean,
+            removedPermissions: Set<String>,
+            patches: Set<String>,
+            patchesApplied: Set<String> = patches,
+        ): ByteArray = (
             "$METADATA_ORIGINAL=$original\n$METADATA_BADGE=$badged\n" +
                 "$METADATA_REMOVED_PERMISSIONS=${removedPermissions.joinToString(",")}\n" +
-                "$METADATA_PATCHES=${patches.joinToString(",")}\n"
+                "$METADATA_PATCHES=${patches.joinToString(",")}\n" +
+                // Written only when less than the picked set could be applied, so the metadata
+                // of an ordinary build reads as it always did.
+                (if (patchesApplied.containsAll(patches)) "" else "$METADATA_PATCHES_APPLIED=${patchesApplied.joinToString(",")}\n")
             ).toByteArray()
 
         /**
@@ -169,6 +187,7 @@ class ApkCloner(private val context: Context) {
                     original, badged = values[METADATA_BADGE] == "true",
                     removedPermissions = values[METADATA_REMOVED_PERMISSIONS].orEmpty().split(',').filter { it.isNotBlank() }.toSet(),
                     patches = values[METADATA_PATCHES].orEmpty().split(',').filter { it.isNotBlank() }.toSet(),
+                    patchesApplied = values[METADATA_PATCHES_APPLIED]?.split(',')?.filter { it.isNotBlank() }?.toSet(),
                 )
             }
         }.getOrNull()

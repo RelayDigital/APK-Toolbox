@@ -47,7 +47,7 @@ class AppRepository(private val context: Context, private val cloner: ApkCloner)
             val key = info.currentSigners.firstNotNullOfOrNull { cloner.keys.matching(it.toByteArray()) } ?: return@mapNotNull null
             val source = sources.getValue(info.packageName)
             val metadata = info.applicationInfo?.sourceDir?.let { cloneMetadata(info, it) } ?: return@mapNotNull null
-            CloneInfo(source, metadata.originalPackage, sources[metadata.originalPackage], key, metadata.badged, metadata.removedPermissions, metadata.patches, tracked[info.packageName], info.packageName in frozen, categories[info.packageName].orEmpty(),
+            CloneInfo(source, metadata.originalPackage, sources[metadata.originalPackage], key, metadata.badged, metadata.removedPermissions, metadata.patches, metadata.patchesNotApplied, tracked[info.packageName], info.packageName in frozen, categories[info.packageName].orEmpty(),
             )
         }
         return InstalledApps(

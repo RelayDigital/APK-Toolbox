@@ -33,6 +33,7 @@ import org.jf.dexlib2.writer.pool.DexPool
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -293,6 +294,45 @@ class ClonePatchRoundTripTest {
         assertEquals(setOf(PatchIds.RENAME_ALIAS), ApkCloner.readMetadata(third.path)!!.patches)
         assertEquals(listOf(clonePackage), appStrings(third))
         assertFalse("no spoof without the patch", hasSpoofHelper(third))
+    }
+
+    @Test
+    fun aCertificateThatCannotBeReadIsSaidInTheMetadata() {
+        // The same source, but unsigned: readCertificate finds no signer in it, so the identity
+        // patches cannot run - and the build says so in the metadata instead of letting the
+        // page count a dead patch as on. The picked set is still stored as picked.
+        val unsignedSource = File.createTempFile("unsigned-src", ".apk")
+        ZipOutputStream(unsignedSource.outputStream()).use { zip ->
+            val manifestBytes = manifest()
+            zip.putNextEntry(
+                ZipEntry("AndroidManifest.xml").apply {
+                    method = ZipEntry.STORED
+                    size = manifestBytes.size.toLong()
+                    crc = CRC32().apply { manifestBytes.forEach { update(it.toInt()) } }.value
+                },
+            )
+            zip.write(manifestBytes)
+            zip.closeEntry()
+            zip.putNextEntry(ZipEntry("classes.dex"))
+            zip.write(sourceDex())
+            zip.closeEntry()
+        }
+        assertTrue("the unsigned source yields no certificate", ApkCloner.readCertificate(unsignedSource) == null)
+
+        val picked = setOf(PatchIds.KEEP_ALIVE, PatchIds.MIMICRY)
+        val built = build(listOf(unsignedSource), picked, "nocert")
+        val metadata = ApkCloner.readMetadata(built.path)!!
+        assertEquals("the picked set is stored as picked", picked, metadata.patches)
+        assertEquals("what could be applied is recorded", setOf(PatchIds.KEEP_ALIVE), metadata.patchesApplied)
+        assertEquals("the dead patch is named", setOf(PatchIds.MIMICRY), metadata.patchesNotApplied)
+        assertFalse("no helper without a certificate", hasSpoofHelper(built))
+
+        // A build that applies everything it was asked for writes no such note: the metadata
+        // of an ordinary build reads as it always did.
+        val clean = build(listOf(sourceApk()), setOf(PatchIds.KEEP_ALIVE), "clean")
+        val cleanMetadata = ApkCloner.readMetadata(clean.path)!!
+        assertNull("nothing said when all patches applied", cleanMetadata.patchesApplied)
+        assertEquals(emptySet<String>(), cleanMetadata.patchesNotApplied)
     }
 
     @Test

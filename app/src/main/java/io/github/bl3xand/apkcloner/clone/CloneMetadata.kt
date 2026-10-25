@@ -22,4 +22,17 @@ class CloneMetadata(
     val removedPermissions: Set<String> = emptySet(),
     /** Dex patches the clone was built with; an update keeps them on. */
     val patches: Set<String> = emptySet(),
-)
+    /**
+     * The patches the last build could really apply, when that is less than [patches]: the
+     * identity patches need the original's signing certificate, and a source APK whose
+     * certificate cannot be read is built with them left out - the dex says nothing of them,
+     * however the picked set reads. Null in builds that applied everything they were asked
+     * for and in clones from before this was recorded: nothing to say there.
+     */
+    val patchesApplied: Set<String>? = null,
+) {
+    /** The picked patches the last build could not apply, or empty when all of them took. */
+    val patchesNotApplied: Set<String>
+        get() = if (patchesApplied == null || patchesApplied.containsAll(patches)) emptySet()
+        else patches - patchesApplied!!
+}

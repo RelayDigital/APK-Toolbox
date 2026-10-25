@@ -214,6 +214,7 @@
     <string name="clone_permissions_none">该应用未请求任何权限。</string>
     <string name="clone_patches">补丁</string>
     <string name="clone_patches_on">补丁：已启用 %1$d / %2$d</string>
+    <string name="clone_patches_not_applied">上次构建未能应用“%1$s”：无法读取原应用的签名证书，因此身份补丁未包含在克隆中。</string>
     <string name="clone_patches_hint">对克隆代码的修改。每个补丁都是可选的，仅应用于此克隆。</string>
     <string name="clone_rename_alias_note">改写克隆代码中的包名，使其能找到自己的文件和组件。而身份伪装恰恰相反：让克隆以原应用的身份面对检查。</string>
     <string name="clone_mimicry">身份伪装</string>

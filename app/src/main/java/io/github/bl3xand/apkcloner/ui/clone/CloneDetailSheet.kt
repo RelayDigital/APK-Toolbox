@@ -115,6 +115,16 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
                 else if (original != null) viewModel.setClonePatches(clone, chosen)
             }
         }
+        // What the last build could not apply: the identity patch is dead without the original's
+        // certificate, and a page that counts it as on would lie. The note stays until a build
+        // that applies everything - a rebuild from a release whose certificate can be read.
+        val notApplied = clone.patchesNotApplied
+        binding.permissions.textPatchesNotApplied.isVisible = notApplied.isNotEmpty()
+        if (notApplied.isNotEmpty()) {
+            val names = context.clonePatches().associate { it.id to it.label }
+            binding.permissions.textPatchesNotApplied.text =
+                context.getString(R.string.clone_patches_not_applied, notApplied.sorted().joinToString { names[it] ?: it })
+        }
         // A clone lives on what it is rebuilt from. One that has only an installed original - an
         // app from Google Play, say - can be handed to a source that carries the same app, and
         // then goes on being updated when the original is gone.

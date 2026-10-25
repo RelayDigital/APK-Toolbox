@@ -18,6 +18,8 @@ class CloneInfo(
     val removedPermissions: Set<String> = emptySet(),
     /** Dex patches the clone was built with; an update keeps them on again. */
     val patches: Set<String> = emptySet(),
+    /** Picked identity patches the last build could not apply (no certificate to read). */
+    val patchesNotApplied: Set<String> = emptySet(),
     /**
      * The tracked app this clone is installed as, when it is one that is installed as a clone of
      * itself. Its source is then what keeps the clone current, whether or not an original is
@@ -42,11 +44,11 @@ class CloneInfo(
         else original != null && original.versionCode > app.versionCode
 
     /** The same clone as [entry] now has it: tracked by it, or by nothing. */
-    fun withTracked(entry: AppEntry?) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, patches, entry, keptAsIs, ownCategories)
+    fun withTracked(entry: AppEntry?) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, patches, patchesNotApplied, entry, keptAsIs, ownCategories)
 
-    fun withFrozen(value: Boolean) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, patches, tracked, value, ownCategories)
+    fun withFrozen(value: Boolean) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, patches, patchesNotApplied, tracked, value, ownCategories)
 
-    fun withCategories(value: Set<String>) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, patches, tracked, keptAsIs, value)
+    fun withCategories(value: Set<String>) = CloneInfo(app, originalPackage, original, key, badged, removedPermissions, patches, patchesNotApplied, tracked, keptAsIs, value)
 
     /** Whether the clone can be built again: from its source, or from the installed original. */
     val canRebuild: Boolean get() = tracked != null || original != null

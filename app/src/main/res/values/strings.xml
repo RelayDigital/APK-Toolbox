@@ -223,6 +223,7 @@
     <string name="clone_permissions_none">The app asks for no permissions.</string>
     <string name="clone_patches">Patches</string>
     <string name="clone_patches_on">Patches: %1$d of %2$d on</string>
+    <string name="clone_patches_not_applied">The last build could not apply %1$s: the original\'s signing certificate could not be read, so the identity patch is not in the clone.</string>
     <string name="clone_patches_hint">Changes to the code of the clone. Every patch is optional and applied only to this clone.</string>
     <string name="clone_rename_alias_note">Rewrites the package name in the clone code so it finds its own files and components. Mimicry, the other way round, presents the clone as the original to checks.</string>
     <string name="clone_mimicry">Mimicry</string>

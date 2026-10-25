@@ -2,6 +2,7 @@
 <!-- Changing what an installed clone goes without: the picker, and a way back to everything. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
@@ -25,6 +26,18 @@
         android:layout_marginTop="4dp"
         android:text="@string/clone_patches"
         app:icon="@drawable/ic_tune" />
+
+    <!-- Said when the last build could not apply everything that was picked: the identity
+         patches need the original's certificate, and it could not be read. -->
+    <TextView
+        android:id="@+id/textPatchesNotApplied"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorError"
+        android:visibility="gone"
+        tools:text="@string/clone_patches_not_applied" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/buttonResetPermissions"
