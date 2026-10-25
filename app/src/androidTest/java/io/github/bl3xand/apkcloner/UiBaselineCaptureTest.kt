@@ -66,24 +66,38 @@ class UiBaselineCaptureTest : BaseUiTest() {
             capture("settings-sheet")
             openLogFromSettings()
             capture("log-sheet")
-            device.pressBack() // closes the log sheet, back on the settings sheet
-            settle()
-            device.pressBack() // closes the settings sheet
+            // Each sheet is closed and waited out by what was unique to it: a back press
+            // can be swallowed mid-animation, and the next capture must not catch a sheet
+            // that is still on its way out.
+            device.pressBack()
+            device.wait(Until.gone(By.text(string("log_empty"))), 5_000)
+            device.pressBack()
+            device.wait(Until.hasObject(By.text(string("sources_add"))), 5_000)
             settle()
 
-            // The Cloning tab has two sides; "Clones" is a toggle inside it, not a strip tab.
+            // The Cloning tab has two sides; "Clones" is a toggle inside it, not a strip tab. The
+            // app-list tabs (this one, Clones, SAI, AntiSplit) show whatever is installed on
+            // the emulator, and other work on it installs and removes apps - so each is
+            // captured through a search that matches nothing: the layout, the chips and the
+            // empty state, without the rows that float between runs.
+            searchFor("zzz-no-such-app")
             captureTab("cloning-apps-tab", "tab_apps")
             switchToClonesSide()
             capture("clones-tab")
 
             // The clone sheet of a chosen app: the left side (installed apps) has rows to tap.
+            searchFor("")
             device.findObject(By.text(string("cloning_installed")))!!.click()
             settle()
             openCloneSheet()
             capture("clone-sheet")
             device.pressBack()
+            // The sheet may have been skipped (no rows); either way the tab strip must be
+            // back before the next tab is picked.
+            device.wait(Until.hasObject(By.text(string("tab_install"))), 5_000)
             settle()
 
+            searchFor("zzz-no-such-app")
             captureTab("sai-tab", "tab_install")
             captureTab("antisplit-tab", "tab_split")
         } finally {
@@ -122,9 +136,21 @@ class UiBaselineCaptureTest : BaseUiTest() {
 
     private fun openLogFromSettings() {
         // The log's lines carry timestamps of this very run; a compared screen must be the
-        // same every time, so the log is emptied first and the sheet opens on its own
-        // empty-state text - a stable screen that still shows the chips and the layout.
-        runCatching { io.github.bl3xand.apkcloner.log.AppLog.clear() }
+        // same every time. The test's data wipe left the app's log holding a database file
+        // that no longer exists at its path - writes fail, and the sheet's reader sees the
+        // deleted inode's leftovers. The log is the app's own diagnostics, nothing of this
+        // walk depends on it, so it is reset outright: the files go, and the log's internals
+        // are cleared through reflection so that the sheet's own AppLog.init (its first act
+        // on opening) rebuilds everything on a fresh, empty database.
+        context.getDatabasePath("sources_logs.db").parentFile?.listFiles()?.forEach { it.delete() }
+        runCatching {
+            val logClass = io.github.bl3xand.apkcloner.log.AppLog::class.java
+            for (name in listOf("writer", "helper", "ring")) {
+                val field = logClass.getDeclaredField(name)
+                field.isAccessible = true
+                field.set(io.github.bl3xand.apkcloner.log.AppLog, null)
+            }
+        }
         val showLog = scrollSheetUntil(string("button_show_log"))
             ?: error("No 'Show the log' button in the settings sheet. Screen:\n${dumpVisibleTexts()}")
         showLog.click()
@@ -141,6 +167,14 @@ class UiBaselineCaptureTest : BaseUiTest() {
         device.waitForIdle(2_000)
         settle()
         capture(name)
+    }
+
+    /** Types [text] into the search box shared by every tab, narrowing the lists by it. */
+    private fun searchFor(text: String) {
+        val field = device.findObject(By.res(packageName, "editSearch"))
+            ?: error("No search field. Screen:\n${dumpVisibleTexts()}")
+        field.text = text
+        device.waitForIdle(500)
     }
 
     /** The Cloning tab's right side: what was already cloned, with its own chips and list. */
