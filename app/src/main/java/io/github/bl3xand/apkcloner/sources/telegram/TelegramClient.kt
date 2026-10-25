@@ -15,6 +15,7 @@ import java.io.File
 import java.time.Instant
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -105,8 +106,13 @@ object TelegramClient : TelegramGateway {
     @Volatile
     var onSessionEnded: (() -> Unit)? = null
 
-    /** Downloads in progress, by TDLib's file id, each with what to tell about its progress. */
-    private val fileListeners = ConcurrentHashMap<Int, (TdApi.File) -> Unit>()
+    /**
+     * Downloads in progress, by TDLib's file id, each with what to tell about its progress. A
+     * list per id: two downloads of one file - the same release checked in the background and
+     * fetched by hand, say - each keep their own listener, so each sees the progress of the
+     * file they are both waiting for.
+     */
+    private val fileListeners = ConcurrentHashMap<Int, MutableList<(TdApi.File) -> Unit>>()
 
     /** Whether this build carries the app's API id and hash at all. */
     val isConfigured: Boolean get() = BuildConfig.TELEGRAM_API_ID != 0 && BuildConfig.TELEGRAM_API_HASH.isNotEmpty()
@@ -148,7 +154,7 @@ object TelegramClient : TelegramGateway {
     private fun onUpdate(update: TdApi.Object) {
         when (update) {
             is TdApi.UpdateAuthorizationState -> onAuthorization(update.authorizationState)
-            is TdApi.UpdateFile -> fileListeners[update.file.id]?.invoke(update.file)
+            is TdApi.UpdateFile -> fileListeners[update.file.id]?.forEach { it(update.file) }
         }
     }
 
@@ -537,7 +543,9 @@ object TelegramClient : TelegramGateway {
         val lastMoved = AtomicLong(System.currentTimeMillis())
         val lastReceived = AtomicLong(-1)
         val lastTold = AtomicLong(0)
-        fileListeners[remote.id] = { file ->
+        // This download's own listener, held so that only it is taken out again in the end:
+        // another download of the same file keeps its own, and its progress.
+        val listener: (TdApi.File) -> Unit = { file ->
             val received = file.local.downloadedSize
             val now = System.currentTimeMillis()
             if (lastReceived.getAndSet(received) != received) lastMoved.set(now)
@@ -547,6 +555,8 @@ object TelegramClient : TelegramGateway {
                 onProgress?.invoke(if (total > 0) received * 100.0 / total else null, received, total.takeIf { it > 0 })
             }
         }
+        val listeners = fileListeners.computeIfAbsent(remote.id) { CopyOnWriteArrayList() }
+        listeners.add(listener)
         try {
             AppLog.debug("Telegram: downloading ${document.fileName} from $channel/$messageId")
             // Answers only once the whole file is there, however long that takes.
@@ -557,7 +567,12 @@ object TelegramClient : TelegramGateway {
             while (!latch.await(POLL_MS, TimeUnit.MILLISECONDS)) {
                 val stalled = System.currentTimeMillis() - lastMoved.get() > STALL_MS
                 if (isCancelled() || stalled || client !== running) {
-                    running.send(TdApi.CancelDownloadFile(remote.id, false)) {}
+                    // Only the download still listening for this file may stop it: another
+                    // downloader of the same file would be killed along with this one, and
+                    // what it already has is worth more than this one's giving up.
+                    if (listeners.remove(listener) && listeners.isEmpty()) {
+                        running.send(TdApi.CancelDownloadFile(remote.id, false)) {}
+                    }
                     // What was fetched so far stays with the client, so the download can go on from it.
                     if (isCancelled()) throw CancellationSignal()
                     throw SourceError(Tr.get(if (stalled) "telegramNoAnswer" else "telegramErrSession"))
@@ -575,11 +590,15 @@ object TelegramClient : TelegramGateway {
                 destination.delete()
                 if (!partial.renameTo(destination)) throw SourceError(Tr.get("telegramNoAnswer"))
             }
-            // TDLib's own copy is of no further use.
-            running.send(TdApi.DeleteFile(remote.id)) {}
+            // TDLib's own copy is of no further use - but only the last downloader of the file
+            // may say so, and only when nothing else started on it since.
+            if (listeners.remove(listener) && listeners.isEmpty() && fileListeners.remove(remote.id, listeners)) {
+                running.send(TdApi.DeleteFile(remote.id)) {}
+            }
             return destination
         } finally {
-            fileListeners.remove(remote.id)
+            listeners.remove(listener)
+            if (listeners.isEmpty()) fileListeners.remove(remote.id, listeners)
         }
     }
 }
