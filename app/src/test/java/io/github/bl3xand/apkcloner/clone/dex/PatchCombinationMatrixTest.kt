@@ -344,7 +344,7 @@ class PatchCombinationMatrixTest {
     // The stacks.
 
     @Test
-    fun keepAliveSpoofMimicryTheNsgStack() {
+    fun keepAliveSpoofMimicryTheFullIdentityStack() {
         val dex = apply(setOf(PatchIds.KEEP_ALIVE, PatchIds.SPOOF_SIGNATURE, PatchIds.MIMICRY))
         assertGuardNopped(dex)
         assertPlainExitNopped(dex)
