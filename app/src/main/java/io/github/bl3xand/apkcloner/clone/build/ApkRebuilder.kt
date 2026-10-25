@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.clone
+package io.github.bl3xand.apkcloner.clone.build
 
 import java.io.BufferedOutputStream
 import java.io.File

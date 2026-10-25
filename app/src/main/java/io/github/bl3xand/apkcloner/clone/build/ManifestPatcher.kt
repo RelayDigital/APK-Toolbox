@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.clone
+package io.github.bl3xand.apkcloner.clone.build
 
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer

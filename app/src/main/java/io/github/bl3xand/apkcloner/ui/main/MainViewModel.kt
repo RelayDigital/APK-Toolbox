@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.bl3xand.apkcloner.R
-import io.github.bl3xand.apkcloner.clone.ApkCloner
+import io.github.bl3xand.apkcloner.clone.build.ApkCloner
 import io.github.bl3xand.apkcloner.clone.CloneRequest
 import io.github.bl3xand.apkcloner.data.ApkSource
 import io.github.bl3xand.apkcloner.data.AppRepository

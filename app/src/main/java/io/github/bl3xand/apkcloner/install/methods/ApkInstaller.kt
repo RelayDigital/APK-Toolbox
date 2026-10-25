@@ -1,10 +1,11 @@
-package io.github.bl3xand.apkcloner.install
+package io.github.bl3xand.apkcloner.install.methods
 
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
 import android.os.Build
+import io.github.bl3xand.apkcloner.install.InstallReceiver
 import java.io.File
 
 object ApkInstaller {

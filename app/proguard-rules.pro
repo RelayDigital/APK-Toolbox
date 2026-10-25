@@ -58,14 +58,14 @@
 # The dex patchers are structurally identical (same patchDex scaffold), and R8 merges them into
 # one method switch - which broke the per-patch dispatch: clones came out with some patches
 # silently missing. Keeping them apart keeps each patch's rewrite honest.
--keep class io.github.bl3xand.apkcloner.clone.SignatureBypass { *; }
--keep class io.github.bl3xand.apkcloner.clone.SignatureBypass$* { *; }
--keep class io.github.bl3xand.apkcloner.clone.KeepAlive { *; }
--keep class io.github.bl3xand.apkcloner.clone.KeepAlive$* { *; }
--keep class io.github.bl3xand.apkcloner.clone.CoreRenameAlias { *; }
--keep class io.github.bl3xand.apkcloner.clone.CoreRenameAlias$* { *; }
--keep class io.github.bl3xand.apkcloner.clone.SignatureSpoof { *; }
--keep class io.github.bl3xand.apkcloner.clone.SignatureSpoof$* { *; }
+-keep class io.github.bl3xand.apkcloner.clone.dex.SignatureBypass { *; }
+-keep class io.github.bl3xand.apkcloner.clone.dex.SignatureBypass$* { *; }
+-keep class io.github.bl3xand.apkcloner.clone.dex.KeepAlive { *; }
+-keep class io.github.bl3xand.apkcloner.clone.dex.KeepAlive$* { *; }
+-keep class io.github.bl3xand.apkcloner.clone.dex.CoreRenameAlias { *; }
+-keep class io.github.bl3xand.apkcloner.clone.dex.CoreRenameAlias$* { *; }
+-keep class io.github.bl3xand.apkcloner.clone.dex.SignatureSpoof { *; }
+-keep class io.github.bl3xand.apkcloner.clone.dex.SignatureSpoof$* { *; }
 
 # The patch chain holder (see its doc): kept so R8 cannot merge or reshuffle its captures.
--keep class io.github.bl3xand.apkcloner.clone.DexPatchChain { *; }
+-keep class io.github.bl3xand.apkcloner.clone.build.DexPatchChain { *; }

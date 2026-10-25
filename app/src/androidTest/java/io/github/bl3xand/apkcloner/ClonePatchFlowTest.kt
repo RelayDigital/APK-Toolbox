@@ -3,8 +3,8 @@ package io.github.bl3xand.apkcloner
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Until
-import io.github.bl3xand.apkcloner.clone.ApkCloner
-import io.github.bl3xand.apkcloner.clone.PatchIds
+import io.github.bl3xand.apkcloner.clone.build.ApkCloner
+import io.github.bl3xand.apkcloner.clone.dex.PatchIds
 import io.github.bl3xand.apkcloner.compat.installerOf
 import io.github.bl3xand.apkcloner.compat.packageInfoOrNull
 import io.github.bl3xand.apkcloner.compat.SIGNERS_FLAG

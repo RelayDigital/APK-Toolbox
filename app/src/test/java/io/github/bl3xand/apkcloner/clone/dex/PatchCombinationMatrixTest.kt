@@ -1,5 +1,6 @@
-package io.github.bl3xand.apkcloner.clone
+package io.github.bl3xand.apkcloner.clone.dex
 
+import io.github.bl3xand.apkcloner.clone.build.DexPatchChain
 import org.jf.dexlib2.AccessFlags
 import org.jf.dexlib2.Opcode
 import org.jf.dexlib2.Opcodes

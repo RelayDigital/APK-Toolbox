@@ -1,6 +1,8 @@
 package io.github.bl3xand.apkcloner.clone
 
 import android.content.pm.ApplicationInfo
+import io.github.bl3xand.apkcloner.clone.build.SigningKey
+import io.github.bl3xand.apkcloner.clone.dex.PatchIds
 import java.io.File
 
 class CloneRequest(

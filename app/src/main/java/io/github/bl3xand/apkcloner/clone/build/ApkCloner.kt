@@ -1,7 +1,14 @@
-package io.github.bl3xand.apkcloner.clone
+package io.github.bl3xand.apkcloner.clone.build
 
 import android.content.Context
 import com.android.apksig.ApkSigner
+import io.github.bl3xand.apkcloner.clone.CloneRequest
+import io.github.bl3xand.apkcloner.clone.dex.CloneMetadata
+import io.github.bl3xand.apkcloner.clone.dex.CoreRenameAlias
+import io.github.bl3xand.apkcloner.clone.dex.KeepAlive
+import io.github.bl3xand.apkcloner.clone.dex.PatchIds
+import io.github.bl3xand.apkcloner.clone.dex.SignatureBypass
+import io.github.bl3xand.apkcloner.clone.dex.SignatureSpoof
 import io.github.bl3xand.apkcloner.log.AppLog
 import java.io.File
 import java.util.zip.ZipFile

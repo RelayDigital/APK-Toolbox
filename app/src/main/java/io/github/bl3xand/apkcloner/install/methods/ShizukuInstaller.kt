@@ -1,7 +1,10 @@
-package io.github.bl3xand.apkcloner.install
+package io.github.bl3xand.apkcloner.install.methods
 
 import android.content.Context
 import io.github.bl3xand.apkcloner.data.ApkSource
+import io.github.bl3xand.apkcloner.install.Installer
+import io.github.bl3xand.apkcloner.install.InstallOutcome
+import io.github.bl3xand.apkcloner.install.InstallReceiver
 import io.github.bl3xand.apkcloner.shizuku.ShizukuBridge
 import java.io.File
 

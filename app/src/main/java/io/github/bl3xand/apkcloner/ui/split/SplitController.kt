@@ -4,11 +4,11 @@ import android.app.Application
 import android.net.Uri
 import android.os.Environment
 import io.github.bl3xand.apkcloner.R
-import io.github.bl3xand.apkcloner.clone.ApkCloner
+import io.github.bl3xand.apkcloner.clone.build.ApkCloner
 import io.github.bl3xand.apkcloner.data.ApkSource
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.merge.NotSplitException
-import io.github.bl3xand.apkcloner.merge.SplitExporter
+import io.github.bl3xand.apkcloner.merge.export.SplitExporter
 import io.github.bl3xand.apkcloner.merge.SplitLoader
 import io.github.bl3xand.apkcloner.merge.SplitMerger
 import io.github.bl3xand.apkcloner.merge.SplitMismatchException

@@ -1,7 +1,10 @@
-package io.github.bl3xand.apkcloner.install
+package io.github.bl3xand.apkcloner.install.methods
 
 import android.content.Context
 import io.github.bl3xand.apkcloner.data.ApkSource
+import io.github.bl3xand.apkcloner.install.Installer
+import io.github.bl3xand.apkcloner.install.InstallOutcome
+import io.github.bl3xand.apkcloner.install.InstallReceiver
 import java.io.File
 
 /** Experimental: installs with `su`. Never asks, and reports the result right away. */

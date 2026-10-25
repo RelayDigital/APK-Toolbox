@@ -11,13 +11,13 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Environment
 import androidx.core.content.FileProvider
-import io.github.bl3xand.apkcloner.clone.ApkCloner
+import io.github.bl3xand.apkcloner.clone.build.ApkCloner
 import io.github.bl3xand.apkcloner.clone.CloneRequest
 import io.github.bl3xand.apkcloner.install.InstallCoordinator
 import io.github.bl3xand.apkcloner.install.InstallOutcome
 import io.github.bl3xand.apkcloner.install.InstallReceiver
 import io.github.bl3xand.apkcloner.install.Installer
-import io.github.bl3xand.apkcloner.install.StockInstaller
+import io.github.bl3xand.apkcloner.install.methods.StockInstaller
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
 import io.github.bl3xand.apkcloner.sources.core.CancellationSignal

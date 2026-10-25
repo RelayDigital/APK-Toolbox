@@ -1,8 +1,11 @@
-package io.github.bl3xand.apkcloner.clone
+package io.github.bl3xand.apkcloner.clone.build
 
 import android.content.Context
 import com.android.apksig.ApkVerifier
 import com.reandroid.arsc.chunk.xml.ResXmlDocument
+import io.github.bl3xand.apkcloner.clone.CloneRequest
+import io.github.bl3xand.apkcloner.clone.dex.PatchIds
+import io.github.bl3xand.apkcloner.clone.dex.SignatureSpoof
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.security.KeyFactory
@@ -183,7 +186,7 @@ class ClonePatchRoundTripTest {
     private companion object {
         val noOpContext: android.content.Context by lazy {
             val bytes = ClonePatchRoundTripTest::class.java.classLoader!!.getResourceAsStream(
-                "classes/io/github/bl3xand/apkcloner/clone/GeneratedNoOpContext.bin",
+                "classes/io/github/bl3xand/apkcloner/clone/build/GeneratedNoOpContext.bin",
             )!!.use { it.readBytes() }
             val lookup = java.lang.invoke.MethodHandles.lookup()
             val define = lookup.javaClass.getMethod("defineClass", ByteArray::class.java).apply { isAccessible = true }

@@ -1,9 +1,11 @@
-package io.github.bl3xand.apkcloner.merge
+package io.github.bl3xand.apkcloner.merge.export
 
 import io.github.bl3xand.apkcloner.compat.versionCodeLong
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import io.github.bl3xand.apkcloner.merge.SplitEntry
+import io.github.bl3xand.apkcloner.merge.SplitSource
 import java.io.File
 import java.io.OutputStream
 import java.util.zip.ZipEntry

@@ -1,9 +1,12 @@
-package io.github.bl3xand.apkcloner.install
+package io.github.bl3xand.apkcloner.install.methods
 
 import io.github.bl3xand.apkcloner.compat.installerOf
 import android.content.Context
 import android.os.Build
 import io.github.bl3xand.apkcloner.data.ApkSource
+import io.github.bl3xand.apkcloner.install.Installer
+import io.github.bl3xand.apkcloner.install.InstallOutcome
+import io.github.bl3xand.apkcloner.install.PlayProtect
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

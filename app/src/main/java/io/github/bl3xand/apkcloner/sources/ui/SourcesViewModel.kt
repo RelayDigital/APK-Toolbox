@@ -11,7 +11,7 @@ import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
 import io.github.bl3xand.apkcloner.sources.data.DownloadState
 import io.github.bl3xand.apkcloner.sources.data.SourcesRepository
-import io.github.bl3xand.apkcloner.clone.ApkCloner
+import io.github.bl3xand.apkcloner.clone.build.ApkCloner
 import io.github.bl3xand.apkcloner.data.AppRepository
 import io.github.bl3xand.apkcloner.sources.data.certHashesOf
 import io.github.bl3xand.apkcloner.ui.clone.requestedPermissionsOf

@@ -1,6 +1,6 @@
 package io.github.bl3xand.apkcloner.ui.clone
 
-import io.github.bl3xand.apkcloner.clone.PatchIds
+import io.github.bl3xand.apkcloner.clone.dex.PatchIds
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

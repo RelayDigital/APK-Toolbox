@@ -15,7 +15,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
-import io.github.bl3xand.apkcloner.clone.ApkCloner
+import io.github.bl3xand.apkcloner.clone.build.ApkCloner
 import io.github.bl3xand.apkcloner.data.AppRepository
 import io.github.bl3xand.apkcloner.install.InstallCoordinator
 import io.github.bl3xand.apkcloner.install.InstallOutcome

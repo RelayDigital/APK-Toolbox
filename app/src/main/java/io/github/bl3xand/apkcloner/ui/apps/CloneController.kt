@@ -2,7 +2,7 @@ package io.github.bl3xand.apkcloner.ui.apps
 
 import android.net.Uri
 import io.github.bl3xand.apkcloner.R
-import io.github.bl3xand.apkcloner.clone.ApkCloner
+import io.github.bl3xand.apkcloner.clone.build.ApkCloner
 import io.github.bl3xand.apkcloner.data.ApkSource
 import io.github.bl3xand.apkcloner.data.AppRepository
 import io.github.bl3xand.apkcloner.log.AppLog

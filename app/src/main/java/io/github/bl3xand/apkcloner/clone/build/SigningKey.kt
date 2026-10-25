@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.clone
+package io.github.bl3xand.apkcloner.clone.build
 
 import com.android.apksig.ApkSigner
 import java.security.MessageDigest

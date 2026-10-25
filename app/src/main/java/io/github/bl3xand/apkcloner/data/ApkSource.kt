@@ -2,7 +2,7 @@ package io.github.bl3xand.apkcloner.data
 
 import android.content.pm.ApplicationInfo
 import io.github.bl3xand.apkcloner.clone.CloneRequest
-import io.github.bl3xand.apkcloner.clone.SigningKey
+import io.github.bl3xand.apkcloner.clone.build.SigningKey
 import java.io.File
 
 /** Something that can be cloned: an installed app, or an APK file picked by the user. */

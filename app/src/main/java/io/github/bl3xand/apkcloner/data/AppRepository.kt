@@ -9,8 +9,8 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.net.Uri
-import io.github.bl3xand.apkcloner.clone.ApkCloner
-import io.github.bl3xand.apkcloner.clone.CloneMetadata
+import io.github.bl3xand.apkcloner.clone.build.ApkCloner
+import io.github.bl3xand.apkcloner.clone.dex.CloneMetadata
 import io.github.bl3xand.apkcloner.R
 import io.github.bl3xand.apkcloner.install.Installer
 import io.github.bl3xand.apkcloner.settings.AppSettings

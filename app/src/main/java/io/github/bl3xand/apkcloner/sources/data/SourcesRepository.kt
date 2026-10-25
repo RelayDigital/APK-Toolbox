@@ -7,7 +7,7 @@ import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Color
-import io.github.bl3xand.apkcloner.clone.ApkCloner
+import io.github.bl3xand.apkcloner.clone.build.ApkCloner
 import io.github.bl3xand.apkcloner.install.InstallCoordinator
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.Tr

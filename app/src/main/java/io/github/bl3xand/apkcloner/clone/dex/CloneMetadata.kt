@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.clone
+package io.github.bl3xand.apkcloner.clone.dex
 
 /**
  * The dex patches this clone can be built with, by their stable metadata names. [ALL] is every

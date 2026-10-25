@@ -22,11 +22,11 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.materialswitch.MaterialSwitch
 import io.github.bl3xand.apkcloner.BuildConfig
 import io.github.bl3xand.apkcloner.R
-import io.github.bl3xand.apkcloner.clone.SigningKeys
+import io.github.bl3xand.apkcloner.clone.build.SigningKeys
 import io.github.bl3xand.apkcloner.databinding.DialogKeyPasswordBinding
 import io.github.bl3xand.apkcloner.databinding.SheetSettingsBinding
 import io.github.bl3xand.apkcloner.install.PlayProtect
-import io.github.bl3xand.apkcloner.install.Root
+import io.github.bl3xand.apkcloner.install.methods.Root
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.settings.AppLanguage
 import io.github.bl3xand.apkcloner.settings.AppSettings

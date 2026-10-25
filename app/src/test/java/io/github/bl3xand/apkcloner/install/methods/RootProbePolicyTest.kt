@@ -1,4 +1,4 @@
-package io.github.bl3xand.apkcloner.install
+package io.github.bl3xand.apkcloner.install.methods
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

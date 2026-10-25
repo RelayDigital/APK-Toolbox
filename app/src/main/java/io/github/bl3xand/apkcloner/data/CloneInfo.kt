@@ -1,7 +1,7 @@
 package io.github.bl3xand.apkcloner.data
 
 import io.github.bl3xand.apkcloner.clone.CloneRequest
-import io.github.bl3xand.apkcloner.clone.SigningKey
+import io.github.bl3xand.apkcloner.clone.build.SigningKey
 import io.github.bl3xand.apkcloner.sources.data.AppEntry
 
 /** An installed app that was produced by this tool. */
