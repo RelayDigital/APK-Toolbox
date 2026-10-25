@@ -12,7 +12,15 @@ enum class AppLanguage(val tag: String, val ownName: String) {
     SYSTEM("", ""),
     ENGLISH("en", "English"),
     RUSSIAN("ru", "Русский"),
-    CHINESE("zh", "中文");
+    CHINESE("zh", "中文"),
+    JAPANESE("ja", "日本語"),
+    ARABIC("ar", "العربية"),
+    GERMAN("de", "Deutsch"),
+    FRENCH("fr", "Français"),
+    SPANISH("es", "Español"),
+    PORTUGUESE_BRAZIL("pt-BR", "Português (Brasil)"),
+    TURKISH("tr", "Türkçe"),
+    KOREAN("ko", "한국어");
 
     /** Makes this the app's language; the screens on show are built again in it. */
     fun apply() {
@@ -26,7 +34,10 @@ enum class AppLanguage(val tag: String, val ownName: String) {
         fun current(): AppLanguage {
             val chosen = AppCompatDelegate.getApplicationLocales()
             if (chosen.isEmpty) return SYSTEM
-            return entries.firstOrNull { it != SYSTEM && it.tag == chosen[0]?.language } ?: SYSTEM
+            val first = chosen[0] ?: return SYSTEM
+            return entries.firstOrNull {
+                it != SYSTEM && it.tag == first.toLanguageTag() || it.tag == first.language
+            } ?: SYSTEM
         }
     }
 }

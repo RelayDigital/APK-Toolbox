@@ -125,10 +125,10 @@ abstract class BaseUiTest {
         return text?.toString() ?: error("String \"$name\" not found in resources or i18n catalogues")
     }
 
-    private fun resLocale(): String = when (context.resources.configuration.locales[0].language) {
-        "ru" -> "ru"
-        "zh" -> "zh"
-        else -> "en"
+    private fun resLocale(): String {
+        val locale = context.resources.configuration.locales[0]
+        val name = if (locale.language == "pt" && locale.region == "BR") "pt-rBR" else locale.language
+        return if (name in listOf("ru", "zh", "de", "fr", "es", "pt-rBR", "tr", "ko", "ja", "ar")) name else "en"
     }
 
     private fun catalogue(name: String): JSONObject {
@@ -156,6 +156,29 @@ abstract class BaseUiTest {
             ?.distinct()
             ?.joinToString("\n")
             .orEmpty()
+
+    /** Scrolls a bottom-sheet dialog until its content has a view [matching], or gives up. */
+    protected fun scrollSheetUntil(matching: (UiObject2) -> Boolean, maxSwipes: Int = 15): UiObject2? {
+        // A view can die between the query and the match (the sheet re-rendering); a dead one
+        // is simply not a match, not a failure.
+        fun find(): UiObject2? = runCatching {
+            device.findObjects(By.clazz("android.widget.TextView"))?.firstOrNull(matching)
+        }.getOrNull()
+        find()?.let { return it }
+        val sheet = device.findObject(By.clazz("android.widget.FrameLayout").res(packageName, "design_bottom_sheet"))
+            ?: return find()
+        repeat(maxSwipes) {
+            find()?.let { return it }
+            val rect = sheet.visibleBounds
+            device.swipe(
+                rect.centerX(), rect.centerY(),
+                rect.centerX(), rect.top + rect.height() / 6,
+                40,
+            )
+            device.waitForIdle(500)
+        }
+        return find()
+    }
 
     /** Scrolls a bottom-sheet dialog until its content shows [text], or gives up. */
     protected fun scrollSheetUntil(text: String, maxSwipes: Int = 15): UiObject2? {

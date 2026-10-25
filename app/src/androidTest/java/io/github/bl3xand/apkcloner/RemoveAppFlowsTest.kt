@@ -150,10 +150,10 @@ class RemoveAppFlowsTest : BaseUiTest() {
 
     /** One form of a plural of the sources' catalogues. */
     private fun sourcePlural(name: String, count: Int): String {
-        val locale = when (context.resources.configuration.locales[0].language) {
-            "ru" -> "ru"; "zh" -> "zh"; else -> "en"
-        }
-        val json = context.assets.open("sources/i18n/$locale.json").bufferedReader().use { it.readText() }
+        val locale = context.resources.configuration.locales[0].language
+        val catalogue =
+            if (locale in listOf("ru", "zh", "de", "fr", "es", "tr", "ko", "ja", "ar")) locale else "en"
+        val json = context.assets.open("sources/i18n/$catalogue.json").bufferedReader().use { it.readText() }
         val forms = JSONObject(json).getJSONObject(name)
         return forms.optString(if (count == 1) "one" else "other").ifBlank { forms.optString("other") }
     }
