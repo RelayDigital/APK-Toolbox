@@ -286,8 +286,14 @@ class SourcesRepository private constructor(private val context: Context) {
                     entries.clear()
                     entries.putAll(loaded)
                 } else {
+                    // The ids on disk now - the files could have been removed while they were
+                    // being read, and a removed app must go from the memory too, not only from
+                    // the snapshot's put: an id kept only by the stale snapshot is a ghost row
+                    // pointing at no file.
+                    val onDisk = appsDir.listFiles { file -> file.name.lowercase().endsWith(".json") }
+                        ?.mapTo(HashSet()) { it.name.removeSuffix(".json") } ?: emptySet()
                     for ((id, entry) in loaded) entries[id] = entry
-                    entries.keys.retainAll(loaded.keys)
+                    entries.keys.retainAll { it in onDisk }
                 }
             }
             if (invalid.isNotEmpty()) {
@@ -399,7 +405,9 @@ class SourcesRepository private constructor(private val context: Context) {
         val downloads = apkDir.listFiles() ?: emptyArray()
         // The lock spans the file deletion and the entry removal, so no save of an app being
         // removed can land its file and entry back after them (a save running concurrently on
-        // another thread sees the entry gone and, with onlyIfExists, stores nothing).
+        // another thread sees the entry gone and, with onlyIfExists, stores nothing). The
+        // counter moves too: a load that read the files before the removal must see it as a
+        // mutation and not resurrect the app from its stale snapshot.
         synchronized(lock) {
             for (id in ids) {
                 File(appsDir, "$id.json").delete()
@@ -407,6 +415,7 @@ class SourcesRepository private constructor(private val context: Context) {
                 setCheckError(id, null)
                 downloads.filter { it.name.startsWith("$id-") }.forEach { it.deleteRecursively() }
                 entries.remove(id)
+                storageMutations.incrementAndGet()
             }
         }
         if (ids.isNotEmpty()) {
