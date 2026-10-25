@@ -229,6 +229,10 @@ fun Context.showTelegramSignIn(scope: CoroutineScope) {
                 dialog.dismiss()
             }
             is TelegramAuth.Unsupported -> {
+                // The error label comes along here too: the Connecting-timeout path sets its
+                // text right after this render, and a label this branch never attaches would
+                // carry that reason where nobody sees it.
+                step.add(error, topMargin = 4)
                 step.add(label(Tr.get("telegramUnsupported", state.step), colorAttr = AppCompatR.attr.colorError))
                 startOverButton()
             }
