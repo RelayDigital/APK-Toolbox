@@ -258,5 +258,6 @@
   "removeThenInstallDone": "已删除。请重新安装{}以继续。",
   "invalidRegExTooSlow": "无效的正则表达式：过于缓慢",
   "regexTimedOut": "正则表达式处理时间过长：{}",
+  "checkTimedOut": "源未及时响应",
   "downloadStalledConflict": "此文件的另一下载已停止响应"
 }

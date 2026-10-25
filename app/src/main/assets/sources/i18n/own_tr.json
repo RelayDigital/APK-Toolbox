@@ -259,5 +259,6 @@
   "removeThenInstallDone": "Kaldırıldı. Sürdürmek için {} uygulamasını yeniden kurun.",
   "invalidRegExTooSlow": "Geçersiz düzenli ifade: çok yavaş",
   "regexTimedOut": "Bir düzenli ifade çok uzun sürdü: {}",
+  "checkTimedOut": "Kaynak zamanında yanıt vermedi",
   "downloadStalledConflict": "Bu dosyanın başka bir indirmesi yanıt vermeyi bıraktı"
 }

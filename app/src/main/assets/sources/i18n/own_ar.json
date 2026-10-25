@@ -263,5 +263,6 @@
   "removeThenInstallDone": "أُزيل. ثبِّت {} مجددًا للمتابعة.",
   "invalidRegExTooSlow": "تعبير نمطي غير صالح: بطيء جدًا",
   "regexTimedOut": "استغرق تعبير نمطي وقتًا طويلًا: {}",
+  "checkTimedOut": "لم يجد المصدر الوقت للرد",
   "downloadStalledConflict": "توقف تنزيل آخر لهذا الملف عن الاستجابة"
 }

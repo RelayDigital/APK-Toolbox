@@ -259,5 +259,6 @@
   "removeThenInstallDone": "Rimosso. Installa di nuovo {} per continuare.",
   "invalidRegExTooSlow": "Espressione regolare non valida: troppo lenta",
   "regexTimedOut": "Un'espressione regolare ha impiegato troppo tempo: {}",
+  "checkTimedOut": "La fonte non ha risposto in tempo",
   "downloadStalledConflict": "Un altro scaricamento di questo file ha smesso di rispondere"
 }

@@ -259,5 +259,6 @@
   "removeThenInstallDone": "Đã gỡ. Hãy cài lại {} để tiếp tục.",
   "invalidRegExTooSlow": "Biểu thức chính quy không hợp lệ: quá chậm",
   "regexTimedOut": "Một biểu thức chính quy chạy quá lâu: {}",
+  "checkTimedOut": "Nguồn không kịp trả lời",
   "downloadStalledConflict": "Một lượt tải tệp này khác ngừng phản hồi"
 }

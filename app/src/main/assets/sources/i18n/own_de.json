@@ -259,5 +259,6 @@
   "removeThenInstallDone": "Entfernt. Installieren Sie {} erneut, um fortzufahren.",
   "invalidRegExTooSlow": "Ungültiger regulärer Ausdruck: zu langsam",
   "regexTimedOut": "Ein regulärer Ausdruck brauchte zu lange: {}",
+  "checkTimedOut": "Die Quelle hat nicht rechtzeitig geantwortet",
   "downloadStalledConflict": "Ein anderer Download dieser Datei reagiert nicht mehr"
 }

@@ -259,5 +259,6 @@
   "removeThenInstallDone": "削除しました。続けるには {} を再度インストールしてください。",
   "invalidRegExTooSlow": "無効な正規表現：遅すぎます",
   "regexTimedOut": "正規表現の処理に時間がかかりすぎました：{}",
+  "checkTimedOut": "ソースが時間内に応答しませんでした",
   "downloadStalledConflict": "このファイルの別のダウンロードが応答しなくなりました"
 }

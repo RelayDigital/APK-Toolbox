@@ -3,10 +3,13 @@ package io.github.bl3xand.apkcloner.sources.data
 import android.content.Context
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.settings.AppSettings
+import io.github.bl3xand.apkcloner.sources.core.CHECK_TIMEOUT_SECONDS
 import io.github.bl3xand.apkcloner.sources.core.MultiAppMultiError
 import io.github.bl3xand.apkcloner.sources.core.RateLimitError
 import io.github.bl3xand.apkcloner.sources.core.ReleaseBranchGoneError
 import io.github.bl3xand.apkcloner.sources.core.RepositoryRenamedError
+import io.github.bl3xand.apkcloner.sources.core.SourceError
+import io.github.bl3xand.apkcloner.sources.core.Tr
 import io.github.bl3xand.apkcloner.sources.core.effectiveMinUpdateAgeDays
 import io.github.bl3xand.apkcloner.sources.core.errorText
 import io.github.bl3xand.apkcloner.sources.core.isReleaseTooYoung
@@ -21,6 +24,10 @@ import io.github.bl3xand.apkcloner.testing.TestHooks
 import java.io.IOException
 import java.time.Instant
 import java.util.Collections
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicInteger
 import javax.net.ssl.SSLHandshakeException
 import kotlin.random.Random
@@ -31,6 +38,14 @@ import kotlinx.coroutines.flow.StateFlow
 class UpdateChecker(private val context: Context, private val repo: SourcesRepository) {
     private val settings = repo.settings
     private val checkLock = Any()
+
+    /**
+     * How long one app's check may take before the pass gives up on it. A source that answers
+     * not at all (a dead tunnel, a silent drop) would otherwise hold its worker - and with it
+     * the whole pass and every later one queued behind [checkLock] - for as long as the socket
+     * timeouts take, which can be minutes.
+     */
+    private val checkTimeoutMs = CHECK_TIMEOUT_SECONDS * 1000
 
     /** 0..1 while an update check runs, else null. */
     private val _progress = MutableStateFlow<Double?>(null)
@@ -82,16 +97,43 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
         }
     }
 
+    /**
+     * One app's fetch, run on its own daemon thread so a source that never answers holds only
+     * it: the caller gives up after [checkTimeoutMs] and the app says so, instead of the whole
+     * pass - or the one check behind a single row - freezing on a dead network. The abandoned
+     * thread keeps running until its socket gives up; whatever it still writes is discarded.
+     * One thread per fetch, never a shared pool: hung fetches must not starve the next ones.
+     */
+    private fun fetchUpdateWithinTimeout(id: String): TrackedApp? {
+        val future = CompletableFuture<TrackedApp?>()
+        Thread({
+            try {
+                future.complete(fetchUpdateWithHandshakeRetry(id))
+            } catch (t: Throwable) {
+                future.completeExceptionally(t)
+            }
+        }, "update-check").apply { isDaemon = true }.start()
+        return try {
+            future.get(checkTimeoutMs, TimeUnit.MILLISECONDS)
+        } catch (e: TimeoutException) {
+            throw SourceError(code = "CHECK_TIMED_OUT", unexpected = true)
+        } catch (e: ExecutionException) {
+            throw e.cause ?: e
+        }
+    }
+
     /** Checks one app and saves it; returns it only when its latest version changed. */
     fun checkUpdate(id: String): TrackedApp? {
         val current = repo.entry(id)?.app ?: return null
         AppLog.debug("Checking $id at ${current.url}")
         val fresh = try {
-            fetchUpdate(id)
+            // The single check behind a row obeys the same timeout as the whole pass: a source
+            // that never answers says so instead of hanging the row's download or options save.
+            fetchUpdateWithinTimeout(id)
         } catch (e: Exception) {
             AppLog.warn("Check of $id failed: ${e.message ?: e}")
             // A repository that moved has a notice of its own.
-            if (e !is RepositoryRenamedError) repo.setCheckError(id, errorText(e))
+            if (e !is RepositoryRenamedError) repo.setCheckError(id, checkErrorText(e))
             throw e
         } ?: return null
         repo.setCheckError(id, null)
@@ -106,6 +148,21 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
 
     /** The interval of the app's background check, which the Sources tab shares. */
     val updateIntervalMinutes: Long get() = AppSettings(context).checkIntervalDays * 24 * 60
+
+    /**
+     * What a row says when its check failed. A network that does not answer - DNS that resolves
+     * nothing, a socket that never opens or never speaks, our own give-up time - is one thing
+     * to the user no matter which layer said it, so its many raw shapes (the system's own
+     * "Unable to resolve host ...", "Connection timed out", and our timeout error) all say the
+     * same localized line; the raw words stay in the log. Everything else a source can fail
+     * with keeps its own message, which does mean something on its own.
+     */
+    private fun checkErrorText(e: Throwable): String =
+        if (e is IOException || e is SourceError && e.code == "CHECK_TIMED_OUT") {
+            Tr.get("checkTimedOut")
+        } else {
+            errorText(e)
+        }
 
     /** Apps due for a check (all of them when [forceAll]), longest unchecked first. */
     fun getAppsSortedByUpdateCheckTime(onlyInstalledOrTrackOnly: Boolean = false, forceAll: Boolean = false): List<String> {
@@ -164,7 +221,10 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
                         val id = ids[index]
                         val current = repo.entry(id)?.app
                         try {
-                            val fresh = fetchUpdateWithHandshakeRetry(id)
+                            // A source that never answers is given up on in time (its own daemon
+                            // thread keeps hanging on the socket alone), so the pass - and every
+                            // later one queued behind the same lock - always finishes.
+                            val fresh = fetchUpdateWithinTimeout(id)
                             repo.setCheckError(id, null)
                             if (fresh != null) {
                                 fetched.add(fresh)
@@ -182,7 +242,7 @@ class UpdateChecker(private val context: Context, private val repo: SourcesRepos
                             } else {
                                 synchronized(errors) { errors.add(id, e, appName = repo.entry(id)?.name) }
                                 AppLog.warn("Update check failed for $id: ${errorText(e)}")
-                                repo.setCheckError(id, errorText(e))
+                                repo.setCheckError(id, checkErrorText(e))
                                 // Still counts as checked, or the background task would retry it
                                 // every time it runs.
                                 current?.let { failed.add(it.copy(lastUpdateCheck = Instant.now())) }

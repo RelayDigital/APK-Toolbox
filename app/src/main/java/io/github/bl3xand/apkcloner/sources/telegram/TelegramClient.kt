@@ -292,50 +292,48 @@ object TelegramClient : TelegramGateway {
 
     /**
      * Sends [function] and waits for its answer; an error answer is thrown, in words of its own.
-     * A read that gets no answer at all is sent again a few times with a pause - a slow search
-     * through a channel's history is killed by its own timeout, so the next one goes on better.
-     * TDLib has no way to cancel a request that was sent, so a late answer to one given up on is
-     * only logged and dropped. The signing-in steps are sent once: they are driven by hand, and
-     * a code or a password must not be checked twice.
+     * A read waits what a check gives a source and no longer; the signing-in steps wait their
+     * own, longer budgets - they open the client and sync with Telegram. TDLib has no way to
+     * cancel a request that was sent, so a late answer to one given up on is only logged and
+     * dropped. The signing-in steps are sent once: they are driven by hand, and a code or a
+     * password must not be checked twice.
      */
     private fun <T : TdApi.Object> request(function: TdApi.Function<T>, timeoutSeconds: Long = retry.timeoutSeconds, read: Boolean = false): T {
-        var attempt = 1
-        while (true) {
-            val running = client ?: throw SourceError(Tr.get("telegramSignInFirst"))
-            val sent = System.currentTimeMillis()
-            val answer = AtomicReference<TdApi.Object>()
-            val gaveUp = AtomicBoolean(false)
-            val latch = CountDownLatch(1)
-            running.send(function) { result ->
-                answer.set(result)
-                latch.countDown()
-                // The wait that sent this may have given up already: a request TDLib was given
-                // cannot be called back, so a late answer is only said of in the log.
-                if (gaveUp.get()) {
-                    AppLog.warn("Telegram: a late answer to ${nameOf(function)} arrived ${formatSince(sent)} after it was given up on")
-                }
+        val running = client ?: throw SourceError(Tr.get("telegramSignInFirst"))
+        val budgetSeconds = if (read) TelegramRetry.READ_SECONDS else timeoutSeconds
+        val sent = System.currentTimeMillis()
+        val answer = AtomicReference<TdApi.Object>()
+        val gaveUp = AtomicBoolean(false)
+        val latch = CountDownLatch(1)
+        running.send(function) { result ->
+            answer.set(result)
+            latch.countDown()
+            // The wait that sent this may have given up already: a request TDLib was given
+            // cannot be called back, so a late answer is only said of in the log.
+            if (gaveUp.get()) {
+                AppLog.warn("Telegram: a late answer to ${nameOf(function)} arrived ${formatSince(sent)} after it was given up on")
             }
-            if (latch.await(timeoutSeconds, TimeUnit.SECONDS)) {
-                retry.onAnswerArrived()
-            } else {
-                gaveUp.set(true)
-                // A client that was swapped under the request answers nothing, or with a
-                // "Wrong client id" that never reaches this latch; that is the session's end,
-                // not slowness, and waiting longer or retrying cannot help it.
-                if (client !== running) throw SourceError(Tr.get("telegramErrSession"))
-                AppLog.warn("Telegram: no answer to ${nameOf(function)} in ${timeoutSeconds}s (attempt $attempt)")
-                if (retry.shouldTryAgain(attempt, read)) {
-                    attempt++
-                    Thread.sleep(retry.retryPauseMillis)
-                    continue
-                }
-                throw SourceError(Tr.get("telegramNoAnswer"))
-            }
-            val result = answer.get()
-            if (result is TdApi.Error) throw errorOf(result)
-            @Suppress("UNCHECKED_CAST")
-            return result as T
         }
+        if (!latch.await(budgetSeconds, TimeUnit.SECONDS)) {
+            gaveUp.set(true)
+            // A client that was swapped under the request answers nothing, or with a
+            // "Wrong client id" that never reaches this latch; that is the session's end,
+            // not slowness, and waiting longer cannot help it.
+            if (client !== running) throw SourceError(Tr.get("telegramErrSession"))
+            AppLog.warn("Telegram: no answer to ${nameOf(function)} in ${budgetSeconds}s")
+            // A read that ran out says what every source that does not answer says; a
+            // signing-in step keeps its own words, which say what to do about it.
+            throw if (read) {
+                SourceError(code = "CHECK_TIMED_OUT", unexpected = true)
+            } else {
+                SourceError(Tr.get("telegramNoAnswer"))
+            }
+        }
+        retry.onAnswerArrived()
+        val result = answer.get()
+        if (result is TdApi.Error) throw errorOf(result)
+        @Suppress("UNCHECKED_CAST")
+        return result as T
     }
 
     /** The name a log line can say of a request TDLib only knows as a number. */

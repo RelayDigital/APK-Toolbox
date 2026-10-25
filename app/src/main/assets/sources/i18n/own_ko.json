@@ -259,5 +259,6 @@
   "removeThenInstallDone": "제거되었습니다. 계속하려면 {}을(를) 다시 설치하세요.",
   "invalidRegExTooSlow": "잘못된 정규식: 너무 느림",
   "regexTimedOut": "정규식이 너무 오래 걸렸습니다: {}",
+  "checkTimedOut": "소스가 제시간에 응답하지 않았습니다",
   "downloadStalledConflict": "이 파일의 다른 내려받기가 응답을 멈췄습니다"
 }

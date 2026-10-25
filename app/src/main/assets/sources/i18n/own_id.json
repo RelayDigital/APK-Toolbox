@@ -259,5 +259,6 @@
   "removeThenInstallDone": "Terhapus. Pasang {} lagi untuk melanjutkan.",
   "invalidRegExTooSlow": "Ekspresi reguler tak sah: terlalu lambat",
   "regexTimedOut": "Ekspresi reguler memakan waktu terlalu lama: {}",
+  "checkTimedOut": "Sumber tidak menjawab tepat waktu",
   "downloadStalledConflict": "Pengunduhan lain dari berkas ini berhenti merespons"
 }

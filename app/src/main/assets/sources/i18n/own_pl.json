@@ -261,5 +261,6 @@
   "removeThenInstallDone": "Usunięto. Zainstaluj ponownie {}, aby kontynuować.",
   "invalidRegExTooSlow": "Nieprawidłowe wyrażenie regularne: zbyt wolne",
   "regexTimedOut": "Wyrażenie regularne liczyło się zbyt długo: {}",
+  "checkTimedOut": "Źródło nie odpowiedziało na czas",
   "downloadStalledConflict": "Inne pobieranie tego pliku przestało odpowiadać"
 }
