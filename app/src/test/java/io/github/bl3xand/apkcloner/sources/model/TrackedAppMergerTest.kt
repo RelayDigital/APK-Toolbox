@@ -45,6 +45,8 @@ class TrackedAppMergerTest {
         additionalSettings: Map<String, Any?> = emptyMap(),
         installedVersion: String? = null,
         releaseDate: Instant? = Instant.ofEpochSecond(1000),
+        preferredBranchKey: String? = null,
+        releaseBranchGone: Boolean = false,
     ) = TrackedApp(
         id = "app",
         url = "https://x/app",
@@ -60,6 +62,8 @@ class TrackedAppMergerTest {
         releaseDate = releaseDate,
         changeLog = "what changed",
         releaseUrl = "https://x/release",
+        preferredBranchKey = preferredBranchKey,
+        releaseBranchGone = releaseBranchGone,
     )
 
     // ---- the release's own words come from the fetch ---------------------------------------
@@ -178,6 +182,77 @@ class TrackedAppMergerTest {
     fun anEmptyFileListKeepsTheStoredChoice() {
         val merged = preserveUserFields(stored(preferredApkIndex = 2), fetched(apkUrls = emptyList()))
         assertEquals(2, merged.preferredApkIndex)
+    }
+
+    // ---- the branch the user's choice names --------------------------------------------------
+
+    @Test
+    fun theRememberedBranchKeyIsNotOverwrittenByTheFetchsStaleCopy() {
+        // The user picked a file while the fetch was out; the fetch's record still names the
+        // branch as it was when it started.
+        val merged = preserveUserFields(
+            stored(preferredApkIndex = 5, preferredBranchKey = "z.apk"),
+            fetched(preferredBranchKey = "old.apk"),
+        )
+        assertEquals("z.apk", merged.preferredBranchKey)
+    }
+
+    @Test
+    fun aGoneMarkIsNotUndoneByTheFetchsStaleCopy() {
+        // A check judged the branch gone after the user's pick; a fetch that started before
+        // that judgment must not clear the mark - nor set one the list does not have.
+        val merged = preserveUserFields(
+            stored(preferredApkIndex = 2, preferredBranchKey = "b.apk"),
+            fetched(releaseBranchGone = false),
+        )
+        assertEquals(false, merged.releaseBranchGone)
+        val unGone = preserveUserFields(
+            stored(preferredApkIndex = 2, preferredBranchKey = "b.apk").copy(releaseBranchGone = true),
+            fetched(releaseBranchGone = false),
+        )
+        assertTrue("a gone-mark the list holds must survive the fetch", unGone.releaseBranchGone)
+        val reMarked = preserveUserFields(
+            stored(preferredApkIndex = 2, preferredBranchKey = "b.apk"),
+            fetched(releaseBranchGone = true),
+        )
+        assertEquals("a fetch that never saw the pick must not mark the pick's branch gone", false, reMarked.releaseBranchGone)
+    }
+
+    @Test
+    fun anOutOfRangeChoiceMovesToTheRememberedBranchKeyOnAKeyedSource() {
+        // A keyed source: the file's name changes with the version (app-2.0.apk), so the
+        // remembered branch key is found by key, not by exact name. Four files now.
+        val fetched = fetched(apkUrls = urls("app-1.9.apk", "app-2.0.apk", "other-1.apk", "other-2.apk"))
+        val merged = preserveUserFields(
+            stored(preferredApkIndex = 5, preferredBranchKey = "other"),
+            fetched,
+            branchKeyOf = { file -> file.name.substringBefore('-') },
+        )
+        assertEquals(2, merged.preferredApkIndex)
+    }
+
+    @Test
+    fun anOutOfRangeChoiceStillMovesByExactNameWhereTheSourceHasNoKeys() {
+        // A source without keys: the file's name is stable across releases, so name equality
+        // is the judgment, exactly as before.
+        val fetched = fetched(apkUrls = urls("w.apk", "x.apk", "y.apk", "z.apk"))
+        val merged = preserveUserFields(stored(preferredApkIndex = 5, preferredBranchKey = "z.apk"), fetched)
+        assertEquals(3, merged.preferredApkIndex)
+    }
+
+    @Test
+    fun aPickMadeDuringACheckKeepsItsBranchWhenTheChecksSaveLands() {
+        // The race this whole fix is about, end to end: the user picked a file (the pick
+        // writes preferredApkIndex, the branch key and releaseBranchGone = false), and a
+        // check that started before the pick finishes and saves its stale fetch over the
+        // record through the merge. The pick's branch word must come through.
+        val picked = stored(preferredApkIndex = 3, preferredBranchKey = "instander", additionalSettings = mapOf(SettingKeys.PREFERRED_APK to "[]"))
+        val staleFetch = fetched(apkUrls = urls("app-2.0.apk", "instander-9.0.apk"), preferredBranchKey = "old-family", releaseBranchGone = true)
+        val saved = preserveUserFields(picked, staleFetch, branchKeyOf = { file -> file.name.substringBefore('-') })
+        assertEquals("instander", saved.preferredBranchKey)
+        assertEquals(false, saved.releaseBranchGone)
+        // The remembered index fits the fetched list only through the key, and it is found.
+        assertEquals(1, saved.preferredApkIndex)
     }
 
     // ---- check-owned settings -----------------------------------------------------------------

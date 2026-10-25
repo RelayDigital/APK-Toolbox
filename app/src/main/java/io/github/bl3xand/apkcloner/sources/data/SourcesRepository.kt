@@ -11,6 +11,7 @@ import io.github.bl3xand.apkcloner.clone.build.ApkCloner
 import io.github.bl3xand.apkcloner.install.InstallCoordinator
 import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.Tr
+import io.github.bl3xand.apkcloner.sources.core.NamedUrl
 import io.github.bl3xand.apkcloner.sources.core.doStringsMatchUnderRegEx
 import io.github.bl3xand.apkcloner.sources.core.errorText
 import io.github.bl3xand.apkcloner.sources.core.isUpdateable
@@ -368,7 +369,15 @@ class SourcesRepository private constructor(private val context: Context) {
             val existing = entries[input.id]
             // A fetch saved over a record the user has touched since the fetch started must
             // not overwrite those touches: only what a fetch owns is taken from it.
-            val app = if (preserveUserFields && existing != null) preserveUserFields(existing.app, input) else input
+            val app = if (preserveUserFields && existing != null) {
+                val source = runCatching { sourceOf(input) }.getOrNull()
+                preserveUserFields(
+                    existing.app, input,
+                    branchKeyOf = source?.let { src -> { file: NamedUrl -> src.releaseBranchKeyOf(file) } },
+                )
+            } else {
+                input
+            }
             val (prepared, info) = prepareForSave(app, existing, attemptToCorrectInstallStatus, onlyIfExists, reuseInstalledInfo)
                 ?: continue
             writeAppJson(prepared)
