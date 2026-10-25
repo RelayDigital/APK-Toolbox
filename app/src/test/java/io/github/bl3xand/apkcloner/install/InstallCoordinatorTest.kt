@@ -213,6 +213,86 @@ class InstallCoordinatorTest {
     }
 
     @Test
+    fun samePackageForegroundCommitDoesNotDeadlockAgainstABatchWaitingOnThatPackage() = runBlocking {
+        // The one combination the other tests step around: the SAME package installed by a
+        // background batch and asked for on screen at once. The foreground holds the package's
+        // mutex and its commit wants the batch mutex; the batch holds the batch mutex and its
+        // install of that package wants the package's mutex. Taken as plain waits that is a
+        // deadlock; the policy is that the foreground commit gives up joining the batch after
+        // the hand-off timeout and hands off anyway, so both sides move again.
+        val batchWantsPackage = CompletableDeferred<Unit>()
+        val batchDone = CompletableDeferred<Unit>()
+        val foregroundCommitted = CompletableDeferred<Unit>()
+        val batch = launch {
+            InstallCoordinator.backgroundBatch {
+                // A different package's install runs first and hands the batch mutex to its
+                // commit, so the batch is past its start and holding the mutex.
+                InstallCoordinator.installing("com.example.first", background = true) { }
+                batchWantsPackage.complete(Unit)
+                // Now the same package the foreground is installing: this waits on the
+                // package's mutex, which the foreground holds - the deadlock's other side.
+                InstallCoordinator.installing("com.example.clash", background = true) { }
+                batchDone.complete(Unit)
+            }
+        }
+        batchWantsPackage.await()
+        // Give the batch a moment to queue its wait on the package's mutex.
+        delay(100)
+        val savedTimeout = InstallCoordinator.handoffTimeoutMs
+        InstallCoordinator.handoffTimeoutMs = 300
+        try {
+            val foreground = launch {
+                InstallCoordinator.installing("com.example.clash", background = false) {
+                    commit { foregroundCommitted.complete(Unit) }
+                }
+            }
+            // The foreground must come through: the commit times out joining the batch and
+            // hands off without it instead of waiting forever.
+            withTimeout(5_000) { foregroundCommitted.await() }
+            foreground.join()
+            // And with the foreground done, the package's mutex is free: the batch's own
+            // install of it proceeds and the whole batch finishes.
+            withTimeout(5_000) { batchDone.await() }
+            batch.join()
+        } finally {
+            InstallCoordinator.handoffTimeoutMs = savedTimeout
+        }
+        assertEquals(0, InstallCoordinator.installs.value)
+    }
+
+    @Test
+    fun aForegroundCommitThatTimesOutReleasesTheBatchMutexForTheNextBatch() = runBlocking {
+        // The fallback hands off without the batch mutex; the mutex itself must not be left
+        // taken by the attempt (the timeout cancels the join, and a cancelled join must not
+        // unlock what it never took).
+        val batchHeld = CompletableDeferred<Unit>()
+        val releaseBatch = CompletableDeferred<Unit>()
+        val batch = launch {
+            InstallCoordinator.backgroundBatch {
+                batchHeld.complete(Unit)
+                releaseBatch.await()
+            }
+        }
+        batchHeld.await()
+        val savedTimeout = InstallCoordinator.handoffTimeoutMs
+        InstallCoordinator.handoffTimeoutMs = 100
+        try {
+            // The foreground commit cannot join the held batch; it times out and runs anyway.
+            withTimeout(5_000) {
+                InstallCoordinator.installing("com.example.solo", background = false) {
+                    commit { }
+                }
+            }
+        } finally {
+            InstallCoordinator.handoffTimeoutMs = savedTimeout
+        }
+        // A later batch must be able to take the mutex: not locked forever by the timeout.
+        releaseBatch.complete(Unit)
+        withTimeout(1_000) { batch.join() }
+        withTimeout(1_000) { InstallCoordinator.backgroundBatch { } }
+    }
+
+    @Test
     fun countsInFlightInstalls() = runBlocking {
         val entered = CompletableDeferred<Unit>()
         val leave = CompletableDeferred<Unit>()

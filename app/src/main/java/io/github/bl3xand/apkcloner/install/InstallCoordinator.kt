@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Serializes the install phase of every update driver in the process: the clone worker
@@ -29,6 +30,17 @@ import kotlinx.coroutines.sync.withLock
  * 3. The per-package mutex: held for the whole install of that package, waits included,
  *    so the same package is never installed twice at once, whatever the driver.
  *
+ * The one crossing the others cannot avoid is the foreground commit: it holds the
+ * package's own lock (3) and then takes the batch mutex (2) for the hand-off, while a
+ * background batch holds (2) and takes (3) for each package it installs. Taken as a
+ * plain wait, that crossing deadlocks on one package: the foreground holds the package
+ * and waits for the batch, the batch holds the batch and waits for the package - and a
+ * Mutex wait is not interrupted by anything but the coroutine's own cancellation. So a
+ * foreground commit does not wait out a batch it cannot join: after [HANDOFF_TIMEOUT_MS]
+ * it gives up the batch mutex and hands off anyway, outside the batches, one prompt that
+ * interleaves rather than two installs that never move again. The crossing is what the
+ * samePackageForegroundVsBackground test pins down.
+ *
  * Background installs run inside [backgroundBatch] and so already hold the batch mutex;
  * they must not call [backgroundBatch] again (the mutex is not reentrant). Pure Kotlin,
  * like NetworkWaiter: no Android types, so the rules are unit-tested as is.
@@ -39,6 +51,17 @@ object InstallCoordinator {
     private val perPackage = HashMap<String, Mutex>()
     private val batchMutex = Mutex()
     private val foregroundQueue = Mutex()
+
+    /**
+     * How long a foreground commit waits to join the batch mutex before handing off without
+     * it. Long enough that an ordinary batch's commit - staging files into the session and
+     * committing it, no waits for answers inside - is normally waited out; short enough that
+     * a batch stuck on a package's per-package lock (the deadlock side of the lock crossing)
+     * costs the foreground minutes, not the rest of its life. The waits a user can hold open
+     * for minutes are the answer waits, and those run outside every commit. Internal and a
+     * var so the tests can shrink it.
+     */
+    internal var handoffTimeoutMs = 30_000L
 
     private val _installs = MutableStateFlow(0)
 
@@ -60,11 +83,21 @@ object InstallCoordinator {
         /**
          * Runs [block] as the hand-off to the system installer - staging the files and
          * committing the session. One at a time process-wide: a foreground hand-off
-         * waits out any running background batch first. Must not suspend for long: the
-         * waits for the installer's answer belong outside it, in the caller's block.
+         * waits out any running background batch first (up to the hand-off timeout - see
+         * the lock crossing above; past that it hands off without the batch rather than
+         * deadlocking on a batch that waits on this very package). Must not suspend for
+         * long: the waits for the installer's answer belong outside it, in the caller's
+         * block.
          */
         suspend fun <R> commit(block: suspend () -> R): R =
-            if (background) block() else batchMutex.withLock { block() }
+            if (background) block()
+            else withTimeoutOrNull(handoffTimeoutMs) { batchMutex.lock() }.let { joined ->
+                try {
+                    block()
+                } finally {
+                    if (joined != null) batchMutex.unlock()
+                }
+            }
     }
 
     /**
