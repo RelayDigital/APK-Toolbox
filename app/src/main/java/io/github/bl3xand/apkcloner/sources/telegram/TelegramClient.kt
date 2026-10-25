@@ -238,12 +238,32 @@ object TelegramClient : TelegramGateway {
         }
     }
 
-    /** Throws away a session that cannot be opened; the client then starts from signing in. */
+    /**
+     * Throws away a session that cannot be opened; the client then starts from signing in.
+     *
+     * [TdApi.Close] is answered only once TDLib has flushed and released its database, so it is
+     * waited for (as long as [DESTROY_TIMEOUT_S] - the same bound startOver gives Destroy)
+     * before the session dir is wiped; deleting while the flush is still running leaves a torn
+     * binlog the next client then cannot open. The wipe result is looked at: on failure the
+     * flags are reset anyway - there is no way forward but a new sign-in - but it is said
+     * loudly, so a dir that cannot be wiped is not a silent half-dead session.
+     */
     private fun dropSession() {
         val running = client
         client = null
-        runCatching { running?.send(TdApi.Close()) {} }
-        sessionDir().deleteRecursively()
+        val closed = CountDownLatch(1)
+        runCatching { running?.send(TdApi.Close()) { closed.countDown() } }
+        if (running != null) {
+            try {
+                closed.await(DESTROY_TIMEOUT_S, TimeUnit.SECONDS)
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+            }
+        }
+        val wiped = runCatching { sessionDir().deleteRecursively() }.getOrDefault(false)
+        if (!wiped && sessionDir().exists()) {
+            AppLog.warn("Telegram: the dropped session could not be wiped; the next sign-in may fail to open what is left of it")
+        }
         SessionKey.forget(appContext, PREFS)
         prefs.edit().putBoolean(KEY_SIGNED_IN, false).putBoolean(KEY_ENCRYPTED, false).apply()
         // A session that cannot be opened is as ended as one revoked from outside, and just as
