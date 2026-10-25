@@ -204,7 +204,10 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 addHeading("$title (${ids.size})", afterDivider = index > 0)
                 for (id in ids) {
                     val entry = repo.entry(id) ?: continue
-                    val versions = listOfNotNull(entry.app.installedVersion, entry.app.latestVersion).distinct().joinToString(" → ")
+                    // The arrow between versions stays left-to-right even in right-to-left locales,
+                    // so the older version reads before the newer one the way the numbers do.
+                    val versions = listOfNotNull(entry.app.installedVersion, entry.app.latestVersion).distinct()
+                        .joinToString(" → ")
                     val row = context.switchRow(
                         entry.name, id in chosen, listOf(entry.author, versions).filter { it.isNotBlank() }.joinToString(" · "),
                     ) { on ->
@@ -656,7 +659,9 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                     list.addView(
                         card,
                         LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                            setMargins(context.dp(Spacing.SHEET), 0, context.dp(Spacing.SHEET), context.dp(Spacing.BLOCK / 2))
+                            marginStart = context.dp(Spacing.SHEET)
+                            marginEnd = context.dp(Spacing.SHEET)
+                            bottomMargin = context.dp(Spacing.BLOCK / 2)
                         },
                     )
                 }
@@ -668,7 +673,10 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                     addView(
                         header,
                         LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                            setMargins(context.dp(Spacing.SHEET), context.dp(4), context.dp(Spacing.SHEET), context.dp(16))
+                            marginStart = context.dp(Spacing.SHEET)
+                            marginEnd = context.dp(Spacing.SHEET)
+                            topMargin = context.dp(4)
+                            bottomMargin = context.dp(16)
                         },
                     )
                 }
@@ -702,7 +710,9 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                     addView(
                         layout,
                         LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                            setMargins(context.dp(Spacing.SHEET), 0, context.dp(Spacing.SHEET), context.dp(8))
+                            marginStart = context.dp(Spacing.SHEET)
+                            marginEnd = context.dp(Spacing.SHEET)
+                            bottomMargin = context.dp(8)
                         },
                     )
                 }
@@ -718,7 +728,10 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                             setOnClickListener { finish(chosen.toList()) }
                         },
                         LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                            setMargins(context.dp(Spacing.SHEET), context.dp(8), context.dp(Spacing.SHEET), context.dp(16))
+                            marginStart = context.dp(Spacing.SHEET)
+                            marginEnd = context.dp(Spacing.SHEET)
+                            topMargin = context.dp(8)
+                            bottomMargin = context.dp(16)
                         },
                     )
                 }
@@ -739,7 +752,10 @@ class SourcesDialogs(private val context: Context) : InstallPrompts {
                 addView(
                     context.appCard(entry),
                     LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                        setMargins(context.dp(Spacing.SHEET), context.dp(4), context.dp(Spacing.SHEET), context.dp(8))
+                        marginStart = context.dp(Spacing.SHEET)
+                        marginEnd = context.dp(Spacing.SHEET)
+                        topMargin = context.dp(4)
+                        bottomMargin = context.dp(8)
                     },
                 )
             } else if (title != null) {

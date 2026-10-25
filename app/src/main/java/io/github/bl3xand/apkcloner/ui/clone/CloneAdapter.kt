@@ -53,7 +53,8 @@ class CloneAdapter(
         val newer = clone.tracked?.app?.latestVersion ?: clone.original?.versionName.orEmpty()
         binding.textStatus.text = when {
             clone.frozen -> context.getString(R.string.version_no_updates, version)
-            clone.updateAvailable -> "$version → $newer"
+            // The arrow line is a left-to-right run inside a possibly right-to-left locale.
+            clone.updateAvailable -> "‪$version → $newer‬"
             else -> version
         }
         binding.textStatus.setTextColor(
