@@ -79,8 +79,18 @@ class RemoveAppFlowsTest : BaseUiTest() {
             val cancelText = frameworkText("cancel")
             val systemCancel = device.wait(Until.findObject(By.text(cancelText)), 20_000)
                 ?: error("The system uninstall prompt did not open. Screen:\n${dumpVisibleTexts()}")
-            systemCancel.click()
-            device.waitForIdle(2_000)
+            // The click is re-tried while the window settles (a stale node is re-found), and
+            // the prompt is waited OUT before anything else is driven over it.
+            var cancelled = false
+            repeat(6) {
+                if (cancelled) return@repeat
+                cancelled = runCatching { systemCancel.click(); true }.getOrDefault(false) ||
+                    runCatching {
+                        device.findObject(By.text(cancelText))?.click() != null
+                    }.getOrDefault(false)
+                if (!cancelled) device.waitForIdle(500)
+            }
+            device.wait(Until.gone(By.text(cancelText)), 10_000)
             assert(awaitCondition(15_000) { repoHasApp(targetPackage) }) {
                 "Cancelling the system prompt dropped the tracked app"
             }
@@ -89,6 +99,12 @@ class RemoveAppFlowsTest : BaseUiTest() {
             }
 
             // ---- 4. The same removal, prompt confirmed -----------------------------------------
+            // A system prompt still standing from the cancelled answer would swallow the
+            // next steps' clicks.
+            if (device.findObject(By.text(cancelText)) != null) {
+                device.pressBack()
+                device.waitForIdle(1_000)
+            }
             openRemoveSheet()
             waitForRemoveSheet()
             setRemoveSwitches(uninstall = true, removeFromList = true)
