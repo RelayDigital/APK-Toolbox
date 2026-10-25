@@ -79,7 +79,22 @@ class TelegramChannel : AppSource("TelegramChannel") {
     /** Said in the words of the settings where the signing in is done, not as "credentials". */
     private fun gateway(): TelegramGateway = gatewayOrNull() ?: throw SourceError(Tr.get("telegramSignInFirst"))
 
-    override val signInNote: String? get() = if (Telegram.gateway?.hasAccount == true) null else Tr.get("srcNeedsSignIn")
+    /**
+     * A session that was ended needs signing in again before anything of Telegram can be
+     * checked; the note says so on the row. [TelegramClient.sessionEnded] is the cheap tell
+     * here - the flag the client raised when its session closed from outside or could not be
+     * opened - because the sign-in preference alone still reads as an account until the client
+     * has been started and told what became of it, and the background check must not start the
+     * client just to learn that. The ended case gets its own words on the row: "sign-in
+     * needed" is true of an app never signed in for, while an ended session says the app was
+     * being checked and cannot be any more.
+     */
+    override val signInNote: String?
+        get() = when {
+            Telegram.gateway?.hasAccount != true -> Tr.get("srcNeedsSignIn")
+            Telegram.gateway?.isSessionEnded == true -> Tr.get("telegramSessionEnded")
+            else -> null
+        }
 
     private fun channelOf(standardUrl: String): String = standardUrl.substringAfterLast('/')
 

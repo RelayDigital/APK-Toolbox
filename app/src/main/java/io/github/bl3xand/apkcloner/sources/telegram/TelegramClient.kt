@@ -441,6 +441,8 @@ object TelegramClient : TelegramGateway {
 
     override val hasAccount: Boolean get() = hasSession
 
+    override val isSessionEnded: Boolean get() = _sessionEnded.value
+
     /** Starts the client for a session left earlier and waits until it is usable. */
     override val isSignedIn: Boolean
         get() {
