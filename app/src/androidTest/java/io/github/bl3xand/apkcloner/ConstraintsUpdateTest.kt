@@ -119,8 +119,15 @@ class ConstraintsUpdateTest : BaseUiTest() {
     private fun isOnWifi(): Boolean {
         val manager = context.getSystemService(ConnectivityManager::class.java)
         val caps = manager.getNetworkCapabilities(manager.activeNetwork) ?: return false
-        return caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-            caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+        // VALIDATED, not just the transport: WorkManager holds the waiting work until the
+        // network is usable, and on newer system images a freshly re-enabled wi-fi claims its
+        // transport seconds before validation. A test that calls the transport "wi-fi back"
+        // races the work it is waiting for.
+        val usable = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        return usable && (
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+            )
     }
 
     /** The system's own lastUpdateTime of the app, in millis: it moves on every real update. */
