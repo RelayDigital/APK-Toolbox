@@ -214,12 +214,14 @@
     <string name="clone_patches">Bản vá</string>
     <string name="clone_patches_on">Bản vá: %1$d trên %2$d đang bật</string>
     <string name="clone_patches_not_applied">Bản dựng sau cùng không áp dụng được «%1$s»: không đọc được chứng chỉ ký của bản gốc, nên bản vá danh tính không có trong bản sao.</string>
-    <string name="clone_patches_hint">Các thay đổi mã của bản sao. Mỗi bản vá không bắt buộc và chỉ áp dụng cho bản sao này.</string>
+    <string name="clone_patches_hint">Bản vá cho mã của bản sao. Mỗi bản vá chỉ áp dụng cho bản sao này và có thể làm ứng dụng bị sự cố.</string>
     <string name="clone_rename_alias_note">Viết lại tên gói trong mã bản sao để nó tìm thấy tệp và thành phần của mình. Ngụy trang ngược lại trình bày bản sao là bản gốc đối với các kiểm tra.</string>
     <string name="clone_mimicry">Ngụy trang</string>
     <string name="clone_mimicry_note">Bản sao tự trình bày hoàn toàn là BẢN GỐC — tên gói và chữ ký: đối với kiểm tra của chính nó, máy chủ và phân tích. Việc tra các thành phần riêng của bản sao vẫn chạy qua đường dự phòng.</string>
     <string name="clone_keep_alive">Chặn thoát</string>
     <string name="clone_keep_alive_note">Mọi lệnh gọi kết thúc ứng dụng — System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask — trở thành lệnh rỗng, nên ứng dụng không thể tự kết thúc hay đá người dùng ra, vì bất kỳ lý do gì: kiểm tra chữ ký, chưa đăng nhập tài khoản, kiểm tra khởi động thất bại. Sau khi đăng xuất, ứng dụng có thể ở lại nền thay vì đóng.</string>
+    <string name="clone_spoof_signature">Thay chữ ký</string>
+    <string name="clone_spoof_signature_note">Các kiểm tra trong bản sao thấy chữ ký của bản gốc, tên vẫn là của nó. Bản vá là một phần của mimicry, nhưng đôi khi cần dùng riêng.</string>
     <string name="clone_permission_absent">Không yêu cầu ở phiên bản này. Nếu quay lại thì vẫn để tắt.</string>
     <string name="clone_permission_new">Mới ở phiên bản này</string>
     <string name="button_done">Xong</string>

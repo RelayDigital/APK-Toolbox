@@ -125,7 +125,10 @@ fun Context.switchRow(
         }
         addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(16) })
         addView(toggle)
-        if (enabled) setOnClickListener { toggle.toggle() }
+        // The listener is attached whether the row starts enabled or not: a row that a patch
+        // later re-enables (the picker's held substitution row) must react to taps on the whole
+        // row again, not only on the switch itself.
+        setOnClickListener { if (toggle.isEnabled) toggle.toggle() }
     }
 }
 

@@ -216,12 +216,14 @@
     <string name="clone_patches">Yamalar</string>
     <string name="clone_patches_on">Yamalar: %2$d üzerinden %1$d açık</string>
     <string name="clone_patches_not_applied">Son derleme «%1$s» uygulayamadı: asıl uygulamanın imza sertifikası okunamadı, bu yüzden kimlik yaması klonda yok.</string>
-    <string name="clone_patches_hint">Klonun kodundaki değişiklikler. Her yama isteğe bağlıdır ve yalnızca bu klona uygulanır.</string>
+    <string name="clone_patches_hint">Klonun kodu için yamalar. Her yama yalnızca bu klona uygulanır ve uygulamayı çökertebilir.</string>
     <string name="clone_rename_alias_note">Klonun kendi dosyalarını ve bileşenlerini bulması için koddaki paket adını yeniden yazar. Taklit ise tam tersine, klonu denetimlere asıl uygulama gibi gösterir.</string>
     <string name="clone_mimicry">Taklit</string>
     <string name="clone_mimicry_note">Klon kendini tamamen ASIL UYGULAMA olarak tanıtır - paket adı ve imza: kendi denetimlerine, sunucularına ve analizine. Klonun kendi bileşenlerini araması bir yedek yoldan çalışmayı sürdürür.</string>
     <string name="clone_keep_alive">Çıkışı bastır</string>
     <string name="clone_keep_alive_note">Uygulamayı bitirecek her çağrı - System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask - boş bir işlem olur; böylece uygulama kendini öldüremez ve kullanıcıyı dışarı atamaz, nedeni her ne olursa olsun: imza denetimi, oturum açılmamış hesap, açılışta başarısız bir denetim. Çıkış yaptıktan sonra uygulama kapanmak yerine arka planda kalabilir.</string>
+    <string name="clone_spoof_signature">İmza değiştirme</string>
+    <string name="clone_spoof_signature_note">Klonun içindeki denetimler orijinalin imzasını görür, ad kendi kalır. Yama taklidin parçasıdır ama bazen tek başına gerekir.</string>
     <string name="clone_permission_absent">Bu sürümde istenmiyor. Geri gelirse kapalı kalır.</string>
     <string name="clone_permission_new">Bu sürümde yeni</string>
     <string name="button_done">Tamam</string>

@@ -214,12 +214,14 @@
     <string name="clone_patches">패치</string>
     <string name="clone_patches_on">패치: %2$d개 중 %1$d 켜짐</string>
     <string name="clone_patches_not_applied">마지막 빌드가 «%1$s»을(를) 적용하지 못했습니다: 원본의 서명 인증서를 읽을 수 없어 신원 패치가 클론에 없습니다.</string>
-    <string name="clone_patches_hint">클론 코드의 변경. 각 패치는 선택 사항이며 이 클론에만 적용됩니다.</string>
+    <string name="clone_patches_hint">클론 코드에 대한 패치입니다. 각 패치는 이 클론에만 적용되며 앱이 강제 종료될 수 있습니다.</string>
     <string name="clone_rename_alias_note">클론이 자기 파일과 구성 요소를 찾도록 코드의 패키지 이름을 다시 씁니다. 반대로 의태는 클론을 검사에 원본으로 보이게 합니다.</string>
     <string name="clone_mimicry">의태</string>
     <string name="clone_mimicry_note">클론은 자신을 완전히 원본으로 내세웁니다 - 패키지 이름과 서명: 자기 검사, 서버, 분석에 대해. 클론 자신의 구성 요소 찾기는 대체 경로로 계속 동작합니다.</string>
     <string name="clone_keep_alive">종료 억제</string>
     <string name="clone_keep_alive_note">앱을 끝낼 모든 호출 - System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask - 이 아무 일도 하지 않게 되어, 어떤 이유에서든 - 서명 검사, 로그인된 계정 없음, 시작 검사 실패 - 앱이 스스로를 죽이거나 사용자를 내보낼 수 없습니다. 로그아웃 후에는 앱이 닫히는 대신 백그라운드에 남을 수 있습니다.</string>
+    <string name="clone_spoof_signature">서명 치환</string>
+    <string name="clone_spoof_signature_note">클론 내부 검사에는 오리지널의 서명이 보이고, 이름은 자기 것으로 남습니다. 이 패치는 미미크리의 일부이지만 때로는 단독으로 필요합니다.</string>
     <string name="clone_permission_absent">이 버전에서는 요구하지 않습니다. 돌아오면 꺼진 채로 있습니다.</string>
     <string name="clone_permission_new">이 버전에서 새로 생김</string>
     <string name="button_done">완료</string>

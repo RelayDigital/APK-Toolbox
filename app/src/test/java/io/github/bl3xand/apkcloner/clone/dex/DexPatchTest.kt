@@ -321,6 +321,78 @@ class DexPatchTest {
     }
 
     @org.junit.Test
+    fun spoofApplicationInfoHelperHasNoTrysAndBranchesOnBoundaries() {
+        // The applicationInfo helper must decide the substitution BEFORE its single call, from
+        // the two names it owns - no NameNotFoundException catch, no retry: a wrong try-block
+        // offset here produced a VerifyError on a real app ("target dex pc not at instruction
+        // start"), and a retry re-asks the manager the same question it just failed to answer.
+        val before = dex(
+            Triple("a", "(I)V", listOf(invokeStatic("Landroid/content/pm/PackageManager;", "getApplicationInfo", listOf("Ljava/lang/String;", "I"), "Landroid/content/pm/ApplicationInfo;"))),
+        )
+        val after = SignatureSpoof.patchDex(before, "classes.dex", byteArrayOf(1, 2, 3), "com.example.app", "com.example.app.clone", spoofName = true)
+        val helper = load(after).classes.first { it.type == "Lio/github/bl3xand/apkcloner/spoof/SignatureSource;" }
+        val methods = helper.methods.filter { it.name == "applicationInfo" }
+        org.junit.Assert.assertEquals("one helper applicationInfo per flags type", 2, methods.size)
+        for (method in methods) {
+            val impl = method.implementation!!
+            val withAddr = impl.instructions.toList().zip(impl.instructions.toList().runningFold(0) { addr, ins -> addr + ins.codeUnits }.dropLast(1))
+            // No exception machinery at all: the helper cannot fail the way a bad try offset does.
+            org.junit.Assert.assertEquals("no try blocks", 0, impl.tryBlocks.count())
+            org.junit.Assert.assertFalse(withAddr.any { it.first.opcode == Opcode.THROW || it.first.opcode == Opcode.MOVE_EXCEPTION })
+            // Every branch lands on an instruction boundary.
+            val instructionStarts = withAddr.map { it.second }.toSet()
+            for ((ins, addr) in withAddr) {
+                when (ins.opcode) {
+                    Opcode.IF_NE, Opcode.IF_EQ -> {
+                        val target = addr + (ins as org.jf.dexlib2.iface.instruction.formats.Instruction22t).codeOffset
+                        org.junit.Assert.assertTrue("branch target must be an instruction start", target in instructionStarts)
+                    }
+                    Opcode.GOTO -> {
+                        val target = addr + (ins as org.jf.dexlib2.iface.instruction.formats.Instruction10t).codeOffset
+                        org.junit.Assert.assertTrue("goto target must be an instruction start", target in instructionStarts)
+                    }
+                    else -> {}
+                }
+            }
+            // Two invokes: the pass-through for foreign names and the clone-self answer.
+            val invokes = withAddr.filter { it.first.opcode == Opcode.INVOKE_VIRTUAL }
+            org.junit.Assert.assertEquals("one pass-through call and one self call", 2, invokes.size)
+            // The self-answer path re-points the name register at the clone's package first.
+            val cloneNames = withAddr.filter { it.first.opcode == Opcode.CONST_STRING }
+                .map { ((it.first as ReferenceInstruction).reference as StringReference).string }
+            org.junit.Assert.assertEquals(
+                "the clone name is written into v4 (the query register) before the self call",
+                listOf("com.example.app.clone", "com.example.app", "com.example.app.clone"),
+                cloneNames,
+            )
+            // Register count: the params are v3..v5, scratch is v0-v2 at most.
+            org.junit.Assert.assertTrue(impl.registerCount in 5..6)
+        }
+    }
+
+    @org.junit.Test
+    fun spoofRetargetsGetApplicationInfo() {
+        val before = dex(
+            Triple("a", "(I)V", listOf(invokeStatic("Landroid/content/pm/PackageManager;", "getApplicationInfo", listOf("Ljava/lang/String;", "I"), "Landroid/content/pm/ApplicationInfo;"))),
+        )
+        val after = SignatureSpoof.patchDex(before, "classes.dex", byteArrayOf(1, 2, 3), "com.example.app", "com.example.app.clone", spoofName = true)
+        val calls = load(after).classes.flatMap { it.methods.toList() }.flatMap { it.implementation!!.instructions.toList() }
+            .filterIsInstance<ReferenceInstruction>()
+            .mapNotNull { (it.reference as? MethodReference) }
+        org.junit.Assert.assertTrue(
+            "getApplicationInfo must be retargeted to the helper under the name spoof",
+            calls.any { it.definingClass == "Lio/github/bl3xand/apkcloner/spoof/SignatureSource;" && it.name == "applicationInfo" },
+        )
+        org.junit.Assert.assertTrue(
+            "the app's own getApplicationInfo call must be gone",
+            load(after).classes.filter { it.type != "Lio/github/bl3xand/apkcloner/spoof/SignatureSource;" }
+                .flatMap { it.methods.toList() }.flatMap { it.implementation!!.instructions.toList() }
+                .filterIsInstance<ReferenceInstruction>()
+                .none { (it.reference as? MethodReference)?.name == "getApplicationInfo" },
+        )
+    }
+
+    @org.junit.Test
     fun spoofFailSafeOnGarbage() {
         val garbage = byteArrayOf(9, 9)
         org.junit.Assert.assertArrayEquals(garbage, SignatureSpoof.patchDex(garbage, "classes.dex", byteArrayOf(1), "com.example.app", "com.example.app.clone"))

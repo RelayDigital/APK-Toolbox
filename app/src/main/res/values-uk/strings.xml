@@ -219,13 +219,15 @@
     <string name="clone_permissions_none">Застосунок не запитує дозволів.</string>
     <string name="clone_patches">Патчі</string>
     <string name="clone_patches_on">Патчі: увімкнено %1$d з %2$d</string>
-    <string name="clone_patches_not_applied">Остання збірка не змогла застосувати «%1$s»: не вдалося прочитати підпис оригіналу, тому патч підміни імені пакета в клон не потрапив.</string>
-    <string name="clone_patches_hint">Зміни коду клона. Кожен патч необов\'язковий і застосовується лише до цього клона.</string>
+    <string name="clone_patches_not_applied">Остання збірка не змогла застосувати «%1$s»: не вдалося прочитати підпис оригіналу, тому патч у клон не потрапив.</string>
+    <string name="clone_patches_hint">Патчі для коду клону. Кожен патч застосовується лише до цього клону і може призводити до вильотів застосунку.</string>
     <string name="clone_rename_alias_note">Переписує ім\'я пакета в коді клона, щоб він знаходив свої файли та компоненти. Мімікрія, навпаки, представляє клон оригіналом для перевірок.</string>
     <string name="clone_mimicry">Мімікрія</string>
     <string name="clone_mimicry_note">Клон повністю представляется оригіналом — ім\'я пакета і підпис: своїм перевіркам, серверам та аналітиці. Пошук власних компонентів клона продовжує працювати через запасний варіант.</string>
     <string name="clone_keep_alive">Придушення виходу</string>
     <string name="clone_keep_alive_note">Кожен виклик, що завершує застосунок — System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask — перетворюється на порожню операцію: застосунок не може ні вбити себе, ні викинути користувача, з будь-якої причини — перевірка підпису, немає акаунта, невдала перевірка при запуску. Після виходу застосунок може залишитися у фоні замість закриття.</string>
+    <string name="clone_spoof_signature">Підміна підпису</string>
+    <string name="clone_spoof_signature_note">Перевірки клону бачать підпис оригіналу, ім\'я залишається своїм. Патч входить до мімікрії, але іноді потрібен окремо.</string>
     <string name="clone_permission_absent">У цій версії не запитується. Якщо повернеться — залишиться вимкненим.</string>
     <string name="clone_permission_new">Нове в цій версії</string>
     <string name="button_done">Готово</string>

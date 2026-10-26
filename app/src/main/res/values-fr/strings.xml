@@ -218,12 +218,14 @@
     <string name="clone_patches">Patchs</string>
     <string name="clone_patches_on">Patchs : %1$d sur %2$d actifs</string>
     <string name="clone_patches_not_applied">La dernière compilation n\'a pas pu appliquer « %1$s » : le certificat de signature de l\'original n\'a pas pu être lu, donc le patch d\'identité n\'est pas dans le clone.</string>
-    <string name="clone_patches_hint">Des modifications du code du clone. Chaque patch est facultatif et ne s\'applique qu\'à ce clone.</string>
+    <string name="clone_patches_hint">Patchs pour le code du clone. Chaque patch ne s\'applique qu\'à ce clone et peut faire planter l\'application.</string>
     <string name="clone_rename_alias_note">Réécrit le nom du paquet dans le code du clone pour qu\'il trouve ses propres fichiers et composants. Le mimétisme, à l\'inverse, présente le clone comme l\'original aux vérifications.</string>
     <string name="clone_mimicry">Mimétisme</string>
     <string name="clone_mimicry_note">Le clone se présente entièrement comme l\'ORIGINAL - nom de paquet et signature : à ses propres vérifications, serveurs et analyses. Les recherches des composants propres du clone continuent de fonctionner par un recours.</string>
     <string name="clone_keep_alive">Suppression de la fermeture</string>
     <string name="clone_keep_alive_note">Chaque appel qui terminerait l\'application - System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask - devient une opération vide, donc l\'application ne peut ni se tuer ni éjecter l\'utilisateur, quelle qu\'en soit la raison : une vérification de signature, aucun compte connecté, un échec de vérification au démarrage. Après une déconnexion, l\'application peut rester en arrière-plan au lieu de se fermer.</string>
+    <string name="clone_spoof_signature">Substitution de signature</string>
+    <string name="clone_spoof_signature_note">Les vérifications du clone voient la signature de l\'original, le nom reste le sien. Le correctif fait partie du mimétisme, mais est parfois requis à part.</string>
     <string name="clone_permission_absent">Non demandée par cette version. Restera désactivée si elle revient.</string>
     <string name="clone_permission_new">Nouvelle dans cette version</string>
     <string name="button_done">Terminé</string>

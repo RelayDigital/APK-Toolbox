@@ -56,4 +56,27 @@ class ManifestPatcherTest {
         assertEquals(listOf("android.permission.INTERNET", "android.permission.CAMERA"), permissionsOf(root))
         assertFalse(permissionsOf(root).contains("android.permission.NFC"))
     }
+
+    @Test
+    fun addsTheOriginalToQueriesWhenAsked() {
+        // The mimicry flag: the original's name must become visible to the clone.
+        val source = manifest("android.permission.INTERNET")
+        val patcher = ManifestPatcher("com.example.app.clone", null, addOriginalToQueries = true)
+        val root = parse(patcher.patch(source))
+        val queries = root.getElements("queries").asSequence().toList()
+        assertEquals("one <queries> element", 1, queries.size)
+        val packages = queries.single().getElements("package").asSequence().toList()
+        assertEquals("one <package> entry", 1, packages.size)
+        assertEquals(
+            "the entry names the ORIGINAL package",
+            "com.example.app",
+            packages.single().searchAttributeByResourceId(nameAttribute).valueAsString,
+        )
+    }
+
+    @Test
+    fun noQueriesElementWithoutTheFlag() {
+        val root = parse(ManifestPatcher("com.example.app.clone", null).patch(manifest()))
+        assertFalse(root.getElements("queries").hasNext())
+    }
 }

@@ -220,12 +220,14 @@
     <string name="clone_patches">Łatki</string>
     <string name="clone_patches_on">Łatki: włączonych %1$d z %2$d</string>
     <string name="clone_patches_not_applied">Ostatnia kompilacja nie umiała zastosować „%1$s”: nie udało się odczytać certyfikatu podpisu oryginału, więc łatka tożsamości nie jest w klonie.</string>
-    <string name="clone_patches_hint">Zmiany w kodzie klona. Każda łatka jest nieobowiązkowa i stosowana tylko do tego klona.</string>
+    <string name="clone_patches_hint">Łatki dla kodu klona. Każda łatka jest stosowana tylko do tego klona i może powodować awarie aplikacji.</string>
     <string name="clone_rename_alias_note">Przepisuje nazwę pakietu w kodzie klona, aby znajdował własne pliki i komponenty. Mimikra odwrotnie przedstawia klona jako oryginał wobec sprawdzeń.</string>
     <string name="clone_mimicry">Mimikra</string>
     <string name="clone_mimicry_note">Klon przedstawia się całkowicie jako ORYGINAŁ — nazwa pakietu i podpis: wobec własnych sprawdzeń, serwerów i analityki. Wyszukiwanie własnych komponentów klona dalej działa przez zapasowy sposób.</string>
     <string name="clone_keep_alive">Tłumienie wyjścia</string>
     <string name="clone_keep_alive_note">Każde wywołanie, które kończyłoby aplikację — System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask — staje się pustą operacją, więc aplikacja nie może ani zabić siebie, ani wyrzucić użytkownika, z jakiegokolwiek powodu: sprawdzenie podpisu, brak zalogowanego konta, nieudane sprawdzenie przy starcie. Po wylogowaniu aplikacja może zostać w tle zamiast się zamknąć.</string>
+    <string name="clone_spoof_signature">Podmiana podpisu</string>
+    <string name="clone_spoof_signature_note">Sprawdzenia w klonie widzą podpis oryginału, nazwa zostaje własna. Łatka jest częścią mimikry, ale bywa potrzebna osobno.</string>
     <string name="clone_permission_absent">W tej wersji nie jest wymagane. Jeśli wróci, zostaje wyłączone.</string>
     <string name="clone_permission_new">Nowe w tej wersji</string>
     <string name="button_done">Gotowe</string>

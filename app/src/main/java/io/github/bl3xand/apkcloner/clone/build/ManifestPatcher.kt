@@ -32,6 +32,13 @@ class ManifestPatcher(
      * refuses to install as a self-contained APK.
      */
     private val isSplitApk: Boolean = false,
+    /**
+     * Add the ORIGINAL package name (read from the manifest itself) to its <queries>. Set when
+     * the clone is built with the name-spoofing half of mimicry: the app then asks for the
+     * original's package everywhere, and Android 11+ visibility would otherwise hide that name
+     * from the clone, crashing libraries that bootstrap from its metadata.
+     */
+    private val addOriginalToQueries: Boolean = false,
 ) {
     /** When [keepPackage], resources.arsc keeps the original package name as well. */
     val keepResourceTable: Boolean get() = keepPackage
@@ -154,19 +161,101 @@ class ManifestPatcher(
             launcherLabels.forEach { setString(it, newLabel) }
         }
 
+        // The <queries> entry for the original package, when asked for: the name-spoofing half
+        // of mimicry has the app ask for the ORIGINAL's package everywhere, and Android 11+
+        // package visibility would filter that name out of the clone's sight (self-visibility
+        // covers the clone's real name only), crashing libraries that bootstrap from its
+        // metadata. The entry makes the original visible. Built BEFORE the pool is serialized
+        // (the chunks append their strings to the pool), and spliced in right AFTER the
+        // <manifest> start element - inside the document, where a child of <manifest> belongs.
+        val queriesChunks = if (addOriginalToQueries) {
+            // Templates for the cloned chunks: an element carrying one android:name attribute
+            // (a <uses-permission> shape) and any end element, both from this document.
+            val startTemplate = elements.firstOrNull { el -> tagOf(el) == "uses-permission" }
+                ?: elements.firstOrNull { el -> ushort(el + 28) > 0 }
+                ?: error("No element with an attribute to template <queries> from")
+            // An end element: the one right after the templated start (a <uses-permission>
+            // has no children, its end tag follows immediately).
+            val endTemplate = startTemplate + buf.getInt(startTemplate + 4)
+            check(ushort(endTemplate) == RES_XML_END_ELEMENT) { "No end element after the template start" }
+            buildQueriesChunks(oldPackage, startTemplate, endTemplate)
+        } else null
+        val manifestStartEnd = elements.firstOrNull()?.let { it + buf.getInt(it + 4) }
         val pool = writePool()
         val tailStart = POOL_START + poolSize
-        val out = ByteBuffer.allocate(POOL_START + pool.size + end - tailStart - dropped.sumOf { it.count() })
+        val insertionPoint = manifestStartEnd ?: tailStart
+        val out = ByteBuffer.allocate(
+        POOL_START + pool.size + (queriesChunks?.size ?: 0) + end - tailStart - dropped.sumOf { it.count() },
+        )
             .order(ByteOrder.LITTLE_ENDIAN)
         out.put(buf.array(), 0, POOL_START)
         out.put(pool)
         var from = tailStart
+        if (queriesChunks != null) {
+            // Everything up to and including the <manifest> start element, then the chunks,
+            // then the rest - so <queries> lands inside the manifest element, before whatever
+            // child followed it in the source.
+            out.put(buf.array(), from, insertionPoint - from)
+            out.put(queriesChunks)
+            from = insertionPoint
+        }
         for (range in dropped) {
             out.put(buf.array(), from, range.first - from)
             from = range.last + 1
         }
         out.put(buf.array(), from, end - from)
         out.putInt(4, out.capacity())
+        return out.array()
+    }
+
+    /**
+     * Builds the binary-XML chunks of `<queries><package android:name="P"/></queries>` by
+     * CLONING chunks of this very document: a start element with one android:name attribute
+     * (any <uses-permission>-shaped element serves as the template) becomes <package>, the
+     * same chunk truncated before its attributes becomes the attrless <queries>, and an end
+     * element clone closes each. Every field layout is then guaranteed to be exactly what
+     * this document's writer emitted - only string indices are repointed, through the same
+     * appended-pool mechanism setString uses.
+     */
+    private fun buildQueriesChunks(packageName: String, startTemplate: Int, endTemplate: Int): ByteArray {
+        val startSize = buf.getInt(startTemplate + 4)
+        val headerAndIndexFields = 36 // up to and including idIndex/classIndex/styleIndex
+
+        fun indexOf(value: String): Int = appended.getOrPut(value) { strings.add(value); strings.size - 1 }
+        val idxQueries = indexOf("queries")
+        val idxPackage = indexOf("package")
+        val idxValue = indexOf(packageName)
+
+        fun clonedStart(nameIdx: Int, withAttribute: Boolean): ByteArray {
+            val size = if (withAttribute) startSize else headerAndIndexFields
+            val chunk = buf.array().copyOfRange(startTemplate, startTemplate + size)
+            val wrap = ByteBuffer.wrap(chunk).order(ByteOrder.LITTLE_ENDIAN)
+            wrap.putInt(4, size) // the chunk's own size, header-only when attrless
+            wrap.putShort(28, if (withAttribute) 1 else 0) // attribute count
+            wrap.putInt(20, nameIdx) // the element's name
+            if (withAttribute) {
+                // The single attribute: name stays (it IS android:name in the template), the
+                // value string is repointed at the package name.
+                wrap.putInt(36 + 16, idxValue) // typed value data
+                // The raw-value string, when the attribute carries one (it does for strings).
+                wrap.putInt(36 + 8, idxValue)
+            }
+            return chunk
+        }
+
+        fun clonedEnd(nameIdx: Int): ByteArray {
+            val size = buf.getInt(endTemplate + 4)
+            val chunk = buf.array().copyOfRange(endTemplate, endTemplate + size)
+            ByteBuffer.wrap(chunk).order(ByteOrder.LITTLE_ENDIAN).putInt(20, nameIdx)
+            return chunk
+        }
+
+        val out = ByteBuffer.allocate(headerAndIndexFields + startSize + 2 * buf.getInt(endTemplate + 4))
+            .order(ByteOrder.LITTLE_ENDIAN)
+        out.put(clonedStart(idxQueries, withAttribute = false))
+        out.put(clonedStart(idxPackage, withAttribute = true))
+        out.put(clonedEnd(idxPackage))
+        out.put(clonedEnd(idxQueries))
         return out.array()
     }
 

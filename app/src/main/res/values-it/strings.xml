@@ -216,12 +216,14 @@
     <string name="clone_patches">Patch</string>
     <string name="clone_patches_on">Patch: %1$d di %2$d attive</string>
     <string name="clone_patches_not_applied">L\'ultima build non ha potuto applicare «%1$s»: il certificato di firma dell\'originale non si è potuto leggere, quindi la patch d\'identità non è nel clone.</string>
-    <string name="clone_patches_hint">Modifiche al codice del clone. Ogni patch è facoltativa e applicata solo a questo clone.</string>
+    <string name="clone_patches_hint">Patch per il codice del clone. Ogni patch si applica solo a questo clone e può far crashare l\'app.</string>
     <string name="clone_rename_alias_note">Riscrive il nome del pacchetto nel codice del clone così che trovi i propri file e componenti. Il mimetismo, al contrario, presenta il clone come l\'originale ai controlli.</string>
     <string name="clone_mimicry">Mimetismo</string>
     <string name="clone_mimicry_note">Il clone si presenta del tutto come l\'ORIGINALE — nome pacchetto e firma: ai propri controlli, server e analisi. Le ricerche dei componenti propri del clone continuano a funzionare tramite un fallback.</string>
     <string name="clone_keep_alive">Soppressione dell\'uscita</string>
     <string name="clone_keep_alive_note">Ogni chiamata che concluderebbe l\'app — System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask — diventa un\'operazione vuota, così l\'app non può uccidersi né buttare fuori l\'utente, per qualunque motivo: un controllo della firma, nessun account connesso, un controllo d\'avvio fallito. Dopo il logout l\'app può restare in background invece di chiudersi.</string>
+    <string name="clone_spoof_signature">Sostituzione della firma</string>
+    <string name="clone_spoof_signature_note">I controlli del clone vedono la firma dell\'originale, il nome resta il suo. La patch fa parte della mimica, ma a volte serve da sola.</string>
     <string name="clone_permission_absent">Non chiesto da questa versione. Resta spento se torna.</string>
     <string name="clone_permission_new">Nuovo in questa versione</string>
     <string name="button_done">Fatto</string>

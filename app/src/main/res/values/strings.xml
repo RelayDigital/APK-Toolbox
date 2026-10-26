@@ -223,13 +223,15 @@
     <string name="clone_permissions_none">The app asks for no permissions.</string>
     <string name="clone_patches">Patches</string>
     <string name="clone_patches_on">Patches: %1$d of %2$d on</string>
-    <string name="clone_patches_not_applied">The last build could not apply %1$s: the original\'s signing certificate could not be read, so the identity patch is not in the clone.</string>
-    <string name="clone_patches_hint">Changes to the code of the clone. Every patch is optional and applied only to this clone.</string>
+    <string name="clone_patches_not_applied">The last build could not apply %1$s: the original\'s signing certificate could not be read, so the patch is not in the clone.</string>
+    <string name="clone_patches_hint">Patches to the clone\'s code. Every patch is applied only to this clone and can make the app crash.</string>
     <string name="clone_rename_alias_note">Rewrites the package name in the clone code so it finds its own files and components. Mimicry, the other way round, presents the clone as the original to checks.</string>
     <string name="clone_mimicry">Mimicry</string>
     <string name="clone_mimicry_note">The clone presents itself as the ORIGINAL entirely - package name and signature: to its own checks, servers and analytics. Lookups of the clone\'s own components keep working through a fallback.</string>
     <string name="clone_keep_alive">Exit suppression</string>
     <string name="clone_keep_alive_note">Every call that would end the app - System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask - becomes a no-op, so the app cannot kill itself or throw the user out, whatever the reason: a signature check, no account signed in, a failed startup check. After logout the app may stay in the background instead of closing.</string>
+    <string name="clone_spoof_signature">Signature substitution</string>
+    <string name="clone_spoof_signature_note">Checks inside the clone see the original\'s signature, while it keeps its own name. The patch is part of mimicry, but sometimes it is needed on its own.</string>
     <string name="clone_permission_absent">Not asked for by this version. Stays off if it comes back.</string>
     <string name="clone_permission_new">New in this version</string>
     <string name="button_done">Done</string>

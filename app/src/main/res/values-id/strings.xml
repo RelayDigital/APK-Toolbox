@@ -214,12 +214,14 @@
     <string name="clone_patches">Tambalan</string>
     <string name="clone_patches_on">Tambalan: %1$d dari %2$d menyala</string>
     <string name="clone_patches_not_applied">Build terakhir tidak bisa menerapkan «%1$s»: sertifikat tanda tangan aslinya tidak bisa dibaca, jadi tambalan identitas tidak ada di klon.</string>
-    <string name="clone_patches_hint">Perubahan pada kode klon. Setiap tambalan opsional dan hanya diterapkan ke klon ini.</string>
+    <string name="clone_patches_hint">Patch untuk kode klon. Setiap patch hanya diterapkan ke klon ini dan dapat membuat aplikasi crash.</string>
     <string name="clone_rename_alias_note">Menulis ulang nama paket dalam kode klon agar menemukan berkas dan komponennya sendiri. Kamuflase sebaliknya menyajikan klon sebagai asli bagi pemeriksaan.</string>
     <string name="clone_mimicry">Kamuflase</string>
     <string name="clone_mimicry_note">Klon menyajikan dirinya sepenuhnya sebagai ASLI — nama paket dan tanda tangan: bagi pemeriksaannya sendiri, server dan analitik. Pencarian komponen klon sendiri tetap bekerja lewat jalur cadangan.</string>
     <string name="clone_keep_alive">Penekanan keluar</string>
     <string name="clone_keep_alive_note">Setiap panggilan yang akan mengakhiri aplikasi — System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask — menjadi operasi kosong, jadi aplikasi tidak bisa membunuh dirinya atau melempar pengguna keluar, karena alasan apa pun: pemeriksaan tanda tangan, tidak ada akun masuk, pemeriksaan mulai yang gagal. Setelah keluar, aplikasi bisa tetap di latar belakang alih-alih menutup.</string>
+    <string name="clone_spoof_signature">Penggantian tanda tangan</string>
+    <string name="clone_spoof_signature_note">Pemeriksaan di dalam klon melihat tanda tangan asli, namanya tetap sendiri. Patch ini bagian dari mimicry, tetapi kadang diperlukan terpisah.</string>
     <string name="clone_permission_absent">Tidak diminta di versi ini. Tetap mati bila kembali.</string>
     <string name="clone_permission_new">Baru di versi ini</string>
     <string name="button_done">Selesai</string>

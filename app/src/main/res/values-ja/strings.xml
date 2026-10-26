@@ -214,12 +214,14 @@
     <string name="clone_patches">パッチ</string>
     <string name="clone_patches_on">パッチ：%2$d 個中 %1$d 個オン</string>
     <string name="clone_patches_not_applied">最後のビルドは「%1$s」を適用できませんでした：元のアプリの署名証明書を読めなかったため、識別パッチがクローンに入っていません。</string>
-    <string name="clone_patches_hint">クローンのコードへの変更。各パッチは任意で、このクローンにのみ適用されます。</string>
+    <string name="clone_patches_hint">クローンのコードへのパッチ。各パッチはこのクローンにのみ適用され、アプリがクラッシュする原因になることがあります。</string>
     <string name="clone_rename_alias_note">クローンが自分のファイルとコンポーネントを見つけられるよう、コード内のパッケージ名を書き換えます。擬態は逆に、クローンを検査に元のアプリとして見せます。</string>
     <string name="clone_mimicry">擬態</string>
     <string name="clone_mimicry_note">クローンは完全に元のアプリとして振る舞います - パッケージ名も署名も：自分自身の検査、サーバー、分析に対して。クローン自身のコンポーネントの検索は、フォールバックで動き続けます。</string>
     <string name="clone_keep_alive">終了の抑制</string>
     <string name="clone_keep_alive_note">アプリを終了させるあらゆる呼び出し - System.exit、Runtime.exit、Process.killProcess、finish、finishAffinity、finishAndRemoveTask - が空の操作になり、アプリは自分を殺すこともユーザーを追い出すこともできません、理由が何であれ：署名検査、未ログイン、起動時検査の失敗。ログアウト後、アプリは閉じる代わりにバックグラウンドに残ることがあります。</string>
+    <string name="clone_spoof_signature">署名の差し替え</string>
+    <string name="clone_spoof_signature_note">クローン内の検査にはオリジナルの署名が見え、名前は自分のままです。このパッチはミミクリの一部ですが、単独で必要なこともあります。</string>
     <string name="clone_permission_absent">このバージョンでは要求されません。戻ってきてもオフのままです。</string>
     <string name="clone_permission_new">このバージョンで新しく追加</string>
     <string name="button_done">完了</string>

@@ -158,9 +158,18 @@ object SignatureSpoof {
             return false
         }
 
-        /** An invoke of PackageManager.getPackageInfo, of a Context-typed getPackageName()/getOpPackageName(), or of a PackageManager component lookup (whose name the package spoof changes). */
+        /** An invoke of PackageManager.getPackageInfo, of a Context-typed getPackageName()/getOpPackageName(), of a PackageManager component lookup (whose name the package spoof changes), or of getApplicationInfo (whose name the spoof hands libraries the clone cannot see). */
         private fun isSpoofTarget(instruction: Instruction): Boolean =
-            isPackageInfoCall(instruction) || (spoofName && (isPackageNameCall(instruction) || isComponentLookupCall(instruction)))
+            isPackageInfoCall(instruction) || (spoofName && (isPackageNameCall(instruction) || isComponentLookupCall(instruction) || isApplicationInfoCall(instruction)))
+
+        /** An invoke of PackageManager.getApplicationInfo(String, int|flags) - the metadata bootstrap libraries run at startup. */
+        private fun isApplicationInfoCall(instruction: Instruction): Boolean {
+            if (instruction !is Instruction35c && instruction !is Instruction3rc) return false
+            val ref = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+            if (ref.definingClass != PACKAGE_MANAGER || ref.name != "getApplicationInfo") return false
+            val params = ref.parameterTypes
+            return params.size == 2 && params[0] == "Ljava/lang/String;" && (params[1] == "I" || params[1] == FLAGS)
+        }
 
         /** A PackageManager lookup by ComponentName - getProviderInfo/getActivityInfo/getServiceInfo: (ComponentName, int|flags). */
         private fun isComponentLookupCall(instruction: Instruction): Boolean {
@@ -212,6 +221,14 @@ object SignatureSpoof {
                         ret,
                     )
                 }
+                "getApplicationInfo" -> {
+                    val flagsType = method.parameterTypes[1]
+                    ImmutableMethodReference(
+                        HELPER_CLASS, "applicationInfo",
+                        listOf(PACKAGE_MANAGER, "Ljava/lang/String;", flagsType),
+                        "Landroid/content/pm/ApplicationInfo;",
+                    )
+                }
                 else -> {
                     // getPackageName/getOpPackageName: always the Context descriptor - the receiver
                     // register holds a Context at runtime, whatever static type the call was written against.
@@ -259,6 +276,8 @@ object SignatureSpoof {
             listOf(
             helperMethod(access, "I", certificate, originalPackage, clonePackage),
             helperMethod(access, FLAGS, certificate, originalPackage, clonePackage),
+            applicationInfoMethod(access, "I", originalPackage, clonePackage),
+            applicationInfoMethod(access, FLAGS, originalPackage, clonePackage),
             packageNameMethod(access, originalPackage),
             componentLookupMethod(access, "I", "getProviderInfo", "Landroid/content/pm/ProviderInfo;", clonePackage),
             componentLookupMethod(access, FLAGS, "getProviderInfo", "Landroid/content/pm/ProviderInfo;", clonePackage),
@@ -335,6 +354,62 @@ object SignatureSpoof {
             ImmutableMethodImplementation(
                 6, code,
                 listOf(ImmutableTryBlock(0, 5, listOf(ImmutableExceptionHandler(NAME_NOT_FOUND, 5)))),
+                emptyList<org.jf.dexlib2.iface.debug.DebugItem>(),
+            ),
+        )
+    }
+
+    /**
+     * applicationInfo(PackageManager, String, flags) -> ApplicationInfo: the name the spoof
+     * reports is answered with the always-visible self, every other name goes to the real
+     * manager untouched. The name spoof makes libraries bootstrap themselves through
+     * getApplicationInfo(getPackageName(), GET_META_DATA) - FacebookSdk's app id, the ads
+     * SDK's metadata - and on Android 11+ the clone cannot SEE the original's name, so the
+     * metadata load crashed whole apps. No exceptions, no retries: the substitution is decided
+     * BEFORE the single call, from the two names the helper itself owns.
+     */
+    private fun applicationInfoMethod(access: Int, flagsType: String, originalPackage: String, clonePackage: String): ImmutableMethod {
+        val AI = "Landroid/content/pm/ApplicationInfo;"
+        val getRef = ImmutableMethodReference(PACKAGE_MANAGER, "getApplicationInfo", listOf("Ljava/lang/String;", flagsType), AI)
+        // v4 = name; if (v4 != clonePackage) goto 5 (checkOriginal); else goto 14 (answerClone).
+        // Registers: 6 total, params last: v3 = pm, v4 = name, v5 = flags; v0-v2 scratch.
+        // Code-unit layout (const-string=2, 22t=2, goto=1, invoke=3, 11x=1):
+        //   0-1  const-string v1, clonePackage
+        //   2-3  if-ne v4, v1 -> 5      offset 3: a name that is not the clone's
+        //   4    goto -> 14             offset 10: the clone's own name: answer with self
+        //   5-6  const-string v1, originalPackage
+        //   7-8  if-eq v4, v1 -> 14     offset 7: the original's name: answer with self
+        //   9-13 pm.getApplicationInfo(v4, v5); return   - every other name, untouched
+        //   14-20 const-string v4, clonePackage; pm.getApplicationInfo(v4, v5); return
+        val code = mutableListOf<ImmutableInstruction>()
+        code += ImmutableInstruction21c(Opcode.CONST_STRING, 1, ImmutableStringReference(clonePackage))
+        code += ImmutableInstruction22t(Opcode.IF_NE, 4, 1, 3)
+        code += ImmutableInstruction10t(Opcode.GOTO, 10)
+        code += ImmutableInstruction21c(Opcode.CONST_STRING, 1, ImmutableStringReference(originalPackage))
+        code += ImmutableInstruction22t(Opcode.IF_EQ, 4, 1, 7)
+        // A name this helper does not own: the real manager answers, exception included.
+        code += ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 3, 3, 4, 5, 0, 0, getRef)
+        code += ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0)
+        code += ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)
+        // answerClone (unit 14): pm.getApplicationInfo(clonePackage, flags) - always visible.
+        code += ImmutableInstruction21c(Opcode.CONST_STRING, 4, ImmutableStringReference(clonePackage))
+        code += ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 3, 3, 4, 5, 0, 0, getRef)
+        code += ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0)
+        code += ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)
+        return ImmutableMethod(
+            HELPER_CLASS, "applicationInfo",
+            listOf(
+                ImmutableMethodParameter(PACKAGE_MANAGER, emptySet(), null),
+                ImmutableMethodParameter("Ljava/lang/String;", emptySet(), null),
+                ImmutableMethodParameter(flagsType, emptySet(), null),
+            ),
+            AI,
+            access,
+            emptySet<org.jf.dexlib2.iface.Annotation>(),
+            emptySet<org.jf.dexlib2.HiddenApiRestriction>(),
+            ImmutableMethodImplementation(
+                6, code,
+                emptyList<ImmutableTryBlock>(),
                 emptyList<org.jf.dexlib2.iface.debug.DebugItem>(),
             ),
         )

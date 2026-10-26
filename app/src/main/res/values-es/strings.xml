@@ -218,12 +218,14 @@
     <string name="clone_patches">Parches</string>
     <string name="clone_patches_on">Parches: %1$d de %2$d activos</string>
     <string name="clone_patches_not_applied">La última compilación no pudo aplicar «%1$s»: no se pudo leer el certificado de firma del original, así que el parche de identidad no está en el clon.</string>
-    <string name="clone_patches_hint">Cambios en el código del clon. Cada parche es opcional y solo se aplica a este clon.</string>
+    <string name="clone_patches_hint">Parches para el código del clon. Cada parche se aplica solo a este clon y puede hacer que la app se cierre de forma inesperada.</string>
     <string name="clone_rename_alias_note">Reescribe el nombre del paquete en el código del clon para que encuentre sus propios archivos y componentes. El mimetismo, al revés, presenta el clon como el original ante las comprobaciones.</string>
     <string name="clone_mimicry">Mimetismo</string>
     <string name="clone_mimicry_note">El clon se presenta por completo como el ORIGINAL - nombre de paquete y firma: ante sus propias comprobaciones, servidores y analítica. Las búsquedas de los componentes propios del clon siguen funcionando por una alternativa.</string>
     <string name="clone_keep_alive">Suprimir el cierre</string>
     <string name="clone_keep_alive_note">Cada llamada que terminaría la aplicación - System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask - pasa a no hacer nada, de modo que la aplicación no puede ni matarse ni expulsar al usuario, sea cual sea el motivo: una comprobación de firma, ninguna cuenta iniciada, una comprobación fallida al arrancar. Tras cerrar sesión, la aplicación puede quedarse en segundo plano en lugar de cerrarse.</string>
+    <string name="clone_spoof_signature">Sustitución de firma</string>
+    <string name="clone_spoof_signature_note">Las comprobaciones del clon ven la firma del original; el nombre sigue siendo el suyo. El parche forma parte de la mimicry, pero a veces se necesita por separado.</string>
     <string name="clone_permission_absent">Esta versión no la pide. Si vuelve, se queda apagado.</string>
     <string name="clone_permission_new">Nueva en esta versión</string>
     <string name="button_done">Hecho</string>

@@ -19,3 +19,6 @@ keystore.properties
 telegram.properties
 docs/sources-port-plan.md
 docs/phone-log-*.txt
+.beads.gate.lock
+.kotlin/
+.codegraph/

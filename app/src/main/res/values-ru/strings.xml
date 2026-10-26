@@ -220,13 +220,15 @@
     <string name="clone_permissions_none">Приложение не запрашивает разрешений.</string>
     <string name="clone_patches">Патчи</string>
     <string name="clone_patches_on">Патчи: включено %1$d из %2$d</string>
-    <string name="clone_patches_not_applied">Последняя сборка не смогла применить «%1$s»: не удалось прочитать подпись оригинала, поэтому патч подмены имени пакета в клон не попал.</string>
-    <string name="clone_patches_hint">Изменения кода клона. Каждый патч необязателен и применяется только к этому клону.</string>
+    <string name="clone_patches_not_applied">Последняя сборка не смогла применить «%1$s»: не удалось прочитать подпись оригинала, поэтому патч в клон не попал.</string>
+    <string name="clone_patches_hint">Патчи для кода клона. Каждый патч применяется только к этому клону и может привести к вылетам приложения.</string>
     <string name="clone_rename_alias_note">Переписывает имя пакета в коде клона, чтобы он находил свои файлы и компоненты. Мимикрия, наоборот, представляет клон оригиналом для проверок.</string>
     <string name="clone_mimicry">Мимикрия</string>
     <string name="clone_mimicry_note">Клон полностью представляется оригиналом — имя пакета и подпись: своим проверкам, серверам и аналитике. Поиск собственных компонентов клона продолжает работать через запасной вариант.</string>
     <string name="clone_keep_alive">Подавление выхода</string>
     <string name="clone_keep_alive_note">Каждый вызов, завершающий приложение — System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask — превращается в пустую операцию: приложение не может ни убить себя, ни выкинуть пользователя, по любой причине — проверка подписи, нет аккаунта, неудачная проверка при запуске. После выхода приложение может остаться в фоне вместо закрытия.</string>
+    <string name="clone_spoof_signature">Подмена подписи</string>
+    <string name="clone_spoof_signature_note">Проверки клона видят подпись оригинала, имя остаётся своим. Патч входит в мимикрию, но иногда требуется отдельно.</string>
     <string name="clone_permission_absent">В этой версии не запрашивается. Если вернётся — останется выключенным.</string>
     <string name="clone_permission_new">Новое в этой версии</string>
     <string name="button_done">Готово</string>

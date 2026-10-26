@@ -390,4 +390,48 @@ class ClonePatchRoundTripTest {
             helperSelfCalls(reDex) > 0,
         )
     }
+
+    @Test
+    fun aMimicryCloneKeepsItsQueriesEntryThroughALocalRebuild() {
+        val source = sourceApk()
+
+        // The clone as shipped: mimicry on, so its manifest carries the <queries> entry that
+        // keeps the original's name visible to the spoofed name lookups.
+        val built = build(listOf(source), setOf(PatchIds.MIMICRY), "mimicryq")
+        assertTrue(hasQueriesEntry(built))
+
+        // The local rebuild (a permissions change): the same clone built again from ITSELF and
+        // the ORIGINAL's manifest bytes - the path rebuildInstalledClone takes. The dex is
+        // reused as it is, so the spoof helper keeps asking for the original's name: a manifest
+        // rebuilt without the entry would hide that name again - the visibility crash the
+        // entry exists to prevent (a Duolingo clone booted, then crashed on its first rebuild).
+        val originalManifest = manifest()
+        val outputDir = File.createTempFile("reclone", "").let { it.delete(); it.also(File::mkdirs) }
+        val rebuilt = ApkCloner(clonerContext()).recloneBase(
+            built, originalManifest,
+            CloneRequest(emptyList(), clonePackage, null, key, null, emptySet(), setOf(PatchIds.MIMICRY)),
+            outputDir,
+        )
+        assertTrue("the local rebuild keeps the <queries> entry", hasQueriesEntry(rebuilt))
+
+        // And a non-mimicry rebuild does not grow one: the entry is mimicry's, not the
+        // rebuild's.
+        val plain = build(listOf(source), setOf(PatchIds.KEEP_ALIVE), "plain")
+        val plainOutput = File.createTempFile("reclone2", "").let { it.delete(); it.also(File::mkdirs) }
+        val plainRebuilt = ApkCloner(clonerContext()).recloneBase(
+            plain, originalManifest,
+            CloneRequest(emptyList(), clonePackage, null, key, null, emptySet(), setOf(PatchIds.KEEP_ALIVE)),
+            plainOutput,
+        )
+        assertFalse("no <queries> entry without mimicry", hasQueriesEntry(plainRebuilt))
+    }
+
+    /** Whether the APK's manifest has a <queries> child naming the original package. */
+    private fun hasQueriesEntry(apk: File): Boolean {
+        val bytes = ZipFile(apk).use { zip -> zip.getInputStream(zip.getEntry("AndroidManifest.xml")).use { it.readBytes() } }
+        val root = ResXmlDocument().also { it.readBytes(ByteArrayInputStream(bytes)) }.documentElement
+        return root.getElements("queries").asSequence()
+            .flatMap { it.getElements("package").asSequence() }
+            .any { it.searchAttributeByResourceId(0x01010003).valueAsString == originalPackage }
+    }
 }

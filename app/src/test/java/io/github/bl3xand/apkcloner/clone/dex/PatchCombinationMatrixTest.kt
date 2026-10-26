@@ -344,6 +344,19 @@ class PatchCombinationMatrixTest {
     // The stacks.
 
     @Test
+    fun keepAlivePlusSpoofTheVerifiedXiaomiSet() {
+        // The set the owner logged into Xiaomi Home with (17.10): exit suppression and the
+        // signature substitution ALONE. Its row of the matrix: both markers on, the name
+        // spoofing off - the half mimicry adds is exactly what breaks that app's core wiring.
+        val dex = apply(setOf(PatchIds.KEEP_ALIVE, PatchIds.SPOOF_SIGNATURE))
+        assertGuardNopped(dex)
+        assertPlainExitNopped(dex)
+        assertAliasIntact(dex)
+        assertSpoofOn(dex)
+        assertMimicryOff(dex)
+    }
+
+    @Test
     fun keepAliveSpoofMimicryTheFullIdentityStack() {
         val dex = apply(setOf(PatchIds.KEEP_ALIVE, PatchIds.SPOOF_SIGNATURE, PatchIds.MIMICRY))
         assertGuardNopped(dex)

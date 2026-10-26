@@ -215,13 +215,15 @@
     <string name="clone_permissions_none">Die App verlangt keine Berechtigungen.</string>
     <string name="clone_patches">Patches</string>
     <string name="clone_patches_on">Patches: %1$d von %2$d aktiv</string>
-    <string name="clone_patches_not_applied">Der letzte Build konnte „%1$s“ nicht anwenden: das Signaturzertifikat des Originals ließ sich nicht lesen, darum ist der Identitäts-Patch nicht im Klon.</string>
-    <string name="clone_patches_hint">Änderungen am Code des Klons. Jeder Patch ist optional und wird nur auf diesen Klon angewendet.</string>
+    <string name="clone_patches_not_applied">Der letzte Build konnte „%1$s“ nicht anwenden: das Signaturzertifikat des Originals ließ sich nicht lesen, darum ist der Patch nicht im Klon.</string>
+    <string name="clone_patches_hint">Patches zum Code des Klons. Jeder Patch wird nur auf diesen Klon angewandt und kann die App zum Absturz bringen.</string>
     <string name="clone_rename_alias_note">Schreibt den Paketnamen im Klon-Code um, damit er seine eigenen Dateien und Komponenten findet. Mimikry stellt den Klon umgekehrt bei Prüfungen als das Original dar.</string>
     <string name="clone_mimicry">Mimikry</string>
     <string name="clone_mimicry_note">Der Klon gibt sich vollständig als das ORIGINAL aus - Paketname und Signatur: gegenüber eigenen Prüfungen, Servern und Analyse. Das Auffinden der eigenen Komponenten des Klons bleibt über einen Fallback funktionieren.</string>
     <string name="clone_keep_alive">Beenden unterdrücken</string>
     <string name="clone_keep_alive_note">Jeder Aufruf, der die App beenden würde - System.exit, Runtime.exit, Process.killProcess, finish, finishAffinity, finishAndRemoveTask - wird zu einer Leeroperation, sodass die App sich weder selbst beenden noch den Benutzer hinauswerfen kann, aus welchem Grund auch immer: eine Signaturprüfung, kein angemeldetes Konto, eine fehlgeschlagene Prüfung beim Start. Nach dem Abmelden kann die App im Hintergrund bleiben, statt sich zu schließen.</string>
+    <string name="clone_spoof_signature">Signaturersetzung</string>
+    <string name="clone_spoof_signature_note">Prüfungen im Klon sehen die Signatur des Originals, der Name bleibt seiner. Der Patch ist Teil der Mimikry, wird aber manchmal für sich gebraucht.</string>
     <string name="clone_permission_absent">Wird von dieser Version nicht verlangt. Bleibt aus, falls es wiederkommt.</string>
     <string name="clone_permission_new">Neu in dieser Version</string>
     <string name="button_done">Fertig</string>

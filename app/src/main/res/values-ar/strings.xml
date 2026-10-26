@@ -224,12 +224,14 @@
     <string name="clone_patches">التعديلات</string>
     <string name="clone_patches_on">التعديلات: %1$d من %2$d مفعَّلة</string>
     <string name="clone_patches_not_applied">لم تستطع آخر بنية تطبيق «%1$s»: تعذّرت قراءة شهادة توقيع الأصل، لذا تعديل الهوية ليس في النسخة المطابقة.</string>
-    <string name="clone_patches_hint">تغييرات في شيفرة النسخة المطابقة. كل تعديل اختياري ولا يُطبَّق إلا على هذه النسخة.</string>
+    <string name="clone_patches_hint">رقع لكود النسخة. تُطبَّق كل رقعة على هذه النسخة فقط وقد تتسبب في انهيار التطبيق.</string>
     <string name="clone_rename_alias_note">يعيد كتابة اسم الحزمة في شيفرة النسخة المطابقة ليجد ملفاته ومكوناته الخاصة. التمويه، على العكس، يُظهر النسخة المطابقة كالأصل أمام الفحوصات.</string>
     <string name="clone_mimicry">التمويه</string>
     <string name="clone_mimicry_note">تقدِّم النسخة المطابقة نفسها تمامًا بوصفها الأصل - اسم الحزمة والتوقيع: أمام فحوصاتها وخوادمها وتحليلاتها. يبقى إيجاد مكونات النسخة المطابقة نفسها يعمل عبر مسار احتياطي.</string>
     <string name="clone_keep_alive">كبت الإنهاء</string>
     <string name="clone_keep_alive_note">كل استدعاء من شأنه إنهاء التطبيق - System.exit وRuntime.exit وProcess.killProcess وfinish وfinishAffinity وfinishAndRemoveTask - يصير عملية فارغة، فلا يستطيع التطبيق قتل نفسه ولا إخراج المستخدم، مهما كان السبب: فحص توقيع، لا حساب مسجَّل الدخول، فحص فاشل عند التشغيل. بعد الخروج قد يبقى التطبيق في الخلفية بدل أن يغلق.</string>
+    <string name="clone_spoof_signature">استبدال التوقيع</string>
+    <string name="clone_spoof_signature_note">ترى فحوصات النسخة توقيع الأصل، ويبقى الاسم خاصته. الرقعة جزء من التمويه لكنها أحيانًا تُطلب منفردة.</string>
     <string name="clone_permission_absent">لا تطلبه هذه النسخة. إن عاد بقي متوقفًا.</string>
     <string name="clone_permission_new">جديد في هذه النسخة</string>
     <string name="button_done">تم</string>

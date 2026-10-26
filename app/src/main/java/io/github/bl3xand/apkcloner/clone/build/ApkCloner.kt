@@ -57,7 +57,15 @@ class ApkCloner(private val context: Context) {
                     emptyMap()
                 }
 
-                val patcher = ManifestPatcher(request.newPackage, request.newLabel.takeIf { index == 0 }, request.removedPermissions, isSplitApk = index > 0)
+                val patcher = ManifestPatcher(
+                    request.newPackage, request.newLabel.takeIf { index == 0 }, request.removedPermissions,
+                    isSplitApk = index > 0,
+                    // Under mimicry the app asks for the ORIGINAL's package everywhere; the
+                    // queries entry keeps Android 11+ visibility from hiding it. Only the base
+                    // APK carries the manifest; the original's name is the one the patcher
+                    // itself reads out of that manifest.
+                    addOriginalToQueries = request.mimicry && index == 0,
+                )
                 // originalPackage (A) is what the dex still names; clonePackage (B) is what it must look
                 // up. oldPackage is only known once the manifest is patched inside rebuild(), so the
                 // chain reads it lazily, like the metadata entry below.
@@ -113,7 +121,14 @@ class ApkCloner(private val context: Context) {
         val output = File(outputDir, "base.apk")
         try {
             val badged = readMetadata(installedBase.path)?.badged ?: false
-            val patcher = ManifestPatcher(request.newPackage, request.newLabel, request.removedPermissions)
+            // The queries entry is part of the clone's manifest identity under mimicry: the
+            // dex keeps the spoof helper (it is reused as it is), so a manifest rebuilt
+            // without the entry would hide the original's name again - the crash the entry
+            // exists to prevent.
+            val patcher = ManifestPatcher(
+                request.newPackage, request.newLabel, request.removedPermissions,
+                addOriginalToQueries = request.mimicry,
+            )
             // The dex is the clone's own, reused as it is - whatever it carries is what the last
             // real build could apply, and that is what the new metadata says too.
             val applied = readMetadata(installedBase.path)?.patchesApplied ?: request.patches
