@@ -151,7 +151,10 @@ the link to the channel (`https://t.me/name`), or to a message with the file.
 4. **Permissions** lists everything the app asks for; switch off what the
    clone should not have — the network, the contacts, the location. The
    clone is built without them, so the system never grants them.
-5. Tap **Clone**, then **Install** the result or **Save** it.
+5. **Patches** — optional changes to the clone's code. Every patch is
+   applied only to the clone and can make the app crash; the list is short
+   and each patch says what it does. See [Patches](#patches) below.
+6. Tap **Clone**, then **Install** the result or **Save** it.
 
 The clone is a separate app with its own data, installed side by side with
 the original. An app can be cloned as many times as you like.
@@ -240,6 +243,40 @@ tabs; a clone is filed under them by holding its row.
 
 A clone is signed with APK Toolbox's key, not the publisher's: sign-in with
 Google, payments and integrity checks may not work in it.
+
+## Patches
+
+A patch is a change to the clone's code, made while it is built. The picker
+lives behind the **Patches** button of a clone draft and of a clone's own
+page; each patch can be switched on or off at any time, and a change
+rebuilds the clone over itself, with its data kept. Every patch is applied
+only to the clone — the original is never touched.
+
+<p align="center">
+  <img src="docs/screenshots/patch-picker.png" width="32%" alt="The patch picker" />
+  <img src="docs/screenshots/patch-picker-on.png" width="32%" alt="The patch picker with two patches on" />
+</p>
+
+Four patches, each with its own switch:
+
+- **Exit suppression** — the calls an app makes to end itself are turned
+  into no-ops: the app cannot close itself over a failed check or a missing
+  account. After you leave it, the app may stay in the background instead
+  of closing.
+- **Addressing by the clone name** — rewrites the original's package name
+  in the clone's code to the clone's own, so the clone finds its files and
+  components it looks up by that name.
+- **Signature substitution** — the checks inside the clone see the
+  original's signing certificate, while the clone keeps its own name. Part
+  of mimicry, but sometimes needed on its own.
+- **Mimicry** — the clone presents itself as the original to the checks
+  inside it: the name and the signature both. It includes the signature
+  substitution, so that switch is held on while mimicry is on.
+
+The patches compose: any combination can be picked, and what a build could
+not apply is said on the clone's page. They are advanced options — an app
+that guards its own code may still refuse to run as a clone, whatever the
+set.
 
 ## Updates in the background
 
