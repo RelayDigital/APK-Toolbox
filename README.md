@@ -63,6 +63,7 @@ Get the latest build from [Releases](https://github.com/bl3xand/APK-Toolbox/rele
   <img src="docs/screenshots/install.jpg" width="24%" alt="SAI tab" />
   <img src="docs/screenshots/export.jpg" width="24%" alt="Exporting as .apks" />
   <img src="docs/screenshots/merge.jpg" width="24%" alt="Merging splits" />
+  <img src="docs/screenshots/sources.jpg" width="24%" alt="Sources" />
 </p>
 
 ## Requirements
