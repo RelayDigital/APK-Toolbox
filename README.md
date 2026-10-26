@@ -1,6 +1,6 @@
-# APK Toolbox
+<h1 align="center">APK Toolbox</h1>
 
-Track, clone, install and merge Android apps — right on the phone, no root.
+<p align="center">Track, clone, install and merge Android apps — right on the phone, no root.</p>
 
 <p align="center">
   <a href="https://github.com/bl3xand/APK-Toolbox/stargazers">
