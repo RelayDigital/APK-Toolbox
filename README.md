@@ -4,16 +4,16 @@ Track, clone, install and merge Android apps — right on the phone, no root.
 
 <p align="center">
   <a href="https://github.com/bl3xand/APK-Toolbox/stargazers">
-    <img src="https://img.shields.io/github/stars/bl3xand/APK-Toolbox?style=flat-square&label=STARS&color=0088CC" alt="Stars">
+    <img src="https://img.shields.io/github/stars/bl3xand/APK-Toolbox?style=flat-square&label=Stars&color=0088CC" alt="Stars">
   </a>
   <a href="https://github.com/bl3xand/APK-Toolbox/releases">
-    <img src="https://img.shields.io/github/downloads/bl3xand/APK-Toolbox/total?style=flat-square&label=DOWNLOADS&color=55CC00" alt="Downloads">
+    <img src="https://img.shields.io/github/downloads/bl3xand/APK-Toolbox/total?style=flat-square&label=Downloads&color=55CC00" alt="Downloads">
   </a>
   <a href="https://github.com/bl3xand/APK-Toolbox/releases/latest">
-    <img src="https://img.shields.io/github/v/release/bl3xand/APK-Toolbox?style=flat-square&label=LATEST%20STABLE&color=0088CC" alt="Latest Stable">
+    <img src="https://img.shields.io/github/v/release/bl3xand/APK-Toolbox?style=flat-square&label=Latest%20Stable&color=0088CC" alt="Latest Stable">
   </a>
   <a href="https://github.com/bl3xand/APK-Toolbox/issues">
-    <img src="https://img.shields.io/github/issues/bl3xand/APK-Toolbox?style=flat-square&label=ISSUES&color=E5C100" alt="Issues">
+    <img src="https://img.shields.io/github/issues/bl3xand/APK-Toolbox?style=flat-square&label=Issues&color=E5C100" alt="Issues">
   </a>
 </p>
 
