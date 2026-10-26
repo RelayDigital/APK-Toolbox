@@ -22,3 +22,18 @@ docs/phone-log-*.txt
 .beads.gate.lock
 .kotlin/
 .codegraph/
+
+# Local-only: test helpers and internal notes
+scripts/
+TODO.md
+docs/acceptance-verification.md
+docs/constraints-e2e-results.md
+docs/design-branch-gone-and-patches.md
+docs/patch-analysis.md
+docs/qa-scenario-matrix.md
+docs/release-gate-controls.md
+docs/release-gate-report.md
+docs/release-kind-analysis.md
+docs/test-hooks.md
+docs/updates-interrupting-each-other.md
+docs/terminology.md
