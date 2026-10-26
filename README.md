@@ -257,27 +257,6 @@ only to the clone — the original is never touched.
   <img src="docs/screenshots/patch-picker-on.png" width="32%" alt="The patch picker with two patches on" />
 </p>
 
-Four patches, each with its own switch:
-
-- **Exit suppression** — the calls an app makes to end itself are turned
-  into no-ops: the app cannot close itself over a failed check or a missing
-  account. After you leave it, the app may stay in the background instead
-  of closing.
-- **Addressing by the clone name** — rewrites the original's package name
-  in the clone's code to the clone's own, so the clone finds its files and
-  components it looks up by that name.
-- **Signature substitution** — the checks inside the clone see the
-  original's signing certificate, while the clone keeps its own name. Part
-  of mimicry, but sometimes needed on its own.
-- **Mimicry** — the clone presents itself as the original to the checks
-  inside it: the name and the signature both. It includes the signature
-  substitution, so that switch is held on while mimicry is on.
-
-The patches compose: any combination can be picked, and what a build could
-not apply is said on the clone's page. They are advanced options — an app
-that guards its own code may still refuse to run as a clone, whatever the
-set.
-
 ## Updates in the background
 
 One group of settings covers both tracked apps and clones:
