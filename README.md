@@ -1,21 +1,20 @@
-<h1 align="center">APK Toolbox</h1>
+<div align="center">
 
-<p align="center">Track, clone, install and merge Android apps — right on the phone, no root.</p>
+# APK Toolbox
 
-<p align="center">
-  <a href="https://github.com/bl3xand/APK-Toolbox/stargazers">
-    <img src="https://img.shields.io/github/stars/bl3xand/APK-Toolbox?style=flat-square&label=Stars&color=0088CC" alt="Stars">
-  </a>
-  <a href="https://github.com/bl3xand/APK-Toolbox/releases">
-    <img src="https://img.shields.io/github/downloads/bl3xand/APK-Toolbox/total?style=flat-square&label=Downloads&color=55CC00" alt="Downloads">
-  </a>
-  <a href="https://github.com/bl3xand/APK-Toolbox/releases/latest">
-    <img src="https://img.shields.io/github/v/release/bl3xand/APK-Toolbox?style=flat-square&label=Latest%20Stable&color=0088CC" alt="Latest Stable">
-  </a>
-  <a href="https://github.com/bl3xand/APK-Toolbox/issues">
-    <img src="https://img.shields.io/github/issues/bl3xand/APK-Toolbox?style=flat-square&label=Issues&color=E5C100" alt="Issues">
-  </a>
-</p>
+Track, clone, install and merge Android apps — right on the phone, no root.
+
+<img width="200" alt="Sources" src="docs/screenshots/sources.jpg">
+<img width="200" alt="Cloning" src="docs/screenshots/apps.jpg">
+<img width="200" alt="Clones" src="docs/screenshots/clones.jpg">
+<img width="200" alt="Settings" src="docs/screenshots/settings.jpg">
+
+[![Stars](https://img.shields.io/github/stars/bl3xand/APK-Toolbox?style=for-the-badge)](https://github.com/bl3xand/APK-Toolbox/stargazers)
+[![Downloads](https://img.shields.io/github/downloads/bl3xand/APK-Toolbox/total?style=for-the-badge)](https://github.com/bl3xand/APK-Toolbox/releases)
+[![Latest Stable](https://img.shields.io/github/v/release/bl3xand/APK-Toolbox?style=for-the-badge&label=Latest%20Stable)](https://github.com/bl3xand/APK-Toolbox/releases/latest)
+[![Issues](https://img.shields.io/github/issues/bl3xand/APK-Toolbox?style=for-the-badge)](https://github.com/bl3xand/APK-Toolbox/issues)
+
+</div>
 
 APK Toolbox started as a way to get a second copy of an app next to the
 original and grew into a small set of tools for APK files. It follows in the
@@ -393,7 +392,13 @@ it the app builds and the Telegram source says it is not available.
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=bl3xand/APK-Toolbox&type=date&legend=top-left)](https://www.star-history.com/#bl3xand/APK-Toolbox&type=date)
+<a href="https://www.star-history.com/?repos=bl3xand%2FAPK-Toolbox&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=bl3xand/APK-Toolbox&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=bl3xand/APK-Toolbox&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=bl3xand/APK-Toolbox&type=date&legend=top-left" />
+ </picture>
+</a>
 
 ## Used projects
 
