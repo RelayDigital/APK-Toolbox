@@ -2,6 +2,21 @@
 
 Track, clone, install and merge Android apps — right on the phone, no root.
 
+<p align="center">
+  <a href="https://github.com/bl3xand/APK-Toolbox/stargazers">
+    <img src="https://img.shields.io/github/stars/bl3xand/APK-Toolbox?style=flat-square&label=STARS&color=0088CC" alt="Stars">
+  </a>
+  <a href="https://github.com/bl3xand/APK-Toolbox/releases">
+    <img src="https://img.shields.io/github/downloads/bl3xand/APK-Toolbox/total?style=flat-square&label=DOWNLOADS&color=55CC00" alt="Downloads">
+  </a>
+  <a href="https://github.com/bl3xand/APK-Toolbox/releases/latest">
+    <img src="https://img.shields.io/github/v/release/bl3xand/APK-Toolbox?style=flat-square&label=LATEST%20STABLE&color=0088CC" alt="Latest Stable">
+  </a>
+  <a href="https://github.com/bl3xand/APK-Toolbox/issues">
+    <img src="https://img.shields.io/github/issues/bl3xand/APK-Toolbox?style=flat-square&label=ISSUES&color=E5C100" alt="Issues">
+  </a>
+</p>
+
 APK Toolbox started as a way to get a second copy of an app next to the
 original and grew into a small set of tools for APK files. It follows in the
 steps of [Obtainium](https://github.com/ImranR98/Obtainium),
@@ -375,6 +390,10 @@ Telegram channels need the app's own API id and hash from
 [my.telegram.org](https://my.telegram.org). Copy `telegram.properties.example`
 to `telegram.properties` and fill them in; the file stays out of git. Without
 it the app builds and the Telegram source says it is not available.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=bl3xand/APK-Toolbox&type=date&legend=top-left)](https://www.star-history.com/#bl3xand/APK-Toolbox&type=date)
 
 ## Used projects
 
