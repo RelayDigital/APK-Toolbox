@@ -92,9 +92,32 @@ class ApkCloner(private val context: Context) {
                 else request.patches - setOf(PatchIds.SPOOF_SIGNATURE, PatchIds.MIMICRY)
                 val metadata = { METADATA_ENTRY to metadataOf(patcher.oldPackage, iconFiles.isNotEmpty(), request.removedPermissions, request.patches, applied) }
                 // Chain the dex patches; all of them emit no-ops/rewrites that compose in any order.
+                // The helper's home dex is picked up front, from the method counts of the APK's
+                // own dex headers: the primary dex is usual, but a full one (an app at the 64K
+                // method limit) must not take the helper - the write would fail and ship a
+                // clone without the class its other dexes call.
+                val helperDex = originalCertificate?.let {
+                    val dexEntries = ZipFile(apk).use { zip ->
+                        zip.entries().toList().filter { it.name.matches(Regex("classes\\d*\\.dex")) }
+                    }
+                    SignatureSpoof.helperDex(
+                        dexEntries.map { it.name },
+                        dexEntries.map { entry ->
+                            ZipFile(apk).use { zip ->
+                                zip.getInputStream(entry).use { input ->
+                                    val header = ByteArray(92)
+                                    input.readNBytes(header, 0, 92)
+                                    // method_ids_size, little-endian, at offset 88 of the dex header.
+                                    ((header[91].toLong() and 0xff) shl 24) or ((header[90].toLong() and 0xff) shl 16) or
+                                        ((header[89].toLong() and 0xff) shl 8) or (header[88].toLong() and 0xff)
+                                }.toInt()
+                            }
+                        },
+                    )
+                }
                 val dexPatcher: ((String, ByteArray) -> ByteArray)? = when {
                     request.bypassSignatureCheck || request.renameAlias || request.keepAlive || originalCertificate != null || request.mimicry ->
-                        DexPatchChain(request.patches, originalCertificate, originalPackage, clonePackage)::apply
+                        DexPatchChain(request.patches, originalCertificate, originalPackage, clonePackage, helperDex)::apply
                     else -> null
                 }
                 ApkRebuilder.rebuild(apk, unsigned, patcher, iconFiles, metadata.takeIf { index == 0 }, dexPatcher = dexPatcher)
@@ -229,6 +252,8 @@ internal class DexPatchChain(
     private val certificate: ByteArray?,
     private val originalPackage: () -> String,
     private val clonePackage: String,
+    /** The dex entry the spoof helper is injected into; null when no dex has room for it. */
+    private val helperDex: String? = null,
 ) {
     fun apply(name: String, data: ByteArray): ByteArray {
         var patched = data
@@ -242,7 +267,10 @@ internal class DexPatchChain(
         // retargets getPackageInfo/getPackageName invokes, and the alias rewriter only touches
         // const-strings - the retargeted calls and the helper it reads them for compose.
         if (PatchIds.RENAME_ALIAS in patches) patched = CoreRenameAlias.patchDex(patched, original, clonePackage)
-        if (certificate != null) patched = SignatureSpoof.patchDex(patched, name, certificate, original, clonePackage, PatchIds.MIMICRY in patches)
+        if (certificate != null) patched = SignatureSpoof.patchDex(
+            patched, name, certificate, original, clonePackage, PatchIds.MIMICRY in patches,
+            helperDex = helperDex ?: SignatureSpoof.PRIMARY_DEX_FALLBACK,
+        )
         return patched
     }
 

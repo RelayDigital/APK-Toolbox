@@ -90,32 +90,79 @@ object SignatureSpoof {
     /** The dex entry the helper class is injected into. */
     private const val PRIMARY_DEX = "classes.dex"
 
+    /** The same entry, for callers that had no dexes to choose from. */
+    const val PRIMARY_DEX_FALLBACK = "classes.dex"
+
+    /** The dex format's hard ceiling on method references - the helper must fit under it. */
+    private const val METHOD_IDS_LIMIT = 65_536
+
+    /** The methods the helper class itself brings (get/component/applicationInfo/packageName, x2 flag types each + clinit). */
+    private const val HELPER_METHODS = 10
+
     /**
      * Patches [data] (the bytes of one dex file) so getPackageInfo results carry [certificateDer]
      * (the original's signing certificate, DER), and every Context.getPackageName() /
      * getOpPackageName() returns [originalPackage]. Returns the original bytes on any failure.
      */
-    fun patchDex(data: ByteArray, dexName: String, certificateDer: ByteArray, originalPackage: String, clonePackage: String, spoofName: Boolean = false): ByteArray = try {
+    fun patchDex(data: ByteArray, dexName: String, certificateDer: ByteArray, originalPackage: String, clonePackage: String, spoofName: Boolean = false, helperDex: String = PRIMARY_DEX): ByteArray = try {
+        val patched = patchDex(data, dexName) { dexFile ->
+            val rewritten = DexFileRewriter(SpoofRewriters(hierarchyOf(dexFile), spoofName)).rewrite(dexFile)
+            // The helper goes into the dex the build chose for it ([helperDex]); cross-dex
+            // references resolve at runtime, so one home covers calls rewritten in every dex.
+            val classes = if (dexName == helperDex) rewritten.classes.plus(helperClass(certificateDer, originalPackage, clonePackage)) else rewritten.classes
+            ImmutableDexFile(Opcodes.getDefault(), classes)
+        }
+        if (patched.contentEquals(data)) AppLog.debug("$TAG: no getPackageInfo calls in $dexName, unchanged")
+        else AppLog.debug("$TAG: patched $dexName -> ${patched.size} bytes")
+        patched
+    } catch (e: Throwable) {
+        AppLog.warn("$TAG: patch failed, dex left as-is: ${e.message ?: e}")
+        data
+    }
+
+    /**
+     * The dex entry the helper class should live in, for an APK whose dex entries are named
+     * [dexNames] with their [methodCounts] (the dex header's method_ids_size). The primary
+     * dex when it has room; otherwise the emptiest dex - a huge app can ship its primary at
+     * the 64K method limit (Xiaomi Home 11.6.501: 65532 of 65536), and adding the helper's
+     * methods there overflows the method table, failing the write and stripping the helper
+     * from a clone whose other dexes already call it. Null when every dex is at the limit.
+     */
+    fun helperDex(dexNames: List<String>, methodCounts: List<Int>): String? {
+        if (dexNames.isEmpty() || dexNames.size != methodCounts.size) return null
+        val primary = dexNames.indexOfFirst { it == PRIMARY_DEX }
+        if (primary >= 0 && methodCounts[primary] + HELPER_METHODS <= METHOD_IDS_LIMIT) return PRIMARY_DEX
+        return dexNames.withIndex().filter { methodCounts[it.index] + HELPER_METHODS <= METHOD_IDS_LIMIT }
+            .minByOrNull { methodCounts[it.index] }?.value
+    }
+
+    /**
+     * The pipeline with the rewriting step injected: loads [data], hands the parsed dex to
+     * [rewrite], writes the result. Tests use it to run the REAL rewriting with the writer's
+     * exception in the open.
+     */
+    internal fun patchDex(
+        data: ByteArray,
+        dexName: String,
+        rewrite: (org.jf.dexlib2.iface.DexFile) -> org.jf.dexlib2.iface.DexFile,
+    ): ByteArray {
         val input = File.createTempFile("dex_in", ".dex")
         val output = File.createTempFile("dex_out", ".dex")
         try {
             input.writeBytes(data)
             val dexFile = DexFileFactory.loadDexFile(input, Opcodes.getDefault())
-            val rewritten = DexFileRewriter(SpoofRewriters(hierarchyOf(dexFile), spoofName)).rewrite(dexFile)
-            val classes = if (dexName == PRIMARY_DEX) rewritten.classes.plus(helperClass(certificateDer, originalPackage, clonePackage)) else rewritten.classes
-            DexPool.writeTo(output.absolutePath, ImmutableDexFile(Opcodes.getDefault(), classes))
-            output.readBytes().also {
-                if (it.contentEquals(data)) AppLog.debug("$TAG: no getPackageInfo calls in $dexName, unchanged")
-                else AppLog.debug("$TAG: patched $dexName -> ${it.size} bytes")
-            }
+            val rewritten = rewrite(dexFile)
+            DexPool.writeTo(output.absolutePath, rewritten)
+            return output.readBytes()
         } finally {
             input.delete()
             output.delete()
         }
-    } catch (e: Throwable) {
-        AppLog.warn("$TAG: patch failed, dex left as-is: ${e.message ?: e}")
-        data
     }
+
+    /** The spoof's own rewriter over [dexFile] - the exact rewriting a build applies. */
+    internal fun rewriteSpoofed(dexFile: DexFile, spoofName: Boolean): DexFile =
+        DexFileRewriter(SpoofRewriters(hierarchyOf(dexFile), spoofName)).rewrite(dexFile)
 
     /** A [Rewriters] that rewrites only methods; everything else uses the default rewriter module. */
     private class SpoofRewriters(private val superTypes: Map<String, String>, private val spoofName: Boolean) : DexRewriter(RewriterModule()) {

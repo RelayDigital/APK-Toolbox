@@ -91,6 +91,8 @@ android {
             it.systemProperty("live", providers.gradleProperty("live").getOrElse("false"))
             it.systemProperty("live.only", providers.gradleProperty("live.only").getOrElse(""))
             it.systemProperty("live.query", providers.gradleProperty("live.query").getOrElse(""))
+            // A real APK for the desktop dex-patch repros (the Xiaomi write failure): -Pxiaomi.apk=...
+            it.systemProperty("xiaomi.apk", providers.gradleProperty("xiaomi.apk").getOrElse(""))
             it.testLogging.showStandardStreams = true
         }
     }
