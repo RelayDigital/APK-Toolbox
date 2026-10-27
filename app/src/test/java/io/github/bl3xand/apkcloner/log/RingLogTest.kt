@@ -36,6 +36,24 @@ class RingLogTest {
     }
 
     @Test
+    fun writeLogToIsTheWholeRingAsLines() {
+        val first = ring()
+        first.append(LogLevel.INFO, 1000L, "first")
+        first.append(LogLevel.ERROR, 2000L, "second")
+        // A rotation in between: the second ring instance picks up where the first left off.
+        val second = ring()
+        second.append(LogLevel.WARNING, 3000L, "third")
+        val out = java.io.ByteArrayOutputStream()
+        second.writeLogTo(out)
+        val lines = out.toString("UTF-8").lines().filter { it.isNotBlank() }
+        // The same lines read() returns, oldest first, one per entry - what Save writes.
+        assertEquals(second.read().map { it.toString() }, lines)
+        assertEquals(3, lines.size)
+        assertTrue(lines[0].endsWith("info: first"))
+        assertTrue(lines[2].endsWith("warning: third"))
+    }
+
+    @Test
     fun aTornTailIsCutAndWritingResumes() {
         val first = ring()
         first.append(LogLevel.INFO, 1000L, "whole")

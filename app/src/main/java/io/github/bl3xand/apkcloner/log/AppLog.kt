@@ -100,17 +100,18 @@ object AppLog {
 
     /** Runs on the writer thread (or the caller's, as a last resort) and never throws. */
     private fun write(level: LogLevel, message: String) {
+        val now = System.currentTimeMillis()
         runCatching {
             helper?.writableDatabase?.insert(
                 TABLE, null,
                 ContentValues().apply {
                     put("level", level.ordinal)
                     put("message", message)
-                    put("timestamp", System.currentTimeMillis())
+                    put("timestamp", now)
                 },
             )
         }
-        runCatching { ring?.append(level, System.currentTimeMillis(), message) }
+        runCatching { ring?.append(level, now, message) }
     }
 
     /**
@@ -148,6 +149,25 @@ object AppLog {
     fun clear(before: Long? = null): Int = helper?.writableDatabase?.delete(
         TABLE, if (before != null) "timestamp < ?" else null, if (before != null) arrayOf(before.toString()) else null,
     ) ?: 0
+
+    /**
+     * Writes the ring's ENTIRE log, oldest first, into [out] as lines, on the writer thread: the
+     * only thread that appends to the ring, so the copy is consistent without a lock. Whatever
+     * the log sheet's period and level chips happen to select, this is everything there is.
+     */
+    fun writeRingLogTo(out: java.io.OutputStream) {
+        val handler = writer
+        val done = java.util.concurrent.CountDownLatch(1)
+        var failure: Throwable? = null
+        // Posted to the writer thread when it exists; run inline as a last resort, like write().
+        val copy = {
+            runCatching { ring?.writeLogTo(out) }.onFailure { failure = it }
+            done.countDown()
+        }
+        if (handler == null || !handler.post(copy)) copy()
+        runCatching { done.await() }
+        failure?.let { throw it }
+    }
 
     /** A crash must not be held up for long by a full queue; logcat already has the entry. */
     private const val FLUSH_TIMEOUT_MS = 2_000L
