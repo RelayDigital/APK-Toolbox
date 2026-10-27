@@ -225,18 +225,19 @@ class ControlsWalkTest : BaseUiTest() {
         id: String,
         maxSwipes: Int = 25,
     ): androidx.test.uiautomator.UiObject2? {
-        // UiScrollable drives the sheet's own ScrollView: it scrolls both ways and never
-        // drags the sheet by its handle (which is what a raw downward swipe does).
-        val scroll = androidx.test.uiautomator.UiScrollable(
-            androidx.test.uiautomator.UiSelector().resourceId(packageName + ":id/design_bottom_sheet"),
-        )
-        scroll.waitForExists(2_000)
+        // Rows sit on both sides of wherever the walk left the sheet, so both directions are
+        // needed - but a swipe at the sheet's top edge drags the SHEET and dismisses it. The
+        // swipe therefore stays inside the content: centre to a quarter-height from either
+        // edge, never the handle zone.
+        val sheet = device.findObject(By.clazz("android.widget.FrameLayout").res(packageName, "design_bottom_sheet"))
+            ?: return device.findObject(By.res(packageName, id))
         repeat(maxSwipes) {
             device.findObject(By.res(packageName, id))?.let { return it }
-            runCatching { scroll.scrollForward(20) }
+            val rect = sheet.visibleBounds
+            device.swipe(rect.centerX(), rect.centerY(), rect.centerX(), rect.top + rect.height() / 4, 30)
             device.waitForIdle(400)
             device.findObject(By.res(packageName, id))?.let { return it }
-            runCatching { scroll.scrollBackward(20) }
+            device.swipe(rect.centerX(), rect.centerY(), rect.centerX(), rect.bottom - rect.height() / 4, 30)
             device.waitForIdle(400)
         }
         return device.findObject(By.res(packageName, id))

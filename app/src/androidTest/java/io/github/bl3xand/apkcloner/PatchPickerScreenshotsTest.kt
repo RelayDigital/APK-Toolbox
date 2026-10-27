@@ -28,17 +28,14 @@ class PatchPickerScreenshotsTest : BaseUiTest() {
         val outDir = File(context.externalCacheDir, "picker-shots").apply { deleteRecursively(); mkdirs() }
         try {
             // The clone draft of a chosen app: the Cloning tab, its installed-apps side, the
-            // first row's sheet, the Clone switch, then the patch button it reveals.
+            // first row's sheet, then its patch button (a clone sheet offers the patches
+            // directly - the "install as a clone" draft switch is the tracked app's page, not here).
             device.findObject(By.text(string("tab_apps")))?.click() ?: error("No Cloning tab. Screen:\n${dumpVisibleTexts()}")
             device.waitForIdle(2_000)
             searchFor("")
             device.findObject(By.text(string("cloning_installed")))!!.click()
             settle()
             openCloneSheet()
-            val cloneSwitch = scrollSheetUntil(sourceString("actCloneInstall"))
-                ?: error("No clone switch. Screen:\n${dumpVisibleTexts()}")
-            cloneSwitch.click()
-            device.waitForIdle(1_000)
             val patchesPrefix = string("clone_patches")
             val patchesButton = device.wait(Until.findObject(By.textStartsWith(patchesPrefix)), 10_000)
                 ?: error("No patches button. Screen:\n${dumpVisibleTexts()}")
