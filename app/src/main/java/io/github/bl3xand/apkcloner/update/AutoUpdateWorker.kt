@@ -87,7 +87,9 @@ class AutoUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     UpdateNotifications.showProgress(context, clone.app.label, clone.app.packageName)
                     // One broken app must not keep the rest from updating.
                     val outcome = try {
-                        val apks = cloner.clone(request, output) { _, _, _ -> }
+                        val apks = cloner.clone(request, output) { percent ->
+                            UpdateNotifications.showProgress(context, clone.app.label, clone.app.packageName, percent)
+                        }
                         InstallCoordinator.installing(clone.app.packageName, background = true) {
                             commit { installer.install(context, apks, background = true, label = clone.app.label) }
                         }

@@ -40,6 +40,7 @@ import io.github.bl3xand.apkcloner.ui.apps.askClonesFilter
 import io.github.bl3xand.apkcloner.ui.clone.CloneAdapter
 import io.github.bl3xand.apkcloner.ui.clone.CloneDetailSheet
 import io.github.bl3xand.apkcloner.ui.clone.CloneSheet
+import io.github.bl3xand.apkcloner.ui.show
 import io.github.bl3xand.apkcloner.ui.setSwipeColors
 import io.github.bl3xand.apkcloner.ui.showSheet
 import io.github.bl3xand.apkcloner.ui.split.SplitMode
@@ -337,6 +338,11 @@ class MainActivity : AppCompatActivity() {
             else -> getString(R.string.button_pick_apk)
         }
         binding.progress.isVisible = state.loading || (tab == MainTabs.CLONES && state.updatingClone != null)
+        // A rebuild in progress fills the bar with its real percent; loading keeps the plain run.
+        binding.progress.show(
+            state.loading || (tab == MainTabs.CLONES && state.updatingClone != null),
+            viewModel.rebuildPercent?.toDouble()?.takeIf { tab == MainTabs.CLONES && state.updatingClone != null },
+        )
         // The pull-to-refresh spinner goes and stops with the same work the bar shows.
         if (tab == MainTabs.CLONES) binding.swipeClones.isRefreshing = state.loading || state.updatingClone != null
 

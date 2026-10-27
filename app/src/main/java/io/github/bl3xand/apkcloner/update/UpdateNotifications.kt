@@ -34,11 +34,11 @@ object UpdateNotifications {
     /** A stable notification id per package, the pattern SourcesNotifications.idForKey uses. */
     fun progressIdFor(packageName: String): Int = PROGRESS_BASE + abs(packageName.hashCode() % PROGRESS_RANGE)
 
-    /** Ongoing, with an indeterminate bar, for as long as a clone is being rebuilt. */
-    fun showProgress(context: Context, label: String, packageName: String) {
+    /** Ongoing, for as long as a clone is being rebuilt: a filled bar with [percent], or the plain run. */
+    fun showProgress(context: Context, label: String, packageName: String, percent: Int? = null) {
         val notification = builder(context)
             .setContentTitle(context.getString(R.string.notification_updating, label))
-            .setProgress(0, 0, true)
+            .setProgress(100, (percent ?: 0).coerceIn(0, 100), percent == null)
             .setOngoing(true)
             .setSilent(true)
             .build()

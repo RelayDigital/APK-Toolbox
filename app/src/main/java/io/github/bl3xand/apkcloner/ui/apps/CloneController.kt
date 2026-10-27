@@ -92,7 +92,7 @@ class CloneController(
     fun start(newPackage: String, newLabel: String, badgeIcon: Boolean, patches: Set<String> = emptySet()) {
         val source = selected ?: return
         if (_state.value is CloneState.Running) return
-        _state.value = CloneState.Running(source.label, 0, source.apkPaths.size)
+        _state.value = CloneState.Running(0)
         scope.launch {
             _state.value = withContext(Dispatchers.IO) {
                 try {
@@ -100,8 +100,8 @@ class CloneController(
                     if (removedPermissions.isNotEmpty()) AppLog.info("Clone is made without: ${removedPermissions.joinToString()}")
                     if (patches.isNotEmpty()) AppLog.info("Clone is made with patches: ${patches.joinToString()}")
                     val request = source.cloneRequest(newPackage, newLabel, badgeIcon, removedPermissions = removedPermissions, patches = patches)
-                    CloneState.Done(cloner.clone(request, sheetOutput) { file, index, total ->
-                        _state.value = CloneState.Running(file, index, total)
+                    CloneState.Done(cloner.clone(request, sheetOutput) { percent ->
+                        _state.value = CloneState.Running(percent)
                     }).also { AppLog.info("Cloned $newPackage: ${it.apks.sumOf(File::length) / ApkOutput.BYTES_IN_MB} MB") }
                 } catch (e: Exception) {
                     AppLog.error("Cloning ${source.packageName} as $newPackage failed", e)

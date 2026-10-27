@@ -40,7 +40,8 @@ object ApkRebuilder {
         replacements: Map<String, ByteArray>,
         extraEntry: (() -> Pair<String, ByteArray>)?,
         originalManifest: ByteArray? = null,
-        dexPatcher: ((name: String, data: ByteArray) -> ByteArray)? = null,
+        dexPatcher: ((name: String, data: ByteArray, onPass: () -> Unit) -> ByteArray)? = null,
+        onStep: (() -> Unit)? = null,
     ) {
         val counter = CountingOutputStream(BufferedOutputStream(target.outputStream(), 1 shl 16))
         ZipFile(source).use { zip ->
@@ -52,6 +53,8 @@ object ApkRebuilder {
                     patcher.patch(originalManifest ?: zip.getInputStream(entry).use { it.readBytes() })
                 }
                 require(manifest != null) { "No AndroidManifest.xml in ${source.name}" }
+                // The manifest rewrite is a step like any patch pass; counted up front with the rest.
+                onStep?.invoke()
                 for (entry in zip.entries()) {
                     if (entry.isDirectory || !seen.add(entry.name)) continue
                     if (SIGNATURE_FILE.matches(entry.name) || entry.name.startsWith("META-INF/apkclon")) continue
@@ -84,7 +87,7 @@ object ApkRebuilder {
                         // Checked before STORED: uncompressed dex entries (common - APKs are built
                         // with them extract-native-libs-free) must be patched too, and then
                         // re-stored with the patched bytes' own size and CRC.
-                        val patched = dexPatcher(entry.name, zip.getInputStream(entry).use { it.readBytes() })
+                        val patched = dexPatcher(entry.name, zip.getInputStream(entry).use { it.readBytes() }) { onStep?.invoke() }
                         if (entry.method == ZipEntry.STORED) {
                             val checksum = CRC32().apply { patched.forEach { update(it.toInt()) } }
                             copy.storedAt(counter.count, patched.size.toLong(), checksum.value)
@@ -113,7 +116,7 @@ object ApkRebuilder {
     }
 
     /** A classes*.dex entry, without a Regex: R8-minified Kotlin Regex broke this check once. */
-    private fun isDexEntry(name: String): Boolean {
+    internal fun isDexEntry(name: String): Boolean {
         val verdict = name.endsWith(".dex") && run {
             val base = name.removeSuffix(".dex")
             base == "classes" || (base.startsWith("classes") && base.substring("classes".length).all { it in '0'..'9' })

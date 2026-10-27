@@ -26,6 +26,7 @@ import io.github.bl3xand.apkcloner.ui.expandFully
 import io.github.bl3xand.apkcloner.ui.look
 import io.github.bl3xand.apkcloner.ui.main.MainEvent
 import io.github.bl3xand.apkcloner.ui.main.MainViewModel
+import io.github.bl3xand.apkcloner.ui.show
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
@@ -165,8 +166,8 @@ class CloneSheet : BottomSheetDialogFragment() {
         binding.progress.isInvisible = !(running || installing)
         when (state) {
             CloneState.Idle -> Unit
-            // While it runs the bar says so; words are kept for how it ended.
-            is CloneState.Running -> binding.textStatus.text = ""
+            // While it runs the bar fills with the build's real progress; words are kept for how it ended.
+            is CloneState.Running -> binding.progress.show(running, state.percent.toDouble())
             is CloneState.Failed -> binding.textStatus.text = getString(R.string.status_failed, state.message)
             // Left alone otherwise, so the outcome of an install or a save stays on screen.
             is CloneState.Done -> if (lastRunning || binding.textStatus.text.isEmpty()) binding.textStatus.setText(R.string.status_done)

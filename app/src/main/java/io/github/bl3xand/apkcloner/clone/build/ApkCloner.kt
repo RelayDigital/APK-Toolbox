@@ -30,15 +30,23 @@ class ApkCloner(private val context: Context) {
     fun clone(
         request: CloneRequest,
         outputDir: File,
-        onProgress: (file: String, index: Int, total: Int) -> Unit,
+        onProgress: (percent: Int) -> Unit = {},
     ): List<File> {
         outputDir.deleteRecursively()
         check(outputDir.mkdirs()) { "Cannot create $outputDir" }
         val unsigned = File(outputDir, "unsigned.tmp")
         try {
+            // What the whole build will do, counted from the APKs' own structure before any of it
+            // runs: the manifest rewrite of every APK, every patch pass over every dex entry, the
+            // icon marking and the signing of the base. The bar shows a real fraction of THAT.
+            val totalSteps = request.apks.sumOf { stepsOf(it, request) }.coerceAtLeast(1)
+            var doneSteps = 0
+            fun step() {
+                doneSteps++
+                onProgress((doneSteps * 100L / totalSteps).toInt().coerceIn(0, 100))
+            }
             return request.apks.mapIndexed { index, apk ->
                 val name = if (index == 0) "base.apk" else apk.name
-                onProgress(name, index + 1, request.apks.size)
                 val output = File(outputDir, name)
 
                 // The icon lives in the base APK. An icon that cannot be marked is left as it
@@ -115,15 +123,17 @@ class ApkCloner(private val context: Context) {
                         },
                     )
                 }
-                val dexPatcher: ((String, ByteArray) -> ByteArray)? = when {
+                val dexPatcher: ((String, ByteArray, () -> Unit) -> ByteArray)? = when {
                     request.bypassSignatureCheck || request.renameAlias || request.keepAlive || originalCertificate != null || request.mimicry ->
                         DexPatchChain(request.patches, originalCertificate, originalPackage, clonePackage, helperDex)::apply
                     else -> null
                 }
-                ApkRebuilder.rebuild(apk, unsigned, patcher, iconFiles, metadata.takeIf { index == 0 }, dexPatcher = dexPatcher)
+                ApkRebuilder.rebuild(apk, unsigned, patcher, iconFiles, metadata.takeIf { index == 0 }, dexPatcher = dexPatcher, onStep = ::step)
                 if (dexPatcher != null) AppLog.debug("$name: dex patches on: ${request.patches.sorted().joinToString()}")
                 AppLog.debug("$name: ${patcher.oldPackage} renamed to ${request.newPackage}, ${unsigned.length()} bytes; signing")
+                if (index == 0 && request.badgeIconOf != null) step()
                 sign(unsigned, output, request.key ?: keys.active)
+                step()
                 output
             }
         } finally {
@@ -177,6 +187,27 @@ class ApkCloner(private val context: Context) {
     companion object {
         /** Stored in every clone's base APK so the app it was made from can be found again. */
         const val METADATA_ENTRY = "META-INF/apkcloner.properties"
+
+        /**
+         * The number of progress steps building [apk] as [request] describes will take: the
+         * manifest rewrite, one pass of every patch that is on over every dex entry, the icon
+         * marking and the signing (both base-only). Counted before the build starts, from the
+         * APK's own entry list, so the bar can show a real fraction of work to be done.
+         */
+        internal fun stepsOf(apk: File, request: CloneRequest): Int {
+            ZipFile(apk).use { zip ->
+                val dexes = zip.entries().toList().count { ApkRebuilder.isDexEntry(it.name) }
+                val passes = listOf(
+                    PatchIds.BYPASS in request.patches,
+                    PatchIds.KEEP_ALIVE in request.patches,
+                    PatchIds.RENAME_ALIAS in request.patches,
+                    request.spoofSignature || request.mimicry,
+                ).count { it }
+                val base = request.apks.firstOrNull() == apk
+                return dexes * passes + 1 + // the manifest rewrite of this APK
+                    if (base) (if (request.badgeIconOf != null) 2 else 1) else 0
+            }
+        }
 
         /** Written by builds from before the project was renamed; still read so those clones stay listed. */
         private const val LEGACY_METADATA_ENTRY = "META-INF/apkclonner.properties"
@@ -255,22 +286,25 @@ internal class DexPatchChain(
     /** The dex entry the spoof helper is injected into; null when no dex has room for it. */
     private val helperDex: String? = null,
 ) {
-    fun apply(name: String, data: ByteArray): ByteArray {
+    fun apply(name: String, data: ByteArray, onPass: () -> Unit = {}): ByteArray {
         var patched = data
         val original = originalPackage()
-        if (PatchIds.BYPASS in patches) patched = SignatureBypass.patchDex(patched)
-        if (PatchIds.KEEP_ALIVE in patches) patched = KeepAlive.patchDex(patched)
+        if (PatchIds.BYPASS in patches) { patched = SignatureBypass.patchDex(patched); onPass() }
+        if (PatchIds.KEEP_ALIVE in patches) { patched = KeepAlive.patchDex(patched); onPass() }
         // RENAME_ALIAS runs BEFORE the spoof: it rewrites every const-string equal to the
         // original package, so running it after would also rewrite the mimicry helper's own
         // payload string (the original's package name, injected by the spoof) and invert the
         // mimicry into reporting the clone's name. The other direction is safe: the spoof
         // retargets getPackageInfo/getPackageName invokes, and the alias rewriter only touches
         // const-strings - the retargeted calls and the helper it reads them for compose.
-        if (PatchIds.RENAME_ALIAS in patches) patched = CoreRenameAlias.patchDex(patched, original, clonePackage)
-        if (certificate != null) patched = SignatureSpoof.patchDex(
-            patched, name, certificate, original, clonePackage, PatchIds.MIMICRY in patches,
-            helperDex = helperDex ?: SignatureSpoof.PRIMARY_DEX_FALLBACK,
-        )
+        if (PatchIds.RENAME_ALIAS in patches) { patched = CoreRenameAlias.patchDex(patched, original, clonePackage); onPass() }
+        if (certificate != null) {
+            patched = SignatureSpoof.patchDex(
+                patched, name, certificate, original, clonePackage, PatchIds.MIMICRY in patches,
+                helperDex = helperDex ?: SignatureSpoof.PRIMARY_DEX_FALLBACK,
+            )
+            onPass()
+        }
         return patched
     }
 
