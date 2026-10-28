@@ -72,6 +72,7 @@ Get the latest build from [Releases](https://github.com/bl3xand/APK-Toolbox/rele
 - Any processor: the universal APK installs everywhere, and there is a smaller one for each kind.
 - No root needed.
 - [Shizuku](https://shizuku.rikka.app/) is optional — it lets apps and clones update without any prompts.
+- The interface speaks English, Русский, 中文, 日本語, العربية, Deutsch, Français, Español, Português (Brasil), Türkçe, 한국어, Italiano, Polski, Tiếng Việt, Bahasa Indonesia, Українська — pick yours in settings.
 
 ## Getting started
 
