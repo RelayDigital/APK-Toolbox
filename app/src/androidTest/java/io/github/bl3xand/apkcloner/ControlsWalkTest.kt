@@ -95,26 +95,50 @@ class ControlsWalkTest : BaseUiTest() {
 
         // ---- the language picker: open, pick English, the open sheet must relabel ----
         scrollSheetToBottom()
-        val languageLabel = scrollSheetUntil(string("settings_language"), maxSwipes = 10)
-            ?: error("No language row. Screen:\n${dumpVisibleTexts()}")
-        // The clickable is the whole row, not the label: tap its parent's centre.
-        (languageLabel.parent ?: languageLabel).click()
-        device.waitForIdle(800)
-        val english = device.wait(Until.findObject(By.text("English")), 5_000)
-            ?: error("No English in the language picker. Screen:\n${dumpVisibleTexts()}")
-        english.click()
+        device.waitForIdle(2_000)
+        Thread.sleep(600)
+        device.waitForIdle(1_000)
+        // The language row is a MaterialButton whose TEXT is the current value ("As in the
+        // system"), not the heading above it - found by id, clicked by its own bounds.
+        // The sheet settles first: a click on coordinates from a mid-scroll layout misses.
+        val languageButton = scrollSheetUntilRes("buttonLanguage")
+            ?: error("No language button. Screen:\n${dumpVisibleTexts()}")
+        languageButton.click()
+        // The picker opens as its own sheet over this one; if the click was swallowed by the
+        // settling layout it is tried again rather than failing the whole walk.
+        var english = device.wait(Until.findObject(By.text("English")), 4_000)
+        if (english == null) {
+            languageButton.click()
+            english = device.wait(Until.findObject(By.text("English")), 4_000)
+                ?: error("No English in the language picker. Screen:\n${dumpVisibleTexts()}")
+        }
+        // The picker's rows are cards: the clickable is the card the text sits in.
+        (english.parent ?: english).click()
         device.waitForIdle(1_500)
-        // The settings sheet is still open and now speaks English: its own title says so.
-        assert(device.findObject(By.text(string_en("settings_title"))) != null) {
+        // The relabel travels through AppCompatDelegate, which recreates the activity's
+        // locale asynchronously: waited for, not assumed. Wherever the sheet happens to be
+        // scrolled, one of its English texts is on screen - the title at the top, the
+        // language button at the bottom.
+        val relabeled = awaitCondition(10_000) {
+            runCatching {
+                device.findObject(By.res(packageName, "buttonLanguage"))?.text == "English" ||
+                    device.findObject(By.text(string_en("settings_title"))) != null
+            }.getOrDefault(false)
+        }
+        assert(relabeled) {
             "The settings sheet did not relabel after the language change. Screen:\n${dumpVisibleTexts()}"
         }
-        // Back to the system language the same way.
-        val languageEn = scrollSheetUntil(string_en("settings_language"), maxSwipes = 25)
-            ?: error("No language row (en). Screen:\n${dumpVisibleTexts()}")
-        languageEn.click()
-        val system = device.wait(Until.findObject(By.text(string_en("language_system"))), 5_000)
+        // Back to the system language the same way. The relabel recreated the activity:
+        // every node the walk held is stale now, and the sheet re-lays-out - the button is
+        // re-found fresh, and given a moment to settle before it is clicked again.
+        device.waitForIdle(1_000)
+        val languageButtonEn = scrollSheetUntilRes("buttonLanguage")
+            ?: error("No language button (en). Screen:\n${dumpVisibleTexts()}")
+        languageButtonEn.click()
+        device.waitForIdle(800)
+        val system = device.wait(Until.findObject(By.text(string_en("language_system"))), 8_000)
             ?: error("No system choice in the picker. Screen:\n${dumpVisibleTexts()}")
-        system.click()
+        (system.parent ?: system).click()
         device.waitForIdle(1_500)
         assertHealthy("after the language round trip")
 
@@ -124,19 +148,30 @@ class ControlsWalkTest : BaseUiTest() {
         val showLog = scrollSheetUntil(string("button_show_log"), maxSwipes = 25)
             ?: error("No show-log button. Screen:\n${dumpVisibleTexts()}")
         showLog.click()
-        for (chip in listOf("1", "3", "7", "30")) {
-            device.findObject(By.textContains(chip))?.click()
+        // Chip taps land on the sheet, never outside it: a tap on the scrim would dismiss
+        // the sheet and the back press after would take the settings sheet with it.
+        fun tapChip(text: String) {
+            val chip = device.wait(Until.findObject(By.text(text)), 3_000) ?: return
+            val b = chip.visibleBounds
+            if (b.height() > 0 && b.bottom <= device.displayHeight) chip.click()
             device.waitForIdle(400)
         }
+        for (chip in listOf("1", "3", "7", "30")) tapChip(chip)
         for (level in listOf("DEBUG", "INFO", "WARNING", "ERROR")) {
-            device.findObject(By.text(level))?.click()
-            device.waitForIdle(400)
-            device.findObject(By.text(level))?.click()
-            device.waitForIdle(400)
+            tapChip(level)
+            tapChip(level)
         }
         assertHealthy("after the log chips")
+        // The log sheet closes on back; the settings sheet must be under it. If a stray tap
+        // had dismissed the log sheet first, that same back takes the settings sheet too and
+        // can leave the app - then the app and settings are simply opened again: the walk
+        // goes on wherever the screens are.
         device.pressBack()
         device.waitForIdle(500)
+        if (device.findObject(By.res(packageName, "buttonShowLog")) == null) {
+            if (device.findObject(By.pkg(packageName).depth(0)) == null) launchMainActivity()
+            openSettings()
+        }
 
         // ---- the key buttons: create (first key needs no password), then reset with its warning ----
         val create = scrollSheetUntil(string("key_create"), maxSwipes = 25)
@@ -219,37 +254,42 @@ class ControlsWalkTest : BaseUiTest() {
         assert(ours <= 2) { "$ours app windows after $whenText - a dialog leaked" }
     }
 
-    /** Scrolls the open sheet until a view with this resource id is visible, mostly down
- *  (content moves up), with an occasional step back for a row just above the fold. */
+    /** Scrolls the open sheet until a view with this resource id is ON screen (not merely
+     *  in the tree: an off-screen node's bounds make a tap miss), mostly down. */
     private fun scrollSheetUntilRes(
         id: String,
         maxSwipes: Int = 25,
     ): androidx.test.uiautomator.UiObject2? {
-        // UiScrollable drives the sheet's own ScrollView: it scrolls both ways and never
-        // drags the sheet by its handle (which is what a raw downward swipe does).
-        val scroll = androidx.test.uiautomator.UiScrollable(
-            androidx.test.uiautomator.UiSelector().resourceId(packageName + ":id/design_bottom_sheet"),
-        )
-        scroll.waitForExists(2_000)
+        // Forward-only (content moves up): from anywhere, enough up-swipes pass every row, and
+        // a downward swipe at the bottom of the content drags the SHEET down and dismisses it.
+        // A node found off-screen is scrolled to first - clicking it where it sits would miss.
+        fun findVisible(): androidx.test.uiautomator.UiObject2? {
+            val node = device.findObject(By.res(packageName, id)) ?: return null
+            val b = node.visibleBounds
+            return if (b.height() > 0 && b.top >= 0 && b.bottom <= device.displayHeight) node else null
+        }
+        val sheet = device.findObject(By.clazz("android.widget.FrameLayout").res(packageName, "design_bottom_sheet"))
+            ?: return findVisible()
         repeat(maxSwipes) {
-            device.findObject(By.res(packageName, id))?.let { return it }
-            runCatching { scroll.scrollForward(20) }
-            device.waitForIdle(400)
-            device.findObject(By.res(packageName, id))?.let { return it }
-            runCatching { scroll.scrollBackward(20) }
+            findVisible()?.let { return it }
+            val rect = sheet.visibleBounds
+            device.swipe(rect.centerX(), rect.centerY(), rect.centerX(), rect.top + rect.height() / 4, 30)
             device.waitForIdle(400)
         }
-        return device.findObject(By.res(packageName, id))
+        return findVisible()
     }
 
     /** Scrolls the open settings sheet to its very bottom, so the rows down there (the
-     *  language row, the log button) are in view before a text lookup. */
+     *  language row, the log button) are in view before a text lookup. The swipe stays inside
+     *  the content - a swipe at the sheet's top edge would drag and dismiss the sheet. */
     private fun scrollSheetToBottom() {
-        val scroll = androidx.test.uiautomator.UiScrollable(
-            androidx.test.uiautomator.UiSelector().resourceId(packageName + ":id/design_bottom_sheet"),
-        )
-        scroll.waitForExists(2_000)
-        repeat(12) { runCatching { scroll.scrollForward(40) } }
+        val sheet = device.findObject(By.clazz("android.widget.FrameLayout").res(packageName, "design_bottom_sheet"))
+            ?: return
+        repeat(12) {
+            val rect = sheet.visibleBounds
+            device.swipe(rect.centerX(), rect.centerY(), rect.centerX(), rect.top + rect.height() / 4, 30)
+            device.waitForIdle(200)
+        }
         device.waitForIdle(500)
     }
 

@@ -233,6 +233,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun updateClones(clones: List<CloneInfo>) = rebuildClones(clones, "Updating", CloneInfo::updateRequest)
 
+    /** The last progress a rebuild reported, so the bar can resume where it was. */
+    var rebuildPercent: Int? = null
+        private set
+
     /**
      * Builds each clone again from its original as [request] describes and installs the result over
      * it, one after another. [action] names what is being done, for the log.
@@ -243,9 +247,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             for (clone in clones) {
                 val build = request(clone) ?: continue
                 _uiState.update { it.copy(updatingClone = clone.app.packageName) }
+                rebuildPercent = 0
                 try {
                     AppLog.info("$action clone ${clone.app.packageName}")
-                    output.install(cloner.clone(build, updateOutput) { _, _, _ -> })
+                    output.install(cloner.clone(build, updateOutput) { percent ->
+                        rebuildPercent = percent
+                        _uiState.update { it.copy() } // re-render with the new percent
+                    })
                 } catch (e: Exception) {
                     AppLog.error("$action clone ${clone.app.packageName} failed", e)
                     _events.tryEmit(MainEvent.Message(R.string.status_failed, e.message ?: e.javaClass.simpleName))
@@ -255,6 +263,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             _uiState.update { it.copy(updatingClone = null) }
+            rebuildPercent = null
         }
     }
 

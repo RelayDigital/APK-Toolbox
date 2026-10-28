@@ -202,6 +202,19 @@ In settings you can **Create** a key of your own or **Import** one from a PKCS#1
   <img src="docs/screenshots/settings-key.jpg" width="30%" alt="Signing key" />
 </p>
 
+### Verification info
+
+Every release APK is signed with the author's key. Verify it before installing — for example with `apksigner verify --print-certs app.apk` — against:
+
+* Package name: `io.github.bl3xand.apkcloner`
+* SHA-256 hash of signing certificate:
+
+```
+06:95:1F:0B:6F:94:7D:C0:C1:CD:C2:AC:CF:C7:9B:3B:DB:9F:6D:B1:57:6E:23:D7:94:68:EE:25:58:26:6A:4C
+```
+
+Clones you build yourself are signed with the built-in key or your own — that is a different certificate and a different story, see above.
+
 ## Good to know
 
 - A merged APK is signed with a different key than the original from a store, so it cannot be installed over it — the original has to be removed first.
@@ -211,7 +224,7 @@ In settings you can **Create** a key of your own or **Import** one from a PKCS#1
 
 ## Log
 
-**Settings → Show log** tells what the app did and what failed: checks, downloads, clones, merges, installs, changes of settings. It is kept for 30 days, can be narrowed to a period and to any set of levels, and **Save** writes what is shown to a `.log` file.
+**Settings → Show log** tells what the app did and what failed: checks, downloads, clones, merges, installs, changes of settings. It is kept for 30 days, can be narrowed to a period and to any set of levels, and **Save** writes the whole history to a `.log` file — attach that file to an issue and it says what happened: every step of every build, install and download, with the reasons in the system's own words.
 
 ## Building
 

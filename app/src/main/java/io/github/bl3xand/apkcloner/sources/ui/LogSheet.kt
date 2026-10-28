@@ -45,9 +45,10 @@ private const val PAGE_ENTRIES = 2000
 
 /**
  * Shows the app's log: by period and by any set of levels, each line in the colour of its level.
- * [save] is handed a file name and the text of what is shown, to be written where the user says.
+ * The chips narrow what is SEEN; [save] is handed only a file name, and whatever it writes is
+ * the whole ring log - every entry there ever was, not the selection on screen.
  */
-fun Context.showLogSheet(owner: LifecycleOwner, save: (fileName: String, text: String) -> Unit) {
+fun Context.showLogSheet(owner: LifecycleOwner, save: (fileName: String) -> Unit) {
     AppLog.init(this)
     var days = DEFAULT_PERIOD_DAYS
     // Any set of levels can be shown together; to begin with, everything that was kept.
@@ -134,14 +135,8 @@ fun Context.showLogSheet(owner: LifecycleOwner, save: (fileName: String, text: S
     }
     // No button to close it: the handle and the back gesture do that.
     showSheet(getString(R.string.settings_log), content = view, positive = getString(R.string.log_save)) {
-        // Everything the period and the levels select is saved, however much of it is laid out.
-        owner.lifecycleScope.launch {
-            val selected = withContext(Dispatchers.IO) {
-                AppLog.query(after = System.currentTimeMillis() - days * DAY_MS)
-                    .filter { it.level in shownLevels }.joinToString("\n") { it.toString() }
-            }
-            save("apk-toolbox-${LocalDate.now()}-${days}d.log", selected)
-        }
+        // The ring keeps the app's entire log; the period and the levels only narrow the view.
+        save("apk-toolbox-${LocalDate.now()}.log")
         false
     }
 }

@@ -64,16 +64,13 @@ class SettingsSheet : BottomSheetDialogFragment() {
 
     private val keys by lazy { SigningKeys.get(requireContext()) }
 
-    /** The log as it was shown when "Save" was tapped, kept until a place for it is chosen. */
-    private var logToSave: String? = null
-
     // A generic type keeps the picker from adding an extension of its own to the ".log" name.
     private val saveLogFile = registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
-        val text = logToSave
-        logToSave = null
-        if (uri == null || text == null) return@registerForActivityResult
+        if (uri == null) return@registerForActivityResult
         val saved = runCatching {
-            requireContext().contentResolver.openOutputStream(uri, "wt")!!.use { it.write(text.toByteArray()) }
+            // The whole ring log, written on the app-log writer thread (AppLog.writeRingLogTo):
+            // the copy never blocks the UI thread and a full history never sits in memory.
+            requireContext().contentResolver.openOutputStream(uri, "wt")!!.use { AppLog.writeRingLogTo(it) }
         }
         saved.onFailure { AppLog.error("Saving the log failed", it) }
         Messages.show(getString(if (saved.isSuccess) R.string.status_saved else R.string.save_failed, saved.exceptionOrNull()?.message.orEmpty()))
@@ -198,8 +195,7 @@ class SettingsSheet : BottomSheetDialogFragment() {
         binding.buttonLanguage.text = if (language == AppLanguage.SYSTEM) getString(R.string.language_system) else language.ownName
         binding.buttonLanguage.setOnClickListener { pickLanguage(language) }
         binding.buttonShowLog.setOnClickListener {
-            requireContext().showLogSheet(viewLifecycleOwner) { fileName, text ->
-                logToSave = text
+            requireContext().showLogSheet(viewLifecycleOwner) { fileName ->
                 saveLogFile.launch(fileName)
             }
         }

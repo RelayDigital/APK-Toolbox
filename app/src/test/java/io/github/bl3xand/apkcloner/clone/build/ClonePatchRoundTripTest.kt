@@ -201,7 +201,7 @@ class ClonePatchRoundTripTest {
         val built = ApkCloner(clonerContext()).clone(
             CloneRequest(apks, clonePackage, null, key, null, emptySet(), patches),
             outputDir,
-        ) { _, _, _ -> }.first()
+        ) { }.first()
         return built
     }
 
@@ -258,6 +258,34 @@ class ClonePatchRoundTripTest {
             .any { it.definingClass == "Lio/github/bl3xand/apkcloner/spoof/SignatureSource;" && it.name == "packageName" }
 
     // ---- the workflow -------------------------------------------------------------------------
+
+    @Test
+    fun theBuildReportsItsRealProgress() {
+        val source = sourceApk()
+
+        // What the build will do, read off the source's own structure: one dex, three patches
+        // on (keepAlive, renameAlias, spoof via mimicry's certificate) -> 3 passes, plus the
+        // manifest rewrite and the signing.
+        val patches = setOf(PatchIds.KEEP_ALIVE, PatchIds.RENAME_ALIAS, PatchIds.SPOOF_SIGNATURE)
+        assertEquals("steps counted up front: 1 manifest + 3 passes + 1 signing", 5, ApkCloner.stepsOf(source, CloneRequest(listOf(source), clonePackage, null, key, null, emptySet(), patches)))
+
+        // The build walks to 100 and only forward - a bar that jumps back would look stuck.
+        val seen = ArrayList<Int>()
+        buildReporting(listOf(source), patches, "prog") { seen.add(it) }
+        assertTrue("progress reaches 100", seen.last() == 100)
+        assertTrue("progress only moves forward", seen.zipWithNext().all { (a, b) -> a <= b })
+        // A step is a step: every count lands exactly once, none is skipped.
+        assertEquals("every step reports once", 5, seen.count { it > 0 })
+    }
+
+    private fun buildReporting(apks: List<File>, patches: Set<String>, dirName: String, onProgress: (Int) -> Unit): File {
+        val outputDir = File.createTempFile(dirName, "").let { it.delete(); it.also(File::mkdirs) }
+        return ApkCloner(clonerContext()).clone(
+            CloneRequest(apks, clonePackage, null, key, null, emptySet(), patches),
+            outputDir,
+            onProgress,
+        ).first()
+    }
 
     @Test
     fun patchChangeRebuildsFromTheSourceWithTheNewSet() {

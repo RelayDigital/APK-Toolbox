@@ -4,6 +4,7 @@ import java.io.DataInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.OutputStream
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 
@@ -65,26 +66,56 @@ class RingLog(
         val entries = ArrayList<LogEntry>()
         for ((segment, _) in order) {
             runCatching {
-                DataInputStream(FileInputStream(file(segment))).use { input ->
-                    input.readFully(ByteArray(SEGMENT_HEADER_BYTES))
-                    while (true) {
-                        // A torn tail ends the stream in the middle of this or the body: the read stops there.
-                        val header = ByteArray(RECORD_HEADER_BYTES)
-                        input.readFully(header)
-                        val level = header[0].toInt() and 0xFF
-                        val timestamp = ByteBuffer.wrap(header, 1, 8).long
-                        val length = ByteBuffer.wrap(header, 9, 4).int
-                        if (level > 3 || length < 0 || length > MAX_MESSAGE_BYTES) return@use
-                        val body = ByteArray(length)
-                        input.readFully(body)
-                        entries.add(
-                            LogEntry(LogLevel.entries.getOrElse(level) { LogLevel.INFO }, String(body, Charsets.UTF_8), timestamp),
-                        )
-                    }
-                }
+                readSegment(segment) { entries.add(it) }
             }
         }
         return entries
+    }
+
+    /**
+     * Writes the whole ring, oldest first, into [out]: every record as the line the log sheet
+     * shows, torn tails skipped - the same text [read] returns, without ever holding all of it.
+     * The ring keeps the app's ENTIRE log; this is what a device hands over for debugging.
+     * [header] lines are written first, when there are any: what the log came from.
+     */
+    fun writeLogTo(out: OutputStream, header: List<String> = emptyList()) {
+        for (line in header) out.write((line + "\n").toByteArray(Charsets.UTF_8))
+        val order = (0 until segmentCount)
+            .map { it to sequenceOf(it) }
+            .filter { it.second >= 0 }
+            .sortedBy { it.second }
+        val line = StringBuilder()
+        for ((segment, _) in order) {
+            runCatching {
+                readSegment(segment) { entry ->
+                    line.setLength(0)
+                    line.append(entry.toString()).append('\n')
+                    out.write(line.toString().toByteArray(Charsets.UTF_8))
+                }
+            }
+        }
+    }
+
+    /**
+     * One segment's records, oldest first, to [each]: a torn tail ends the read where it starts,
+     * and a segment that cannot be read is skipped whole by the caller's runCatching.
+     */
+    private fun readSegment(segment: Int, each: (LogEntry) -> Unit) {
+        DataInputStream(FileInputStream(file(segment))).use { input ->
+            input.readFully(ByteArray(SEGMENT_HEADER_BYTES))
+            while (true) {
+                // A torn tail ends the stream in the middle of this or the body: the read stops there.
+                val header = ByteArray(RECORD_HEADER_BYTES)
+                input.readFully(header)
+                val level = header[0].toInt() and 0xFF
+                val timestamp = ByteBuffer.wrap(header, 1, 8).long
+                val length = ByteBuffer.wrap(header, 9, 4).int
+                if (level > 3 || length < 0 || length > MAX_MESSAGE_BYTES) return@use
+                val body = ByteArray(length)
+                input.readFully(body)
+                each(LogEntry(LogLevel.entries.getOrElse(level) { LogLevel.INFO }, String(body, Charsets.UTF_8), timestamp))
+            }
+        }
     }
 
     private fun write(level: LogLevel, timestamp: Long, message: String, startOver: Boolean = false): Boolean {
@@ -191,9 +222,9 @@ class RingLog(
         ByteBuffer.allocate(RECORD_HEADER_BYTES).put(level.ordinal.toByte()).putLong(timestamp).putInt(length).array()
 
     private companion object {
-        /** 8 segments of 37.5 MB: 300 MB of history in all. */
+        /** 8 segments of 18.75 MB: 150 MB of history in all. */
         const val DEFAULT_SEGMENT_COUNT = 8
-        const val DEFAULT_SEGMENT_BYTES = 37_500_000L
+        const val DEFAULT_SEGMENT_BYTES = 18_750_000L
 
         /** "APK1": a file that is not one of ours is ignored. */
         const val MAGIC = 0x41504B31

@@ -21,6 +21,7 @@ import io.github.bl3xand.apkcloner.ui.apps.bind
 import io.github.bl3xand.apkcloner.ui.confirm
 import io.github.bl3xand.apkcloner.ui.main.MainActivity
 import io.github.bl3xand.apkcloner.ui.main.MainViewModel
+import io.github.bl3xand.apkcloner.ui.show
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
@@ -35,8 +36,6 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = SheetCloneDetailBinding.inflate(inflater, container, false)
-        // A clone is rebuilt or removed in one go: there are no steps to count.
-        binding.actions.progress.isIndeterminate = true
         return binding.root
     }
 
@@ -154,7 +153,11 @@ class CloneDetailSheet : BottomSheetDialogFragment() {
             else viewModel.setCloneFrozen(clone, on)
         }
 
-        binding.actions.progress.isInvisible = !busy
+        binding.actions.progress.show(
+            busy,
+            // The percent of a rebuild in progress; null (plain "working on it") for the rest.
+            viewModel.rebuildPercent?.toDouble()?.takeIf { updating == clone.app.packageName },
+        )
         binding.actions.buttonUpdate.isEnabled = clone.updateAvailable && !busy
         binding.actions.buttonDelete.isEnabled = !busy
         binding.actions.buttonUpdate.setOnClickListener {

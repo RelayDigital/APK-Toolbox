@@ -862,7 +862,11 @@ class SourcesInstaller private constructor(private val context: Context) {
         AppLog.info("Building ${app.id} ${app.latestVersion} as the clone $target, without: ${removed.sorted().joinToString().ifEmpty { "-" }}, with patches: ${app.clonePatches.sorted().joinToString().ifEmpty { "-" }}")
         val name = app.settings.getStringOrNull(SettingKeys.CLONE_NAME)?.takeIf { it.isNotBlank() }
         keepOriginalManifest(app, apks.first(), info?.versionCode ?: 0)
-        return cloner.clone(CloneRequest(apks, target, name, key, icon, removed, app.clonePatches), cloneDir(app.id)) { _, _, _ -> }
+        return cloner.clone(CloneRequest(apks, target, name, key, icon, removed, app.clonePatches), cloneDir(app.id)) { percent ->
+            // The build phase takes the download's place in the row: 90 is where the download
+            // left it, the build fills the rest of the way to 99; 100 is only the install.
+            repo.setDownload(app.id, DownloadState(90.0 + percent * 0.09))
+        }
     }
 
     /**

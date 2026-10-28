@@ -81,7 +81,7 @@ class PatchPerSetRuntimeTest : BaseUiTest() {
             isSystem = false,
             appInfo = appInfo,
         ).cloneRequest(newPackage = clonePackage, newLabel = "Matrix", badgeIcon = false, patches = patches)
-        val apks = ApkCloner(context).clone(request, output) { _, _, _ -> }
+        val apks = ApkCloner(context).clone(request, output) { }
         assertTrue("The clone produced no APKs", apks.isNotEmpty())
 
         // Installed the way the app itself installs: its own Installer, from its own cache -

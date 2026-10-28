@@ -50,13 +50,20 @@ interface Installer {
          */
         fun choose(context: Context, background: Boolean): Installer {
             val settings = AppSettings(context)
-            return when {
+            val chosen = when {
                 settings.useRoot && Root.isAvailable() -> RootInstaller
                 !background -> StockInstaller
                 settings.installMethod == InstallMethod.SHIZUKU &&
                     ShizukuBridge.state() == ShizukuState.READY -> ShizukuInstaller
                 else -> StockInstaller
             }
+            // Why an install went the way it did: the log says the method and what ruled it.
+            AppLog.info(
+                "Install method: ${chosen.javaClass.simpleName} " +
+                    "(root=${settings.useRoot && Root.isAvailable()}, background=$background, " +
+                    "setting=${settings.installMethod}, shizuku=${ShizukuBridge.state()})"
+            )
+            return chosen
         }
 
         /**
