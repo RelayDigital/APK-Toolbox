@@ -226,8 +226,6 @@ Clones you build yourself are signed with the built-in key or your own — that 
 
 **Settings → Show log** tells what the app did and what failed: checks, downloads, clones, merges, installs, changes of settings. It is kept for 30 days, can be narrowed to a period and to any set of levels, and **Save** writes the whole history to a `.log` file — attach that file to an issue and it says what happened: every step of every build, install and download, with the reasons in the system's own words.
 
-A clone that crashes runs in its own process, where this app's log cannot reach. If a clone misbehaves, take its own record: **Settings → About phone → tap Build number seven times**, then in **Developer options → Bug report** (or `adb logcat -b crash` from a computer) — and attach that alongside the `.log` file.
-
 ## Building
 
 ```bash
