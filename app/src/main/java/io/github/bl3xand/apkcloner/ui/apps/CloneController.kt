@@ -100,9 +100,15 @@ class CloneController(
                     if (removedPermissions.isNotEmpty()) AppLog.info("Clone is made without: ${removedPermissions.joinToString()}")
                     if (patches.isNotEmpty()) AppLog.info("Clone is made with patches: ${patches.joinToString()}")
                     val request = source.cloneRequest(newPackage, newLabel, badgeIcon, removedPermissions = removedPermissions, patches = patches)
+                    val startedAt = System.currentTimeMillis()
                     CloneState.Done(cloner.clone(request, sheetOutput) { percent ->
                         _state.value = CloneState.Running(percent)
-                    }).also { AppLog.info("Cloned $newPackage: ${it.apks.sumOf(File::length) / ApkOutput.BYTES_IN_MB} MB") }
+                    }).also {
+                        AppLog.info(
+                            "Cloned $newPackage: ${it.apks.sumOf(File::length) / ApkOutput.BYTES_IN_MB} MB " +
+                                "in ${(System.currentTimeMillis() - startedAt) / 1000}s (${source.apkPaths.size} file(s))"
+                        )
+                    }
                 } catch (e: Exception) {
                     AppLog.error("Cloning ${source.packageName} as $newPackage failed", e)
                     sheetOutput.deleteRecursively()

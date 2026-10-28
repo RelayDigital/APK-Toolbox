@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageInstaller
 import android.os.Build
 import io.github.bl3xand.apkcloner.install.InstallReceiver
+import io.github.bl3xand.apkcloner.log.AppLog
 import java.io.File
 
 object ApkInstaller {
@@ -24,6 +25,10 @@ object ApkInstaller {
             params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
         }
         val sessionId = installer.createSession(params)
+        AppLog.info(
+            "System installer: session $sessionId opened for ${label.ifBlank { apks.firstOrNull()?.name ?: "?" }} " +
+                "(${apks.size} file(s), ${apks.sumOf { it.length() } / 1_048_576} MB, ${if (background) "background" else "foreground"})"
+        )
         installer.openSession(sessionId).use { session ->
             try {
                 for (apk in apks) {
@@ -34,6 +39,7 @@ object ApkInstaller {
                 }
             } catch (e: Exception) {
                 // A half-staged session would only block the same package's next install.
+                AppLog.errorWithStack("System installer: staging session $sessionId failed", e)
                 runCatching { session.abandon() }
                 throw e
             }

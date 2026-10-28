@@ -4,11 +4,14 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.util.Log
+import io.github.bl3xand.apkcloner.BuildConfig
 import java.io.File
+import java.util.Locale
 
 /**
  * The app's log: what was checked, downloaded, cloned, merged and installed, and what failed.
@@ -80,6 +83,26 @@ object AppLog {
     fun warn(message: String) = log(LogLevel.WARNING, message)
     fun error(message: String, error: Throwable? = null) =
         log(LogLevel.ERROR, if (error != null) "$message: ${error.message ?: error}" else message)
+
+    /**
+     * An error with its whole stack: the message line at ERROR, the stack itself at DEBUG, so
+     * the sheet's error filter stays readable while the saved log holds everything there is
+     * to know about where it came from.
+     */
+    fun errorWithStack(message: String, error: Throwable) {
+        error(message, error)
+        debug("$message: stack:\n${error.stackTraceToString().take(MAX_STACK_CHARS)}")
+    }
+
+    /**
+     * The lines a saved log starts with: everything about the device and build there is to
+     * know before a single entry, so a log a user sends tells what it came from.
+     */
+    fun header(): List<String> = listOf(
+        "APK Toolbox ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+        "Device: ${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE}, API ${Build.VERSION.SDK_INT})",
+        "Locale: ${Locale.getDefault().toLanguageTag()}, ring log format 1",
+    )
 
     private fun log(level: LogLevel, message: String) {
         Log.println(
@@ -154,14 +177,16 @@ object AppLog {
      * Writes the ring's ENTIRE log, oldest first, into [out] as lines, on the writer thread: the
      * only thread that appends to the ring, so the copy is consistent without a lock. Whatever
      * the log sheet's period and level chips happen to select, this is everything there is.
+     * The device header goes first: a log a user sends tells what it came from.
      */
     fun writeRingLogTo(out: java.io.OutputStream) {
+        val head = header()
         val handler = writer
         val done = java.util.concurrent.CountDownLatch(1)
         var failure: Throwable? = null
         // Posted to the writer thread when it exists; run inline as a last resort, like write().
         val copy = {
-            runCatching { ring?.writeLogTo(out) }.onFailure { failure = it }
+            runCatching { ring?.writeLogTo(out, head) }.onFailure { failure = it }
             done.countDown()
         }
         if (handler == null || !handler.post(copy)) copy()
@@ -171,4 +196,7 @@ object AppLog {
 
     /** A crash must not be held up for long by a full queue; logcat already has the entry. */
     private const val FLUSH_TIMEOUT_MS = 2_000L
+
+    /** Stacks are cut here: the longest there is - a binder chain - is far shorter. */
+    private const val MAX_STACK_CHARS = 24_000
 }

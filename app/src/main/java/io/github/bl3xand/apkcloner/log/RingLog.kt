@@ -76,8 +76,10 @@ class RingLog(
      * Writes the whole ring, oldest first, into [out]: every record as the line the log sheet
      * shows, torn tails skipped - the same text [read] returns, without ever holding all of it.
      * The ring keeps the app's ENTIRE log; this is what a device hands over for debugging.
+     * [header] lines are written first, when there are any: what the log came from.
      */
-    fun writeLogTo(out: OutputStream) {
+    fun writeLogTo(out: OutputStream, header: List<String> = emptyList()) {
+        for (line in header) out.write((line + "\n").toByteArray(Charsets.UTF_8))
         val order = (0 until segmentCount)
             .map { it to sequenceOf(it) }
             .filter { it.second >= 0 }

@@ -1,5 +1,6 @@
 package io.github.bl3xand.apkcloner.sources.net
 
+import io.github.bl3xand.apkcloner.log.AppLog
 import io.github.bl3xand.apkcloner.sources.core.ApkFilter
 import io.github.bl3xand.apkcloner.sources.core.CancellationSignal
 import io.github.bl3xand.apkcloner.sources.core.HttpStatusError
@@ -50,8 +51,10 @@ object Downloader {
                 val retryableStatus = e is HttpStatusError && (e.statusCode == 429 || e.statusCode >= 500)
                 if (remaining > 0 && (e is IOException || retryableStatus)) {
                     remaining--
+                    AppLog.warn("Download of $url failed (${e.message ?: e.javaClass.simpleName}); retrying, $remaining left")
                     Thread.sleep(RETRY_DELAY_MS)
                 } else {
+                    AppLog.errorWithStack("Download of $url failed", e)
                     throw e
                 }
             }
