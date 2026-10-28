@@ -105,6 +105,7 @@ object AppLog {
     )
 
     private fun log(level: LogLevel, message: String) {
+        val safe = redact(message)
         Log.println(
             when (level) {
                 LogLevel.DEBUG -> Log.DEBUG
@@ -112,13 +113,26 @@ object AppLog {
                 LogLevel.WARNING -> Log.WARN
                 LogLevel.ERROR -> Log.ERROR
             },
-            TAG, message,
+            TAG, safe,
         )
         val handler = writer ?: return
-        val posted = handler.post { write(level, message) }
+        val posted = handler.post { write(level, safe) }
         // The writer thread is gone only when the process is on its way out; the entry still
         // went to logcat, and logging must never break what is being logged.
-        if (!posted) write(level, message)
+        if (!posted) write(level, safe)
+    }
+
+    /**
+     * A log a user attaches to a public issue must not carry their secrets: URLs name their
+     * query with a token, key or password often enough. Every such parameter's value is
+     * replaced before the entry is stored or printed, wherever in the line it appears.
+     */
+    private fun redact(message: String): String {
+        if (!message.contains("://")) return message
+        return REDACT_QUERY.replace(message) { m ->
+            val key = m.groupValues[1].lowercase()
+            if (key in SECRET_QUERY) "${m.groupValues[0].substringBefore('=')}=<redacted>" else m.value
+        }
     }
 
     /** Runs on the writer thread (or the caller's, as a last resort) and never throws. */
@@ -199,4 +213,13 @@ object AppLog {
 
     /** Stacks are cut here: the longest there is - a binder chain - is far shorter. */
     private const val MAX_STACK_CHARS = 24_000
+
+    /** A URL query parameter with any of these names has its value replaced outright. */
+    private val SECRET_QUERY = setOf("token", "key", "api_key", "apikey", "password", "pass", "secret", "auth", "signature", "sig")
+
+    /** Any `name=value` pair in a query, however the URL is embedded in the line. */
+    private val REDACT_QUERY = Regex("([A-Za-z0-9_-]+)=([^&\\s]+)")
+
+    /** The redaction step alone, for the tests. */
+    internal fun redactForTest(message: String): String = redact(message)
 }
