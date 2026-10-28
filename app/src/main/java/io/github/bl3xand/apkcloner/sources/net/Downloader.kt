@@ -54,7 +54,9 @@ object Downloader {
                     AppLog.warn("Download of $url failed (${e.message ?: e.javaClass.simpleName}); retrying, $remaining left")
                     Thread.sleep(RETRY_DELAY_MS)
                 } else {
-                    AppLog.errorWithStack("Download of $url failed", e)
+                    // A cancellation is the user's own doing, not a failure to explain.
+                    if (e is CancellationSignal) AppLog.info("Download of $url cancelled")
+                    else AppLog.errorWithStack("Download of $url failed", e)
                     throw e
                 }
             }
