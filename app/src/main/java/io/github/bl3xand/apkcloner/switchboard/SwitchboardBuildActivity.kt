@@ -10,6 +10,7 @@ import io.github.bl3xand.apkcloner.clone.build.IconBadger
 import io.github.bl3xand.apkcloner.clone.build.SigningKeys
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.ZipFile
 import kotlin.concurrent.thread
 import org.json.JSONArray
@@ -18,6 +19,7 @@ import org.json.JSONObject
 /** Explicit shell-only, build-only Stage A entry point. No install or account actions. */
 class SwitchboardBuildActivity : Activity() {
     private lateinit var status: TextView
+    companion object { private val building = AtomicBoolean(false) }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         status = TextView(this).apply { setPadding(32, 48, 32, 32); textSize = 18f }
@@ -39,6 +41,10 @@ class SwitchboardBuildActivity : Activity() {
         val resultDir = File(parent, jobId)
         if (resultDir.exists() || !resultDir.mkdirs()) {
             status.text = "A job with that ID already exists. No files replaced."
+            return
+        }
+        if (!building.compareAndSet(false, true)) {
+            status.text = "Another Stage A build is running. No second job was started."
             return
         }
         status.text = "Preparing Instagram 01. This builds APKs only; it does not install or replace apps."
@@ -94,6 +100,8 @@ class SwitchboardBuildActivity : Activity() {
                 // Do not export arbitrary exception messages or source app data.
                 runCatching { save() }
                 runOnUiThread { status.text = "Build failed (${e.javaClass.simpleName}). No app was installed. Inspect the source version and build configuration." }
+            } finally {
+                building.set(false)
             }
         }
     }
