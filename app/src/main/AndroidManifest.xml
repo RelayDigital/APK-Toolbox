@@ -38,6 +38,13 @@
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.ApkCloner">
 
+        <!-- Shell/system-only integration. Never exposed as a browser/deep link. -->
+        <activity
+            android:name=".switchboard.SwitchboardBuildActivity"
+            android:exported="true"
+            android:permission="android.permission.DUMP"
+            android:screenOrientation="portrait" />
+
         <activity
             android:name=".ui.main.MainActivity"
             android:screenOrientation="portrait"
