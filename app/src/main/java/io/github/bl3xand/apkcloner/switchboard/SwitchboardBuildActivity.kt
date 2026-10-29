@@ -10,7 +10,6 @@ import io.github.bl3xand.apkcloner.clone.build.IconBadger
 import io.github.bl3xand.apkcloner.clone.build.SigningKeys
 import java.io.File
 import java.security.MessageDigest
-import java.util.UUID
 import java.util.zip.ZipFile
 import kotlin.concurrent.thread
 import org.json.JSONArray
@@ -34,6 +33,7 @@ class SwitchboardBuildActivity : Activity() {
             status.text = "Stage A accepts dev01 and a generated job ID only. No work performed."
             return
         }
+        val target = "com.instagram.android.dev01"
         val parent = getExternalFilesDir(null)?.resolve("switchboard-builds")
         if (parent == null) { status.text = "Build storage unavailable"; return }
         val resultDir = File(parent, jobId)
@@ -62,7 +62,7 @@ class SwitchboardBuildActivity : Activity() {
                 val generated = keys.custom == null
                 if (generated) keys.generate("Switchboard Instagram Development")
                 val key = checkNotNull(keys.custom) { "A private signing key is required; the bundled demo key is never used" }
-                val badge = IconBadger(this).replacements(info, requested)
+                val badge = IconBadger(this).replacements(info, target)
                 check(badge.isNotEmpty()) { "The requested icon badge cannot be encoded for this source" }
                 report.put("source_version", pkg.versionName)
                     .put("source_apks", JSONArray(sources.map { JSONObject().put("name", it.name).put("sha256", sha(it)) }))
@@ -73,7 +73,7 @@ class SwitchboardBuildActivity : Activity() {
                         .put("split_handling", "preserve").put("root", false))
                 save()
                 val built = ApkCloner(this).clone(
-                    CloneRequest(sources, requested, "Instagram 01", key = key, badgeIconOf = info,
+                    CloneRequest(sources, target, "Instagram 01", key = key, badgeIconOf = info,
                         removedPermissions = emptySet(), patches = emptySet()),
                     File(resultDir, "apks"),
                 ) { percent -> runOnUiThread { status.text = "Building Instagram 01: $percent%" } }
