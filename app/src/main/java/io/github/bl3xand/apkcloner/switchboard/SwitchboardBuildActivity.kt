@@ -60,13 +60,17 @@ class SwitchboardBuildActivity : Activity() {
                 save()
                 @Suppress("DEPRECATION")
                 val pkg = packageManager.getPackageInfo("com.instagram.android", 0)
-                check(pkg.versionName == "453.0.0.55.79") { "Source version differs from the requested baseline" }
+                report.put("source_version", pkg.versionName)
+                check(pkg.versionName == "453.0.0.55.79") { "source_version_mismatch" }
                 val info = checkNotNull(pkg.applicationInfo)
                 val sources = listOf(File(info.sourceDir)) + info.splitSourceDirs.orEmpty().map(::File)
                 check(sources.all { it.isFile && it.canRead() }) { "Cannot read the complete installed split set" }
                 val keys = SigningKeys.get(this)
                 val generated = keys.custom == null
-                if (generated) keys.generate("Switchboard Instagram Development")
+                if (generated) {
+                    check(!File(filesDir, "signing/key.bin").exists()) { "existing_private_key_unreadable" }
+                    keys.generate("Switchboard Instagram Development")
+                }
                 val key = checkNotNull(keys.custom) { "A private signing key is required; the bundled demo key is never used" }
                 val badge = IconBadger(this).replacements(info, target)
                 check(badge.isNotEmpty()) { "The requested icon badge cannot be encoded for this source" }
@@ -97,6 +101,9 @@ class SwitchboardBuildActivity : Activity() {
                 runOnUiThread { status.text = "APK set built with a private key. Not installed or runtime-validated.\n$resultDir" }
             } catch (e: Exception) {
                 report.put("state", "failed").put("error_type", e.javaClass.simpleName)
+                if (e.message in setOf("source_version_mismatch", "existing_private_key_unreadable")) {
+                    report.put("failure_code", e.message)
+                }
                 // Do not export arbitrary exception messages or source app data.
                 runCatching { save() }
                 runOnUiThread { status.text = "Build failed (${e.javaClass.simpleName}). No app was installed. Inspect the source version and build configuration." }
