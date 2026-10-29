@@ -27,7 +27,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "io.github.bl3xand.apkcloner"
+        applicationId = "io.github.bl3xand.apkcloner.switchboard"
         // Android 8.0: adaptive icons and notification channels, which the app counts on.
         minSdk = 26
         targetSdk = 36
